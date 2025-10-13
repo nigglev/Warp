@@ -34,7 +34,7 @@ void ADefaultPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 	UpdateTileHovering();
-	UpdateUnitPlacementPreview();
+	UpdateUnitGhostPosition();
 	UpdateCamera();
 }
 
@@ -56,7 +56,6 @@ void ADefaultPlayerController::SetupInputComponent()
 	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		EIC->BindAction(PlaceUnitAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnPlaceUnitAction);
-		EIC->BindAction(MoveUnitAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnMoveUnitAction);
 		EIC->BindAction(StartTurnAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnStartTurnAction);
 		EIC->BindAction(RotateUnitGhostAction, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnRotateUnitGhostAction);
 
@@ -68,6 +67,10 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(RMBHoldAction, ETriggerEvent::Started,   this, &ADefaultPlayerController::OnRMBPressed);
 		EIC->BindAction(RMBHoldAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRMBReleased);
 		EIC->BindAction(RMBHoldAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRMBReleased);
+
+		EIC->BindAction(MoveUnitAction, ETriggerEvent::Started,   this, &ADefaultPlayerController::OnMoveUnitAction);
+		//EIC->BindAction(MoveUnitAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnMoveUnitAction);
+		//EIC->BindAction(MoveUnitAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnMoveUnitAction);
 	}
 }
 
@@ -156,24 +159,16 @@ void ADefaultPlayerController::UpdateTileHovering()
 	CombatMapManager->UpdateHoveredTile(TileIndex);
 }
 
-void ADefaultPlayerController::UpdateUnitPlacementPreview() const
+void ADefaultPlayerController::UpdateUnitGhostPosition() const
 {
-	if ((!bPlacingUnit_ && !bMovingUnit_) || !GhostActor)
+	if ((!bPlacingUnit_ && !bMovingUnit_) || !IsValid(GhostActor_))
 		return;
 	if (HoveredTile == PrevHoveredTile)
 		return;
-	UpdateGhostPosition(HoveredTile);
+	const FVector WorldCenter = CombatMapManager->GridToLevelPosition(HoveredTile);
+	CheckIfTilesAreAvailable(HoveredTile, GhostActor_->GetUnitActorSize(), GhostActor_->GetUnitActorRotation());
+	GhostActor_->UpdatePosition(WorldCenter);
 }
-
-void ADefaultPlayerController::UpdateGhostPosition(const FIntPoint& InTile) const
-{
-	const FVector WorldCenter = CombatMapManager->GridToLevelPosition(InTile);
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-				TEXT("Placing Unit at [%d, %d] {%s}"), InTile.X, InTile.Y, *WorldCenter.ToString());
-	GhostActor->SetActorLocation(WorldCenter + FVector(0, 0, 50.0f));
-	CheckIfTilesAreAvailable(InTile);
-}
-
 
 void ADefaultPlayerController::UpdateCamera() const
 {
@@ -200,19 +195,13 @@ void ADefaultPlayerController::UpdateCamera() const
 
 void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
 {
-	if (!GhostActor)
+	if (!IsValid(GhostActor_))
 		return;
 	const float Delta = Value.Get<float>();
 	if (Delta > 0)
-	{
-		PendingRotation.RotateClockwise();
-		GhostActor->SetActorRotation(FRotator(0, PendingRotation.GetUnitFRotation(), 0));
-	}
+		GhostActor_->Rotate(true);
 	if (Delta < 0)
-	{
-		PendingRotation.RotateCounterClockwise();
-		GhostActor->SetActorRotation(FRotator(0, PendingRotation.GetUnitFRotation(), 0));
-	}
+		GhostActor_->Rotate(false);
 }
 
 void ADefaultPlayerController::OnPlaceUnitAction()
@@ -227,11 +216,19 @@ void ADefaultPlayerController::OnMoveUnitAction()
 {
 	if (bPlacingUnit_)
 		return;
-	bMovingUnit_ = true;
-	ABaseUnitActor* UnitActor = GetMouseoverUnit();
-	if (!UnitActor)
-		return;
-	SpawnGhost();
+	
+	bMovingUnit_ = !bMovingUnit_;
+	if (bMovingUnit_)
+	{
+		ABaseUnitActor* UnitActor = GetMouseoverUnit();
+		if (!UnitActor)
+			return;
+		GhostActor_ = CombatMapManager->SpawnUnitActorGhost(UnitActor);
+	}
+	else
+	{
+		CombatMapManager->DestroyGhostActor(GhostActor_);
+	}
 	
 }
 
@@ -317,46 +314,15 @@ void ADefaultPlayerController::OnCameraToggleLock()
 
 void ADefaultPlayerController::EnterPlacementMode(const FUnitSize& InSize)
 {
-	PendingRotation.SetUnitRotation(EUnitRotation::Rot_0);
-	PendingSize = InSize;
 	bPlacingUnit_ = true;
-
-	SpawnGhost();
+	GhostActor_ = CombatMapManager->SpawnUnitActorGhost(FVector2f::ZeroVector, InSize, FUnitRotation::Rot0());
 }
 
 
 void ADefaultPlayerController::CancelPlacementMode()
 {
 	bPlacingUnit_ = false;
-	DestroyGhost();
-}
-
-void ADefaultPlayerController::SpawnGhost()
-{
-	if (GhostActor || !GhostActorClass) return;
-
-	FActorSpawnParameters P;
-	P.Owner = this;
-	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	GhostActor = GetWorld()->SpawnActor<ABaseUnitActor>(GhostActorClass, FTransform::Identity, P);
-	if (GhostActor)
-	{
-		GhostActor->SetReplicates(false);
-		GhostActor->SetActorEnableCollision(false);
-		GhostActor->SetActorRotation(FRotator(0, PendingRotation.GetUnitFRotation(), 0));
-		GhostActor->ResizeMeshToSize(PendingSize.GetUnitTileLength().X * CombatMapManager->GetTileSizeUU(),
-			PendingSize.GetUnitTileLength().Y * CombatMapManager->GetTileSizeUU());
-	}
-}
-
-void ADefaultPlayerController::DestroyGhost()
-{
-	if (GhostActor)
-	{
-		GhostActor->Destroy();
-		GhostActor = nullptr;
-	}
+	CombatMapManager->DestroyGhostActor(GhostActor_);
 }
 
 void ADefaultPlayerController::ServerStartTurns_Implementation(int32 Seed)
@@ -422,14 +388,16 @@ bool ADefaultPlayerController::PlaceUnitServerAuthoritative(const FIntPoint& Cen
 	if (!CombatMapManager) return false;
 	
 	TArray<FIntPoint> Blockers;
-	if (!CombatMapManager->IsPositionForUnitAvailable(CenterGrid, PendingRotation, PendingSize, Blockers))
+	FUnitSize UnitSize = GhostActor_->GetUnitActorSize();
+	FUnitRotation UnitRotation = GhostActor_->GetUnitActorRotation();
+	if (!CombatMapManager->IsPositionForUnitAvailable(CenterGrid, UnitRotation, UnitSize, Blockers))
 		return false;
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 	TEXT("Requesting to place unit with Rotation = %f, Size = %s at a pos %s"),
-	PendingRotation.GetUnitFRotation(), *PendingSize.GetUnitTileLength().ToString(), *CenterGrid.ToString());
+	UnitRotation.GetUnitFRotation(), *UnitSize.GetUnitTileLength().ToString(), *CenterGrid.ToString());
 	
-	ServerRequestPlaceUnit(CenterGrid, PendingRotation, PendingSize);
+	ServerRequestPlaceUnit(CenterGrid, UnitRotation, UnitSize);
 	
 	return true;
 }
@@ -453,10 +421,10 @@ void ADefaultPlayerController::ServerRequestPlaceUnit_Implementation(const FIntP
 	ClientPlacementResult(bSuccess);
 }
 
-void ADefaultPlayerController::CheckIfTilesAreAvailable(const FIntPoint& InTile) const
+void ADefaultPlayerController::CheckIfTilesAreAvailable(const FIntPoint& InTile, const FUnitSize& InUnitSize, const FUnitRotation& InUnitRotation) const
 {
 	TArray<FIntPoint> OutBlockers;
-	if (CombatMapManager->IsPositionForUnitAvailable(InTile, PendingRotation, PendingSize, OutBlockers))
+	if (CombatMapManager->IsPositionForUnitAvailable(InTile, InUnitRotation, InUnitSize, OutBlockers))
 	{
 		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 			TEXT("GOOD POSITION"));

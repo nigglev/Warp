@@ -7,6 +7,15 @@
 #include "Warp/Units/UnitBase.h"
 #include "BaseUnitActor.generated.h"
 
+UENUM()
+enum class EUnitActorState : uint8
+{
+	None = 0,
+	Playable = 1,
+	Ghost = 2,
+	MAX
+};
+
 UCLASS()
 class WARP_API ABaseUnitActor : public AActor
 {
@@ -23,6 +32,18 @@ public:
 
 	uint32 GetID() const {return UnitID;}
 	void SetID(const uint32 InID) {UnitID = InID;}
+
+	FUnitSize GetUnitActorSize() const {return UnitActorSize;}
+	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
+	
+	FUnitRotation GetUnitActorRotation() const {return UnitActorRotation;}
+	void SetUnitActorRotation(const FUnitRotation InRotation) {UnitActorRotation = InRotation;}
+
+	EUnitActorState GetUnitActorState() const {	return UnitActorState;	}
+	void SetUnitActorState(const EUnitActorState InState) {UnitActorState = InState;}
+
+	void UpdatePosition(const FVector& InPosition);
+	void Rotate(bool InClockwise);
 	
 protected:
 	UPROPERTY(VisibleAnywhere)
@@ -34,4 +55,10 @@ protected:
 
 	UPROPERTY(Replicated)
 	uint32 UnitID = 0;
+	UPROPERTY(Replicated)
+	FUnitSize UnitActorSize = FUnitSize::None();
+	UPROPERTY(Replicated)
+	FUnitRotation UnitActorRotation = FUnitRotation::Rot0();
+	UPROPERTY(Replicated)
+	EUnitActorState UnitActorState = EUnitActorState::None;
 };

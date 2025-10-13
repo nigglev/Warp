@@ -7,6 +7,7 @@
 #include "Warp/CombatMap/CombatMap.h"
 #include "CombatMapManager.generated.h"
 
+enum class EUnitActorState : uint8;
 struct FNetMovePath;
 enum class EUnitSizeCategory : uint8;
 enum class EUnitRotation : uint8;
@@ -26,7 +27,13 @@ public:
 	
 	void Init(uint32 InGridSize, uint32 InTileSize);
 	void GenerateGrid();
-	
+
+	ABaseUnitActor* SpawnUnitActorGhost(const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
+		const FUnitRotation& InUnitRotation);
+	ABaseUnitActor* SpawnUnitActorGhost(const ABaseUnitActor* InBasedOnUnitActor);
+	void SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
+		const FUnitRotation& InUnitRotation, EUnitActorState InUnitActorState);
+	void DestroyGhostActor(ABaseUnitActor* InGhostActor);
 	bool IsPositionForUnitAvailable(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
 
 	void UpdateHoveredTile(int32 NewInstanceIndex);
@@ -50,7 +57,7 @@ protected:
 	
 	UFUNCTION()
 	void SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnits);
-	void SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const float InUnitRotation, const FIntVector2& InUnitSize);
+	
 
 	void SetBlocker(int32 TileIdx);
 	void ClearBlocker() const;

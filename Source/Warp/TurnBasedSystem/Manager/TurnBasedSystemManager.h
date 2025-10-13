@@ -11,7 +11,7 @@ class UUnitBase;
 /**
  * 
  */
-UENUM(BlueprintType)
+UENUM()
 enum class ETurnPhase : uint8
 {
 	None,

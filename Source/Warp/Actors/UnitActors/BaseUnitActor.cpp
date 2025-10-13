@@ -3,8 +3,11 @@
 
 #include "BaseUnitActor.h"
 
+#include "MGLogs.h"
+#include "MGLogTypes.h"
 #include "Net/UnrealNetwork.h"
 
+DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
 // Sets default values
 ABaseUnitActor::ABaseUnitActor()
@@ -45,6 +48,27 @@ void ABaseUnitActor::ResizeMeshToSize(uint32 TargetLength, uint32 TargetWidth) c
 void ABaseUnitActor::ResizeMeshToSize(const FVector& InScale) const
 {
 	MeshComponent->SetRelativeScale3D(InScale);
+}
+
+void ABaseUnitActor::UpdatePosition(const FVector& InPosition)
+{
+	MG_COND_LOG(ABaseUnitActorLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+			TEXT("Placing Unit at {%s}"),  *InPosition.ToString());
+	SetActorLocation(InPosition + FVector(0, 0, 50.0f));
+}
+
+void ABaseUnitActor::Rotate(bool InClockwise)
+{
+	if (InClockwise)
+	{	
+		UnitActorRotation.RotateClockwise();
+		SetActorRotation(FRotator(0, UnitActorRotation.GetUnitFRotation(), 0));
+	}
+	if (!InClockwise)
+	{
+		UnitActorRotation.RotateCounterClockwise();
+		SetActorRotation(FRotator(0, UnitActorRotation.GetUnitFRotation(), 0));
+	}
 }
 
 void ABaseUnitActor::SetHighlighted(const bool bOn) const

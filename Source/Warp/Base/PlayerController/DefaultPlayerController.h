@@ -11,12 +11,17 @@
 #include "Warp/Units/UnitBase.h"
 #include "DefaultPlayerController.generated.h"
 
+class AUnitGhost;
 class UTurnBasedSystemManager;
 enum class ETurnPhase : uint8;
 class AWarpGameState;
 class UUnitBase;
 class ACombatMapManager;
 class ABaseUnitActor;
+class FUnitGhostDeleter
+{
+	
+};
 /**
  * 
  */
@@ -41,12 +46,9 @@ protected:
 	void TryInitCombatMapManager();
 	void SetupTurnBasedSystemManager();
 	
-	//GHOST AND TILE PREVIEW//
-	void SpawnGhost();
-	void DestroyGhost();
 	void UpdateTileHovering();
-	void UpdateUnitPlacementPreview() const;
-	void UpdateGhostPosition(const FIntPoint& InTile) const;
+	void UpdateUnitGhostPosition() const;
+
 
 	//CAMERA//
 	void UpdateCamera() const;
@@ -64,13 +66,17 @@ protected:
 	void ServerRequestPlaceUnit(const FIntPoint& CenterGrid, FUnitRotation Rotation, FUnitSize Size);
 	UFUNCTION(Client, Reliable)
 	void ClientPlacementResult(bool bSuccess);
-	void CheckIfTilesAreAvailable(const FIntPoint& InTile) const;
+	void CheckIfTilesAreAvailable(const FIntPoint& InTile, const FUnitSize& InUnitSize, const FUnitRotation& InUnitRotation) const;
 
 	//INPUT ACTIONS//
 	UFUNCTION()
 	void OnRotateUnitGhostAction(const FInputActionValue& Value);
 	UFUNCTION()
 	void OnStartTurnAction();
+	UFUNCTION()
+	void OnPlaceUnitAction();
+	UFUNCTION()
+	void OnMoveUnitAction();
 	UFUNCTION()
 	void OnCameraMove(const FInputActionValue& Value);
 	UFUNCTION()
@@ -122,14 +128,9 @@ protected:
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category="Projection")
-	TSubclassOf<ABaseUnitActor> GhostActorClass;
 	UPROPERTY()
-	ABaseUnitActor* GhostActor = nullptr;
+	ABaseUnitActor* GhostActor_ = nullptr;
 
-	FUnitRotation PendingRotation;
-	FUnitSize PendingSize;
-	
 	FIntPoint HoveredTile = FIntPoint(-2, -2);
 	FIntPoint PrevHoveredTile = FIntPoint(-1, -1);
 	uint32 LastFocusedTurnUnitId = 0;
@@ -139,17 +140,10 @@ protected:
 	bool bCameraLockedToTurnUnit = false;
 	
 	FTimerHandle InitMapTimerHandle;
-
-public:
-	
-protected:
-	UFUNCTION()
-	void OnPlaceUnitAction();
-	UFUNCTION()
-	void OnMoveUnitAction();
 	
 	bool bPlacingUnit_ = false;
 	bool bMovingUnit_ = false;
+
 };
 
 

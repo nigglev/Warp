@@ -139,24 +139,8 @@ void ACombatMapManager::BuildBaseInstances()
 	CurrentHoveredInstance = INDEX_NONE;
 }
 
-void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnits)
-{	
-	for (UUnitBase* Unit : ReplicatedUnits)
-	{
-		if (!Unit)
-			continue;
-		
-		if (UnitActorsByID.Contains(Unit->GetUnitID()))
-			continue;
-		
-		SpawnUnit(Unit->GetUnitID(), Unit->UnitPosition.GetUnitWorldPosition(),
-			Unit->UnitRotation.GetUnitFRotation(), Unit->UnitSize.GetUnitTileLength());
-	}
-	IsInitialUnitsSpawned = true;
-}
-
-
-void ACombatMapManager::SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const float InUnitRotation, const FIntVector2& InUnitSize)
+void ACombatMapManager::SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
+	const FUnitRotation& InUnitRotation,  EUnitActorState InUnitActorState)
 {
 	FVector SpawnLoc = CombatMapToLevelPosition(InUnitPos);
 	SpawnLoc.Z += UnitZOffset;
@@ -168,17 +152,98 @@ void ACombatMapManager::SpawnUnit(const uint32 InUnitID, const FVector2f& InUnit
 			GetWorld()->SpawnActor<ABaseUnitActor>(
 				UnitActorClass,
 				SpawnLoc,
-				FRotator(0, InUnitRotation, 0),
+				FRotator(0, InUnitRotation.GetUnitFRotation(), 0),
 				Params);
 	NewUnit->SetID(InUnitID);
-	NewUnit->ResizeMeshToSize(InUnitSize.X * GetTileSizeUU(), InUnitSize.Y * GetTileSizeUU());
-	
+	NewUnit->ResizeMeshToSize(InUnitSize.GetUnitTileLength().X * GetTileSizeUU(), InUnitSize.GetUnitTileLength().Y * GetTileSizeUU());
+	NewUnit->SetUnitActorSize(InUnitSize);
+	NewUnit->SetUnitActorRotation(InUnitRotation);
+	NewUnit->SetUnitActorState(InUnitActorState);
 	UnitActorsByID.Add(InUnitID, NewUnit);
 
 	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
 				TEXT("Placing Unit {id = %d} at a Pos = {%s}"), NewUnit->GetID(), *SpawnLoc.ToString());
 }
 
+void ACombatMapManager::DestroyGhostActor(ABaseUnitActor* InGhostActor)
+{
+	InGhostActor->Destroy();
+	InGhostActor = nullptr;
+}
+
+
+ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
+                                                       const FUnitRotation& InUnitRotation)
+{
+	FVector SpawnLoc = CombatMapToLevelPosition(InUnitPos);
+	SpawnLoc.Z += UnitZOffset;
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+
+	ABaseUnitActor* Ghost =
+			GetWorld()->SpawnActor<ABaseUnitActor>(
+				UnitActorClass,
+				SpawnLoc,
+				FRotator(0, InUnitRotation.GetUnitFRotation(), 0),
+				Params);
+
+	Ghost->ResizeMeshToSize(InUnitSize.GetUnitTileLength().X * GetTileSizeUU(), InUnitSize.GetUnitTileLength().Y * GetTileSizeUU());
+	Ghost->SetUnitActorSize(InUnitSize);
+	Ghost->SetUnitActorRotation(InUnitRotation);
+	Ghost->SetUnitActorState(EUnitActorState::Ghost);
+
+	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
+				TEXT("Placing Ghost at a Pos = {%s}"), *SpawnLoc.ToString());
+
+	return Ghost;
+}
+
+ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const ABaseUnitActor* InBasedOnUnitActor)
+{
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+
+	FVector Loc = InBasedOnUnitActor->GetActorLocation();
+	float Rot = InBasedOnUnitActor->GetUnitActorRotation().GetUnitFRotation();
+	FUnitSize UnitSize = InBasedOnUnitActor->GetUnitActorSize();
+	FUnitRotation Rotation = InBasedOnUnitActor->GetUnitActorRotation();
+	
+	ABaseUnitActor* Ghost =
+			GetWorld()->SpawnActor<ABaseUnitActor>(
+				UnitActorClass,
+				Loc,
+				FRotator(0, Rot, 0),
+				Params);
+
+	Ghost->ResizeMeshToSize(UnitSize.GetUnitTileLength().X * GetTileSizeUU(), UnitSize.GetUnitTileLength().Y * GetTileSizeUU());
+	Ghost->SetUnitActorSize(UnitSize);
+	Ghost->SetUnitActorRotation(Rotation);
+	Ghost->SetUnitActorState(EUnitActorState::Ghost);
+
+	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
+				TEXT("Placing Ghost at a Pos = {%s} based on unit id = %d"), *Loc.ToString(), InBasedOnUnitActor->GetID());
+
+	return Ghost;
+}
+
+
+
+void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnits)
+{	
+	for (UUnitBase* Unit : ReplicatedUnits)
+	{
+		if (!Unit)
+			continue;
+		
+		if (UnitActorsByID.Contains(Unit->GetUnitID()))
+			continue;
+		
+		SpawnUnit(Unit->GetUnitID(), Unit->UnitPosition.GetUnitWorldPosition(), Unit->UnitSize,
+			Unit->UnitRotation, EUnitActorState::Playable);
+	}
+	IsInitialUnitsSpawned = true;
+}
 
 bool ACombatMapManager::IsPositionForUnitAvailable(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
 {
