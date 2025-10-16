@@ -49,7 +49,7 @@ void UCombatMap::InitializeFreeTiles()
 	OccupiedTiles.Empty();
 }
 
-void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FCombatMapTile& InCenter)
+void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntPoint& InCenter)
 {
 	if (!InUnitToPlace)
 	{
@@ -58,9 +58,11 @@ void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FCombatMapTile& InC
 		return;
 	}
 	
+	FCombatMapTile CenterTile = MakeTile(InCenter.X, InCenter.Y);
+	
 	TArray<FCombatMapTile> Footprint;
-	if (ExtractFootprint(InCenter, InUnitToPlace->UnitSize, InUnitToPlace->UnitRotation, Footprint))
-		SetupUnitPosOnMap(InUnitToPlace, InCenter, Footprint);
+	if (ExtractFootprint(CenterTile, InUnitToPlace->UnitSize, InUnitToPlace->UnitRotation, Footprint))
+		SetupUnitPosOnMap(InUnitToPlace, CenterTile, Footprint);
 }
 
 
@@ -212,7 +214,7 @@ void UCombatMap::ModifyTilesOccupancy(const TArray<FCombatMapTile>& Tiles, const
 	{
 		if (bAdd)
 		{
-			FCombatMapTile NewTile = MakeTileWithUnitID(T.X, T.Y, Unit->GetUnitID());
+			FCombatMapTile NewTile = MakeTileWithUnitID(T.X, T.Y, Unit->GetUnitCombatID());
 			OccupiedTiles.Add(NewTile);
 			MARK_PROPERTY_DIRTY_FROM_NAME(UCombatMap, OccupiedTiles, this);
 			MG_COND_LOG(UCombatMapLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMap),

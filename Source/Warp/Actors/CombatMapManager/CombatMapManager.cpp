@@ -227,8 +227,6 @@ ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const ABaseUnitActor* InB
 	return Ghost;
 }
 
-
-
 void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnits)
 {	
 	for (UUnitBase* Unit : ReplicatedUnits)
@@ -236,10 +234,10 @@ void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnit
 		if (!Unit)
 			continue;
 		
-		if (UnitActorsByID.Contains(Unit->GetUnitID()))
+		if (UnitActorsByID.Contains(Unit->GetUnitCombatID()))
 			continue;
 		
-		SpawnUnit(Unit->GetUnitID(), Unit->UnitPosition.GetUnitWorldPosition(), Unit->UnitSize,
+		SpawnUnit(Unit->GetUnitCombatID(), Unit->UnitPosition.GetUnitWorldPosition(), Unit->UnitSize,
 			Unit->UnitRotation, EUnitActorState::Playable);
 	}
 	IsInitialUnitsSpawned = true;

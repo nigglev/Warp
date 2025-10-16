@@ -125,12 +125,12 @@ void UTurnBasedSystemManager::SortTurnOrder()
 	Copy.Sort([&](const UUnitBase& A, const UUnitBase& B)
 	{
 		if (A.GetSpeed() != B.GetSpeed()) return A.GetSpeed() > B.GetSpeed();
-		return GetTieBreak(A.GetUnitID()) < GetTieBreak(B.GetUnitID()); 
+		return GetTieBreak(A.GetUnitCombatID()) < GetTieBreak(B.GetUnitCombatID()); 
 	});
 
 	TurnOrderUnitIds.Reset(Copy.Num());
 	for (const UUnitBase* U : Copy)
-		TurnOrderUnitIds.Add(U->GetUnitID());
+		TurnOrderUnitIds.Add(U->GetUnitCombatID());
 	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
 }
 
@@ -148,7 +148,7 @@ UUnitBase* UTurnBasedSystemManager::GetCurrentTurnUnit() const
 	
 	for (UUnitBase* U : GetGameState()->GetActiveUnits())
 	{
-		if (U && U->GetUnitID() == CurrentTurnUnitId) return U;
+		if (U && U->GetUnitCombatID() == CurrentTurnUnitId) return U;
 	}
 	return nullptr;
 }

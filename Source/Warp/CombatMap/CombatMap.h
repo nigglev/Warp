@@ -46,7 +46,7 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void PlaceUnitAt(UUnitBase* InUnitToPlace, const FCombatMapTile& InCenter);
+	void PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntPoint& InCenter);
 	void PlaceUnitOnMapRand(UUnitBase* InUnitToPlace);
 	void RemoveUnitFromMap(UUnitBase* InUnitToRemove);
 

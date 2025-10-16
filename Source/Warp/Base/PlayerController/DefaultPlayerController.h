@@ -61,9 +61,9 @@ protected:
 
 	//PLACEMENT//
 	UFUNCTION()
-	bool PlaceUnitServerAuthoritative(const FIntPoint& CenterGrid);
+	bool PlaceUnitServerAuthoritative(const FIntPoint& InGridPosition);
 	UFUNCTION(Server, Reliable)
-	void ServerRequestPlaceUnit(const FIntPoint& CenterGrid, FUnitRotation Rotation, FUnitSize Size);
+	void ServerRequestPlaceUnit(const FIntPoint& InGridPosition, FUnitRotation Rotation, FUnitSize Size);
 	UFUNCTION(Client, Reliable)
 	void ClientPlacementResult(bool bSuccess);
 	void CheckIfTilesAreAvailable(const FIntPoint& InTile, const FUnitSize& InUnitSize, const FUnitRotation& InUnitRotation) const;

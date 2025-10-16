@@ -342,7 +342,7 @@ void ADefaultPlayerController::SpendOneOnCurrent()
 	{
 		if (UUnitBase* U = GS->GetTurnBasedSystemManager()->GetCurrentTurnUnit())
 		{
- 			ServerSpendAP(U->GetUnitID(), 1);
+ 			ServerSpendAP(U->GetUnitCombatID(), 1);
 		}
 	}
 }
@@ -360,49 +360,47 @@ void ADefaultPlayerController::ServerSpendAP_Implementation(uint32 UnitId, int32
 	if (!IsValid(GS))
 		return;
 
-	UUnitBase* U = GS->FindUnitByID(UnitId);
+	UUnitBase* U = GS->FindUnitByCombatID(UnitId);
 	if (!U)
 		return;
 	
-	if (U->GetAffiliation() != EUnitAffiliation::PlayerControlled)
-		return;
-	if (U->GetOwningPlayer() != PlayerState)
-		return;
 	if (GS->GetTurnBasedSystemManager()->GetCurrentTurnUnit() != U)
 		return;
 
 	if (!U->SpendAP(Amount))
 		return;
+	
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("Reducing action point from unit id = %d by 1 {HasAuthority: %d}"),U->GetUnitID(), HasAuthority());
+		TEXT("Reducing action point from unit id = %d by 1 {HasAuthority: %d}"),U->GetUnitCombatID(), HasAuthority());
+	
 	if (!U->HasAnyAffordableAction(GS->GetTurnBasedSystemManager()->GetMinActionPointCost()))
 	{
 		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("All points for unit id %d has been spent {HasAuthority: %d}"), U->GetUnitID(), HasAuthority());
+			TEXT("All points for unit id %d has been spent {HasAuthority: %d}"), U->GetUnitCombatID(), HasAuthority());
 		GS->GetTurnBasedSystemManager()->AdvanceToNextUnit();
 	}
 }
 
-bool ADefaultPlayerController::PlaceUnitServerAuthoritative(const FIntPoint& CenterGrid)
+bool ADefaultPlayerController::PlaceUnitServerAuthoritative(const FIntPoint& InGridPosition)
 {
 	if (!CombatMapManager) return false;
 	
 	TArray<FIntPoint> Blockers;
 	FUnitSize UnitSize = GhostActor_->GetUnitActorSize();
 	FUnitRotation UnitRotation = GhostActor_->GetUnitActorRotation();
-	if (!CombatMapManager->IsPositionForUnitAvailable(CenterGrid, UnitRotation, UnitSize, Blockers))
+	if (!CombatMapManager->IsPositionForUnitAvailable(InGridPosition, UnitRotation, UnitSize, Blockers))
 		return false;
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 	TEXT("Requesting to place unit with Rotation = %f, Size = %s at a pos %s"),
-	UnitRotation.GetUnitFRotation(), *UnitSize.GetUnitTileLength().ToString(), *CenterGrid.ToString());
+	UnitRotation.GetUnitFRotation(), *UnitSize.GetUnitTileLength().ToString(), *InGridPosition.ToString());
 	
-	ServerRequestPlaceUnit(CenterGrid, UnitRotation, UnitSize);
+	ServerRequestPlaceUnit(InGridPosition, UnitRotation, UnitSize);
 	
 	return true;
 }
 
-void ADefaultPlayerController::ServerRequestPlaceUnit_Implementation(const FIntPoint& CenterGrid, FUnitRotation Rotation,
+void ADefaultPlayerController::ServerRequestPlaceUnit_Implementation(const FIntPoint& InGridPosition, FUnitRotation Rotation,
 	FUnitSize Size)
 {
 	AWarpGameState* GS = GetGameState();
@@ -414,10 +412,10 @@ void ADefaultPlayerController::ServerRequestPlaceUnit_Implementation(const FIntP
 	
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 	TEXT("Requesting to place unit with Rotation = %f, Size = %s at a pos %s"),
-	Rotation.GetUnitFRotation(), *Size.GetUnitTileLength().ToString(), *CenterGrid.ToString());
+	Rotation.GetUnitFRotation(), *Size.GetUnitTileLength().ToString(), *InGridPosition.ToString());
 
 	UUnitBase* NewUnit = nullptr;
-	const bool bSuccess = GS->TryCreateUnitAtForOwner(PlayerState, CenterGrid, Rotation, Size, NewUnit);
+	const bool bSuccess = GS->CreateUnitAt(0, InGridPosition, Rotation, NewUnit);
 	ClientPlacementResult(bSuccess);
 }
 

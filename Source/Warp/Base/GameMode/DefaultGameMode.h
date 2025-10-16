@@ -23,7 +23,6 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 protected:
 	AWarpGameState* GetWarpGameState() const;
-	void CreateUnitOnLogin(uint8 TeamID) const;
 };
 
 

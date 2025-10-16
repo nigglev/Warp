@@ -39,7 +39,7 @@ void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	for (int i = 0; i < 4; i++)
-		GetWarpGameState()->CreateUnitForNewPlayer(NewPlayer->PlayerState);
+		GetWarpGameState()->CreateUnitAtRandomPosition(0);
 }
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const

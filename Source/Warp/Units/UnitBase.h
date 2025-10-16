@@ -6,18 +6,12 @@
 #include "UObject/Object.h"
 #include "UnitBase.generated.h"
 
+class UUnitDataSubsystem;
 class ADefaultPlayerController;
 struct FCombatMapTile;
 /**
  * 
  */
-UENUM(BlueprintType)
-enum class EUnitAffiliation : uint8
-{
-	PlayerControlled UMETA(DisplayName="Player"),
-	EnemyAI          UMETA(DisplayName="Enemy AI"),
-	AllyAI           UMETA(DisplayName="Ally AI")
-};
 
 UENUM(BlueprintType)
 enum class EUnitRotation : uint8
@@ -102,6 +96,7 @@ struct FUnitRotation
 		return (i < static_cast<uint8>(EUnitRotation::Max)) ? i * 45.f : 0.f;
 	}
 
+	void SetDefaultUnitRotation() {UnitRotation = EUnitRotation::Rot_0;}
 	void SetUnitRotation(const EUnitRotation InUnitRotation) {UnitRotation = InUnitRotation;}
 	void SetUnitRotation(const float InUnitRotation)
 	{
@@ -159,28 +154,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION()
-	static UUnitBase* CreateUnit(UObject* Outer, const uint32 InUnitID,
-									const FUnitSize&  InSizeCategory, const FUnitRotation& InUnitRotation);
+	static UUnitBase* CreateUnit(UObject* Outer, const uint32 InUnitTypeID, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize);
 
-	void SetOwningPlayer(APlayerState* InOwner);
-	void InitStats(EUnitAffiliation InAffiliation, int32 InSpeed, int32 InMaxAP)
-	{
-		Affiliation = InAffiliation;
-		Speed = InSpeed;
-		MaxAP = InMaxAP;
-		CurrentAP = 0;
-	}
-
-	void StartNewTurn() { CurrentAP = MaxAP; }
-	bool SpendAP(const int32 Amount) { if (Amount <= 0) return false; if (CurrentAP < Amount) return false; CurrentAP -= Amount; return true; }
-	bool HasAnyAffordableAction(const int32 MinActionCost) const { return CurrentAP >= MinActionCost; }
-
-	APlayerState* GetOwningPlayer() const {return OwningPlayer;}
-	uint32 GetUnitID() const {return UnitID;}
-	int32 GetSpeed() const {return Speed;}
-	EUnitAffiliation GetAffiliation() const {return Affiliation;}
-	int32 GetMaxAP() const {return MaxAP;}
-	int32 GetCurrentAP	() const {return CurrentAP;}
+	uint8 GetUnitTypeID() const {return UnitTypeID;}
+	uint32 GetUnitCombatID() const {return UnitCombatID;}
+	
 	FString ToString() const;
 
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitPosition)
@@ -189,10 +167,20 @@ public:
 	FUnitRotation UnitRotation;
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitSize)
 	FUnitSize UnitSize;
+
+
+	void InitStats(int32 InSpeed, int32 InMaxAP);
+
+	void StartNewTurn() { CurrentAP = MaxAP; }
+	bool SpendAP(const int32 Amount) { if (Amount <= 0) return false; if (CurrentAP < Amount) return false; CurrentAP -= Amount; return true; }
+	bool HasAnyAffordableAction(const int32 MinActionCost) const { return CurrentAP >= MinActionCost; }
+
+	int32 GetSpeed() const {return Speed;}
+	int32 GetMaxAP() const {return MaxAP;}
+	int32 GetCurrentAP	() const {return CurrentAP;}
+
 	
 protected:
-	UFUNCTION()
-	void OnRep_OwningPlayer();
 	UFUNCTION()
 	void OnRep_UnitID();
 	UFUNCTION()
@@ -201,23 +189,19 @@ protected:
 	void OnRep_UnitRotation();
 	UFUNCTION()
 	void OnRep_UnitSize();
-
-	UFUNCTION()
-	void OnRep_UnitAffiliation();
+	
 	UFUNCTION()
 	void OnRep_UnitSpeed();
 	UFUNCTION()
 	void OnRep_UnitMaxAP();
 	UFUNCTION()
 	void OnRep_UnitCurrentAP();
-
-	UPROPERTY(ReplicatedUsing=OnRep_OwningPlayer)
-	TObjectPtr<APlayerState> OwningPlayer = nullptr;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitID)
-	uint32 UnitID;
-
-	UPROPERTY(ReplicatedUsing=OnRep_UnitAffiliation)
-	EUnitAffiliation Affiliation = EUnitAffiliation::EnemyAI;
+	uint8 UnitTypeID;
+	UPROPERTY(ReplicatedUsing=OnRep_UnitID)
+	uint32 UnitCombatID;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitSpeed)
 	int32 Speed = 10;
 	UPROPERTY(ReplicatedUsing=OnRep_UnitMaxAP)

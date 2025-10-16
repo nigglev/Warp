@@ -9,10 +9,12 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
+#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
 #include "Warp/Units/UnitBase.h"
+#include "Warp/UnitStaticData/UnitStaticData.h"
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -20,7 +22,7 @@ AWarpGameState::AWarpGameState()
 	bReplicateUsingRegisteredSubObjectList = true;
 	StaticCombatMap = CreateDefaultSubobject<UCombatMap>(TEXT("CombatMap"));
 	TurnManager = CreateDefaultSubobject<UTurnBasedSystemManager>(TEXT("TurnManager"));
-	NextUnitID = 1;
+	NextUnitCombatID = 1;
 }
 
 void AWarpGameState::PreLoginInit()
@@ -48,75 +50,77 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, ActiveUnits, RepParams);
 }
 
-void AWarpGameState::CreateUnitForNewPlayer(APlayerState* OwnerPS)
-{
-	const uint32 AssignedID = NextUnitID++;
-	UUnitBase* Unit = UUnitBase::CreateUnit(this, AssignedID, FUnitSize::Small(), FUnitRotation::Rot45());
-	if (!Unit)
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-				TEXT("Failed to create unit (HasAuthority = %d)"), HasAuthority());
-	Unit->SetOwningPlayer(OwnerPS);
-	Unit->InitStats(EUnitAffiliation::PlayerControlled, /*Speed*/ 10, /*MaxAP*/ 3);
-
+void AWarpGameState::CreateUnitAtRandomPosition(uint8 InUnitTypeID)
+{	
+	UUnitBase* Unit = CreateUnit(InUnitTypeID);
+	Unit->UnitRotation.SetDefaultUnitRotation();
 	StaticCombatMap->PlaceUnitOnMapRand(Unit);
 	AddNewUnit(Unit);
 }
 
-bool AWarpGameState::TryCreateUnitAtForOwner(APlayerState* OwnerPS, const FIntPoint& CenterGrid, const FUnitRotation& Rotation,
-	const FUnitSize& Size, UUnitBase*& OutUnit)
+bool AWarpGameState::CreateUnitAt(const uint8 InUnitTypeID, const FIntPoint& InGridPosition,
+	const FUnitRotation& Rotation, UUnitBase*& OutUnit)
 {
-	MG_FUNC_LABEL(AWarpGameStateLog);
-	OutUnit = nullptr;
-	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),  TEXT("TryCreateUnitAtForTeam; HasAuthority = %d"),
-		HasAuthority());
-	
-	if (!HasAuthority())
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
-		return false;
-	}
-	if (!IsValid(StaticCombatMap))
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("No Map (HasAuthority = %d)"), HasAuthority());
-		return false;
-	}
+	UUnitBase* Unit = CreateUnit(InUnitTypeID);
+	Unit->UnitRotation = Rotation;
 	TArray<FIntPoint> Blockers;
-	if (!CheckPositionForUnitWithCombatMap(CenterGrid, Rotation, Size, Blockers) || Blockers.Num() > 0)
+	
+	if (!CheckPositionForUnitWithCombatMap(InGridPosition, Unit->UnitRotation, Unit->UnitSize, Blockers))
 	{
 		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 		TEXT("Invalid Tile (HasAuthority = %d)"), HasAuthority());
 		return false;
 	}
-	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, NextUnitID++, Size, Rotation);
+	StaticCombatMap->PlaceUnitAt(Unit, InGridPosition);
+
+	AddNewUnit(Unit);
+	if (TurnManager->GetCurrentTurnPhase() == ETurnPhase::InTurn)
+		TurnManager->RebuildTurnOrder();
+
+	OutUnit = Unit;
+	
+	return true;
+}
+
+
+UUnitBase* AWarpGameState::CreateUnit(const uint8 InUnitTypeID)
+{
+	if (!HasAuthority())
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
+		return nullptr;
+	}
+	if (!IsValid(StaticCombatMap))
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("No Map (HasAuthority = %d)"), HasAuthority());
+		return nullptr;
+	}
+	
+	const UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
+	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Sys);
+	const FUnitStaticData* Data = Sys->Find(InUnitTypeID);
+	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Data);
+	
+	const uint32 AssignedCombatID = NextUnitCombatID++;
+	const uint32 UnitTypeID = InUnitTypeID;
+	EUnitSizeCategory UnitSize = Data->UnitSize;
+	uint32 UnitSpeed = Data->UnitSpeed;
+	uint32 UnitMaxAP = Data->UnitMaxAP;
+
+	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeID, AssignedCombatID, UnitSize);
 
 	if (!IsValid(NewUnit))
 	{
 		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 		TEXT("Failed to create unit (HasAuthority = %d)"), HasAuthority());
+		return nullptr;
 	}
 
-	if (OwnerPS)
-	{
-		NewUnit->SetOwningPlayer(OwnerPS);
-		NewUnit->InitStats(EUnitAffiliation::PlayerControlled, /*Speed*/ 12, /*MaxAP*/ 3);
-	}
-	else
-	{
-		NewUnit->InitStats(EUnitAffiliation::EnemyAI, /*Speed*/ 8, /*MaxAP*/ 3);
-	}
-	
-	FCombatMapTile CenterTile = StaticCombatMap->MakeTile(CenterGrid.X, CenterGrid.Y);
-	StaticCombatMap->PlaceUnitAt(NewUnit, CenterTile);
+	NewUnit->InitStats(UnitSpeed, UnitMaxAP);
 
-	AddNewUnit(NewUnit);
-	if (TurnManager->GetCurrentTurnPhase() == ETurnPhase::InTurn)
-		TurnManager->RebuildTurnOrder();
-
-	OutUnit = NewUnit;
-	
-	return true;
+	return NewUnit;
 }
 
 void AWarpGameState::AddNewUnit(UUnitBase* InNewUnit)
@@ -128,11 +132,12 @@ void AWarpGameState::AddNewUnit(UUnitBase* InNewUnit)
 		*InNewUnit->ToString(), ActiveUnits.Num(), HasAuthority());
 }
 
-UUnitBase* AWarpGameState::FindUnitByID(const uint32 InID) const
+
+UUnitBase* AWarpGameState::FindUnitByCombatID(const uint32 InCombatID) const
 {
 	for (UUnitBase* Unit : ActiveUnits)
 	{
-		if (Unit && Unit->GetUnitID() == InID)
+		if (Unit && Unit->GetUnitCombatID() == InCombatID)
 		{
 			return Unit;
 		}
@@ -153,6 +158,19 @@ uint32 AWarpGameState::GetMapGridSize() const
 uint32 AWarpGameState::GetMapTileSize() const
 {
 	return StaticCombatMap->GetTileSize();
+}
+
+UUnitDataSubsystem* AWarpGameState::GetUnitDataSubsystem(const UObject* WorldContext)
+{
+	if (!WorldContext) return nullptr;
+	if (const UWorld* World = WorldContext->GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			return GI->GetSubsystem<UUnitDataSubsystem>();
+		}
+	}
+	return nullptr;
 }
 
 void AWarpGameState::OnRep_SpaceCombatGrid()

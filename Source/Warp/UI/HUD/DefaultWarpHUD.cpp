@@ -120,7 +120,7 @@ void ADefaultWarpHUD::PushInitialTurnOrder()
 		
 	uint32 Current = 0;
 	if (TB->GetCurrentTurnUnit() != nullptr)
-		Current = TB->GetCurrentTurnUnit()->GetUnitID();
+		Current = TB->GetCurrentTurnUnit()->GetUnitCombatID();
 	if (Order.Num() > 0)
 	{
 		TurnOrderSlate->SetOrder(Order, Current);

@@ -12,47 +12,38 @@ DEFINE_LOG_CATEGORY_STATIC(UUnitBaseLog, Log, All);
 void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUnitBase, OwningPlayer);
-	DOREPLIFETIME(UUnitBase, UnitID);
+	DOREPLIFETIME(UUnitBase, UnitCombatID);
 	DOREPLIFETIME(UUnitBase, UnitSize);
 	DOREPLIFETIME(UUnitBase, UnitPosition);
 	DOREPLIFETIME(UUnitBase, UnitRotation);
-
-	DOREPLIFETIME(UUnitBase, Affiliation);
+	
 	DOREPLIFETIME(UUnitBase, Speed);
 	DOREPLIFETIME(UUnitBase, MaxAP);
 	DOREPLIFETIME(UUnitBase, CurrentAP);
 }
 
-auto UUnitBase::CreateUnit(UObject* Outer, const uint32 InUnitID,
-	const FUnitSize&  InSizeCategory, const FUnitRotation& InUnitRotation) -> UUnitBase*
+auto UUnitBase::CreateUnit(UObject* Outer, const uint32 InUnitTypeID, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize) -> UUnitBase*
 {
 	UUnitBase* NewUnit = NewObject<UUnitBase>(Outer);
-	NewUnit->UnitID = InUnitID;
-	NewUnit->UnitSize = InSizeCategory;
-	NewUnit->UnitRotation = InUnitRotation;
+	NewUnit->UnitTypeID = InUnitTypeID;
+	NewUnit->UnitCombatID = InUnitCombatID;
+	NewUnit->UnitSize = FUnitSize(InUnitSize);
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
 		TEXT("New Unit Created: %s"), *NewUnit->ToString());
 	return NewUnit;
 }
 
-void UUnitBase::SetOwningPlayer(APlayerState* InOwner)
+void UUnitBase::InitStats(int32 InSpeed, int32 InMaxAP)
 {
-	OwningPlayer = InOwner;
-	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Owner of Unit = %s is now {%s}"), *this->ToString(), *InOwner->GetName());
-}
-
-void UUnitBase::OnRep_OwningPlayer()
-{
-	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: OwningPlayer: %s"), *GetName(), *OwningPlayer->GetName());
+	Speed = InSpeed;
+	MaxAP = InMaxAP;
+	CurrentAP = 0;
 }
 
 void UUnitBase::OnRep_UnitID()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: UnitID: %d"), *GetName(), UnitID);
+	TEXT("Name = %s: UnitID: %d"), *GetName(), UnitCombatID);
 }
 
 void UUnitBase::OnRep_UnitPosition()
@@ -73,12 +64,6 @@ void UUnitBase::OnRep_UnitSize()
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
 		TEXT("Name = %s: Unit Size: %d, Unit Tile Length: %s"), *GetName(),
 		UnitSize.GetUnitSize(), *UnitSize.GetUnitTileLength().ToString());
-}
-
-void UUnitBase::OnRep_UnitAffiliation()
-{
-	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: Affiliation: %d"), *GetName(), Affiliation);
 }
 
 void UUnitBase::OnRep_UnitSpeed()
@@ -103,7 +88,7 @@ FString UUnitBase::ToString() const
 {
 	return FString::Printf(
 		TEXT("UUnitBase { UnitID = %d, UnitSize = %d (%d, %d), UnitWorldPosition = (%f, %f), UnitGridPosition = (%u, %u), UnitRotationValue = (%f) }"),
-		UnitID,
+		UnitCombatID,
 		UnitSize.GetUnitSize(), UnitSize.GetUnitTileLength().X, UnitSize.GetUnitTileLength().Y,
 		UnitPosition.GetUnitWorldPosition().X, UnitPosition.GetUnitWorldPosition().Y,
 		UnitPosition.GetUnitTilePosition().X, UnitPosition.GetUnitTilePosition().Y,
