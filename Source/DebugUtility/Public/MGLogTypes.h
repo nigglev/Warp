@@ -16,6 +16,7 @@ enum class EMGLogTypes : uint32
 	DefaultWarpHUD			= 8,
 	UnitSpawnWidget			= 9,
 	TurnBasedSystemManager	= 10,
+	UnitDataSubsystem		= 11,
 };
 ENUM_CLASS_FLAGS(EMGLogTypes)
 

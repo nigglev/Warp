@@ -14,7 +14,8 @@
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
 #include "Warp/Units/UnitBase.h"
-#include "Warp/UnitStaticData/UnitStaticData.h"
+#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
+#include "Warp/UnitStaticData/UnitCatalogDTO.h"
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -48,20 +49,49 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, StaticCombatMap, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, TurnManager, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, ActiveUnits, RepParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, UnitCatalog, RepParams);
 }
 
-void AWarpGameState::CreateUnitAtRandomPosition(uint8 InUnitTypeID)
-{	
-	UUnitBase* Unit = CreateUnit(InUnitTypeID);
-	Unit->UnitRotation.SetDefaultUnitRotation();
+void AWarpGameState::SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source)
+{
+	if (!HasAuthority())
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
+		return;
+	}
+	UnitCatalog.Reset(Source.Num());
+	for (const auto& UnitRecord : Source)
+	{
+		FName UnitName = UnitRecord.Key;
+		FUnitRecord Rec = UnitRecord.Value;
+
+		FUnitRecordDTO DTO;
+		DTO.UnitName  = UnitName;
+		DTO.UnitSize  = Rec.Props.UnitSize;
+		DTO.UnitSpeed = Rec.Props.UnitSpeed;
+		DTO.UnitMaxAP = Rec.Props.UnitMaxAP;
+		DTO.MeshPath  = Rec.Props.MeshPath.ToString();
+		DTO.Tags      = Rec.Props.Tags;
+
+		UnitCatalog.Add(MoveTemp(DTO));
+	}
+	
+	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, UnitCatalog, this);
+}
+
+void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord)
+{
+	UUnitBase* Unit = CreateUnit(InUnitRecord);
+	Unit->UnitRotation.SetRandomRotation();
 	StaticCombatMap->PlaceUnitOnMapRand(Unit);
-	AddNewUnit(Unit);
+	ProcessNewUnit(Unit);
 }
 
-bool AWarpGameState::CreateUnitAt(const uint8 InUnitTypeID, const FIntPoint& InGridPosition,
+bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const FIntPoint& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit)
 {
-	UUnitBase* Unit = CreateUnit(InUnitTypeID);
+	UUnitBase* Unit = CreateUnit(InUnitRecord);
 	Unit->UnitRotation = Rotation;
 	TArray<FIntPoint> Blockers;
 	
@@ -73,7 +103,7 @@ bool AWarpGameState::CreateUnitAt(const uint8 InUnitTypeID, const FIntPoint& InG
 	}
 	StaticCombatMap->PlaceUnitAt(Unit, InGridPosition);
 
-	AddNewUnit(Unit);
+	ProcessNewUnit(Unit);
 	if (TurnManager->GetCurrentTurnPhase() == ETurnPhase::InTurn)
 		TurnManager->RebuildTurnOrder();
 
@@ -83,7 +113,7 @@ bool AWarpGameState::CreateUnitAt(const uint8 InUnitTypeID, const FIntPoint& InG
 }
 
 
-UUnitBase* AWarpGameState::CreateUnit(const uint8 InUnitTypeID)
+UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord)
 {
 	if (!HasAuthority())
 	{
@@ -97,19 +127,18 @@ UUnitBase* AWarpGameState::CreateUnit(const uint8 InUnitTypeID)
 		TEXT("No Map (HasAuthority = %d)"), HasAuthority());
 		return nullptr;
 	}
+		
 	
 	const UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
 	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Sys);
-	const FUnitStaticData* Data = Sys->Find(InUnitTypeID);
-	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Data);
 	
 	const uint32 AssignedCombatID = NextUnitCombatID++;
-	const uint32 UnitTypeID = InUnitTypeID;
-	EUnitSizeCategory UnitSize = Data->UnitSize;
-	uint32 UnitSpeed = Data->UnitSpeed;
-	uint32 UnitMaxAP = Data->UnitMaxAP;
+	const FName UnitTypeName = InUnitRecord.UnitName;
+	EUnitSizeCategory UnitSize = InUnitRecord.GetSizeCategory();
+	uint32 UnitSpeed = InUnitRecord.Props.UnitSpeed;
+	uint32 UnitMaxAP = InUnitRecord.Props.UnitMaxAP;
 
-	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeID, AssignedCombatID, UnitSize);
+	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeName, AssignedCombatID, UnitSize);
 
 	if (!IsValid(NewUnit))
 	{
@@ -123,7 +152,7 @@ UUnitBase* AWarpGameState::CreateUnit(const uint8 InUnitTypeID)
 	return NewUnit;
 }
 
-void AWarpGameState::AddNewUnit(UUnitBase* InNewUnit)
+void AWarpGameState::ProcessNewUnit(UUnitBase* InNewUnit)
 {
 	AddReplicatedSubObject(InNewUnit);
 	ActiveUnits.Add(InNewUnit);
@@ -197,5 +226,12 @@ void AWarpGameState::OnRep_ActiveUnits()
 			TEXT("%s; "), ActiveUnits[i] ? *ActiveUnits[i]->ToString() : TEXT("NULL"));
 	}
 	OnUnitsReplicated.Broadcast(ActiveUnits);
+}
+
+void AWarpGameState::OnRep_UnitCatalog()
+{
+	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
+	RETURN_ON_FAIL(AWarpGameStateLog, Sys);
+	Sys->SetUnitCatalog_Client(UnitCatalog);
 }
 

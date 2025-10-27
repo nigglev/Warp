@@ -8,6 +8,8 @@
 #include "Warp/CombatMap/CombatMap.h"
 #include "WarpGameState.generated.h"
 
+struct FUnitRecordDTO;
+struct FUnitRecord;
 class UUnitDataSubsystem;
 class UTurnBasedSystemManager;
 class UUnitBase;
@@ -26,8 +28,8 @@ public:
 	AWarpGameState();
 	void PreLoginInit();
 
-	void CreateUnitAtRandomPosition(uint8 InUnitTypeID);
-	bool CreateUnitAt(const uint8 InUnitTypeID, const FIntPoint& InGridPosition,
+	void CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord);
+	bool CreateUnitAt(const FUnitRecord& InUnitRecord, const FIntPoint& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit);
 	
 	uint32 GetMapGridSize() const;
@@ -37,28 +39,33 @@ public:
 	
 	UUnitBase* FindUnitByCombatID(const uint32 InCombatID) const;
 	bool CheckPositionForUnitWithCombatMap(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
-
+	void SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source);
+	
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
 	
 protected:
-	void AddNewUnit(UUnitBase* InNewUnit);
-	UUnitBase* CreateUnit(const uint8 InUnitTypeID);
+	void ProcessNewUnit(UUnitBase* InNewUnit);
+	UUnitBase* CreateUnit(const FUnitRecord& InUnitRecord);
 	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
-	
+
 	UFUNCTION()
 	void OnRep_SpaceCombatGrid();
 	UFUNCTION()
 	void OnRep_TurnBasedSystemManager();
 	UFUNCTION()
 	void OnRep_ActiveUnits();
+	UFUNCTION()
+	void OnRep_UnitCatalog();
 	
 
 	UPROPERTY(ReplicatedUsing=OnRep_SpaceCombatGrid)
-	UCombatMap* StaticCombatMap;
+	UCombatMap* StaticCombatMap = nullptr;
 	UPROPERTY(ReplicatedUsing=OnRep_TurnBasedSystemManager)
 	UTurnBasedSystemManager* TurnManager = nullptr;
 	UPROPERTY(ReplicatedUsing=OnRep_ActiveUnits)
 	TArray<UUnitBase*> ActiveUnits;
+	UPROPERTY(ReplicatedUsing=OnRep_UnitCatalog)
+	TArray<FUnitRecordDTO> UnitCatalog;
 
 	uint32 NextUnitCombatID;
 };

@@ -97,6 +97,7 @@ struct FUnitRotation
 	}
 
 	void SetDefaultUnitRotation() {UnitRotation = EUnitRotation::Rot_0;}
+	void SetRandomRotation() {UnitRotation = static_cast<EUnitRotation>(FMath::RandRange(0, static_cast<uint8>(EUnitRotation::Max) - 1));}
 	void SetUnitRotation(const EUnitRotation InUnitRotation) {UnitRotation = InUnitRotation;}
 	void SetUnitRotation(const float InUnitRotation)
 	{
@@ -154,9 +155,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION()
-	static UUnitBase* CreateUnit(UObject* Outer, const uint32 InUnitTypeID, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize);
+	static UUnitBase* CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize);
 
-	uint8 GetUnitTypeID() const {return UnitTypeID;}
+	FName GetUnitTypeName() const {return UnitTypeName;}
 	uint32 GetUnitCombatID() const {return UnitCombatID;}
 	
 	FString ToString() const;
@@ -182,7 +183,9 @@ public:
 	
 protected:
 	UFUNCTION()
-	void OnRep_UnitID();
+	void OnRep_UnitTypeName();
+	UFUNCTION()
+	void OnRep_CombatUnitID();
 	UFUNCTION()
 	void OnRep_UnitPosition();
 	UFUNCTION()
@@ -197,9 +200,9 @@ protected:
 	UFUNCTION()
 	void OnRep_UnitCurrentAP();
 	
-	UPROPERTY(ReplicatedUsing=OnRep_UnitID)
-	uint8 UnitTypeID;
-	UPROPERTY(ReplicatedUsing=OnRep_UnitID)
+	UPROPERTY(ReplicatedUsing=OnRep_UnitTypeName)
+	FName UnitTypeName;
+	UPROPERTY(ReplicatedUsing=OnRep_CombatUnitID)
 	uint32 UnitCombatID;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitSpeed)

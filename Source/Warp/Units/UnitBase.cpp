@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(UUnitBaseLog, Log, All);
 void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UUnitBase, UnitTypeName);
 	DOREPLIFETIME(UUnitBase, UnitCombatID);
 	DOREPLIFETIME(UUnitBase, UnitSize);
 	DOREPLIFETIME(UUnitBase, UnitPosition);
@@ -22,10 +23,10 @@ void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UUnitBase, CurrentAP);
 }
 
-auto UUnitBase::CreateUnit(UObject* Outer, const uint32 InUnitTypeID, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize) -> UUnitBase*
+auto UUnitBase::CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize) -> UUnitBase*
 {
 	UUnitBase* NewUnit = NewObject<UUnitBase>(Outer);
-	NewUnit->UnitTypeID = InUnitTypeID;
+	NewUnit->UnitTypeName = InUnitTypeName;
 	NewUnit->UnitCombatID = InUnitCombatID;
 	NewUnit->UnitSize = FUnitSize(InUnitSize);
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
@@ -40,7 +41,13 @@ void UUnitBase::InitStats(int32 InSpeed, int32 InMaxAP)
 	CurrentAP = 0;
 }
 
-void UUnitBase::OnRep_UnitID()
+void UUnitBase::OnRep_UnitTypeName()
+{
+	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
+	TEXT("Name = %s: UnitTypeName: %s"), *GetName(), *UnitTypeName.ToString());
+}
+
+void UUnitBase::OnRep_CombatUnitID()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
 	TEXT("Name = %s: UnitID: %d"), *GetName(), UnitCombatID);

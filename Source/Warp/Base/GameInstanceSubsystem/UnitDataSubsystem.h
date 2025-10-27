@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
 #include "UnitDataSubsystem.generated.h"
 
-struct FUnitStaticData;
-/**
- * 
- */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitCatalogReady, bool, bSuccess);
+
+struct FUnitRecordDTO;
+
+
 UCLASS(Config=Game)
 class WARP_API UUnitDataSubsystem : public UGameInstanceSubsystem
 {
@@ -17,15 +19,24 @@ class WARP_API UUnitDataSubsystem : public UGameInstanceSubsystem
 
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	void SetUnitCatalog_Client(const TArray<FUnitRecordDTO>& InUnitDTO);
+	bool IsUnitCatalogReady() const { return bUnitCatalogReady; }
 
-	const FUnitStaticData* Find(uint8 InUnitKey) const;
+	const TMap<FName, FUnitRecord>& GetUnitData() const { return RemoteUnits; }
+	FUnitRecord GetBasicUnitRecord() const;
 
-	UPROPERTY(EditDefaultsOnly, Config, Category="Units", meta=(AllowedClasses="DataTable"))
-	TSoftObjectPtr<UDataTable> UnitTableAsset;
+	FOnUnitCatalogReady OnUnitCatalogReady;
+	
+protected:
+	void StartAuthAndLoadUnits();
+	void FetchUnitsFromCatalog(const FString& InEntityToken, const FString& InContinuation  = TEXT(""));
+	void ParseUnitsFromSearchResponse(const FString& InResponseJson);
+	bool ReadPlayFabSecretFromFile(FString& OutSecret) const;
+	
+	UPROPERTY(EditAnywhere, Config, Category="PlayFab")
+	FString PlayFabTitleId = TEXT("A88F9");
 
-private:
-	UPROPERTY()
-	UDataTable* UnitTable = nullptr;
-	UPROPERTY()
-	TMap<uint8, FName> UnitNamesByID;
+	bool bUnitCatalogReady = false;
+	TMap<FName, FUnitRecord> RemoteUnits;
 };
+

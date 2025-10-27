@@ -10,9 +10,11 @@
 #include "Net/UnrealNetwork.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
+#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultPlayerControllerLog, Log, All);
 
@@ -68,7 +70,7 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(RMBHoldAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRMBReleased);
 		EIC->BindAction(RMBHoldAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRMBReleased);
 
-		EIC->BindAction(MoveUnitAction, ETriggerEvent::Started,   this, &ADefaultPlayerController::OnMoveUnitAction);
+		//EIC->BindAction(MoveUnitAction, ETriggerEvent::Started,   this, &ADefaultPlayerController::OnMoveUnitAction);
 		//EIC->BindAction(MoveUnitAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnMoveUnitAction);
 		//EIC->BindAction(MoveUnitAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnMoveUnitAction);
 	}
@@ -415,7 +417,7 @@ void ADefaultPlayerController::ServerRequestPlaceUnit_Implementation(const FIntP
 	Rotation.GetUnitFRotation(), *Size.GetUnitTileLength().ToString(), *InGridPosition.ToString());
 
 	UUnitBase* NewUnit = nullptr;
-	const bool bSuccess = GS->CreateUnitAt(0, InGridPosition, Rotation, NewUnit);
+	const bool bSuccess = GS->CreateUnitAt(GetUnitDataSubsystem(this)->GetBasicUnitRecord(), InGridPosition, Rotation, NewUnit);
 	ClientPlacementResult(bSuccess);
 }
 
@@ -503,3 +505,15 @@ AWarpGameState* ADefaultPlayerController::GetGameState() const
 	return nullptr;
 }
 
+UUnitDataSubsystem* ADefaultPlayerController::GetUnitDataSubsystem(const UObject* WorldContext)
+{
+	if (!WorldContext) return nullptr;
+	if (const UWorld* World = WorldContext->GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			return GI->GetSubsystem<UUnitDataSubsystem>();
+		}
+	}
+	return nullptr;
+}

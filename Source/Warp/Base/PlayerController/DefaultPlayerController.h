@@ -49,6 +49,7 @@ protected:
 	void UpdateTileHovering();
 	void UpdateUnitGhostPosition() const;
 
+	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 
 	//CAMERA//
 	void UpdateCamera() const;

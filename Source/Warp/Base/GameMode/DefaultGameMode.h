@@ -6,6 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "DefaultGameMode.generated.h"
 
+class UUnitDataSubsystem;
 class ADefaultPlayerController;
 class ACombatMapManager;
 class AWarpGameState;
@@ -22,7 +23,14 @@ public:
 	virtual void StartPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 protected:
+	UFUNCTION()
+	void HandleUnitCatalogReady(bool bSuccess);
+	void SpawnInitialUnitsOnce();
+
 	AWarpGameState* GetWarpGameState() const;
+	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
+
+	bool bInitialUnitsSpawned = false;
 };
 
 
