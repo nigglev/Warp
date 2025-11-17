@@ -46,7 +46,7 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntPoint& InCenter);
+	void PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntVector2& InCenter);
 	void PlaceUnitOnMapRand(UUnitBase* InUnitToPlace);
 	void RemoveUnitFromMap(UUnitBase* InUnitToRemove);
 
@@ -56,7 +56,7 @@ public:
 	uint32 GetGridSize() const {return GridSize;}
 	uint32 GetTileSize() const {return TileSize;}
 
-	bool CheckPositionForUnit(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
+	bool CheckPositionForUnit(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
 
 protected:
 	virtual void PostInitProperties() override;

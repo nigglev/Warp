@@ -32,9 +32,9 @@ class WARP_API ADefaultPlayerController : public APlayerController
 
 public:
 	ADefaultPlayerController();
-	void EnterPlacementMode(const FUnitSize& InSize);
-	void CancelPlacementMode();
 	
+	UFUNCTION(Server, Reliable)
+	void ServerStartCombat();
 protected:
 	//SETUP//
 	virtual void BeginPlay() override;
@@ -44,38 +44,29 @@ protected:
 	void SetupEnhancedInput() const;
 	void CreateCombatMapManager();
 	void TryInitCombatMapManager();
-	void SetupTurnBasedSystemManager();
 	
 	void UpdateTileHovering();
 	void UpdateUnitGhostPosition() const;
 
 	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 
-	//CAMERA//
-	void UpdateCamera() const;
-
 	//GET//
 	AWarpGameState* GetGameState() const;
-	bool GetHoveredTileIndexAndCoordinates(int32& OutInstanceIndex, FIntPoint& OutCoord) const;
+	bool GetHoveredTileIndexAndCoordinates(int32& OutInstanceIndex, FIntVector2& OutCoord) const;
 	bool GetHoveredTileIndex(int32& OutInstanceIndex) const;
-	ABaseUnitActor* GetMouseoverUnit() const;
+	uint32 GetMouseoverUnitID() const;
 
 	//PLACEMENT//
 	UFUNCTION()
-	bool PlaceUnitServerAuthoritative(const FIntPoint& InGridPosition);
+	bool MoveUnitServerAuthoritative(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
 	UFUNCTION(Server, Reliable)
-	void ServerRequestPlaceUnit(const FIntPoint& InGridPosition, FUnitRotation Rotation, FUnitSize Size);
+	void ServerRequestMoveUnit(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
 	UFUNCTION(Client, Reliable)
 	void ClientPlacementResult(bool bSuccess);
-	void CheckIfTilesAreAvailable(const FIntPoint& InTile, const FUnitSize& InUnitSize, const FUnitRotation& InUnitRotation) const;
 
 	//INPUT ACTIONS//
 	UFUNCTION()
 	void OnRotateUnitGhostAction(const FInputActionValue& Value);
-	UFUNCTION()
-	void OnStartTurnAction();
-	UFUNCTION()
-	void OnPlaceUnitAction();
 	UFUNCTION()
 	void OnMoveUnitAction();
 	UFUNCTION()
@@ -85,21 +76,10 @@ protected:
 	UFUNCTION()
 	void OnCameraZoom(const FInputActionValue& Value);
 	UFUNCTION()
-	void OnCameraToggleLock();
+	void OnRotateCameraPressed(const FInputActionValue& Value);
 	UFUNCTION()
-	void OnRMBPressed(const FInputActionValue& Value);
-	UFUNCTION()
-	void OnRMBReleased(const FInputActionValue& Value);
-
-	//TURN LOGIC//
-	UFUNCTION(Server, Reliable)
-	void ServerStartTurns(int32 Seed = 12345);
-	UFUNCTION(Server, Reliable)
-	void ServerSpendAP(uint32 UnitId, int32 Amount = 1);
-	UFUNCTION()
-	void SpendOneOnCurrent();
-	UFUNCTION()
-	void HandleTurnPhaseChange(ETurnPhase InTurnPhase);
+	void OnRotateCameraReleased(const FInputActionValue& Value);
+	
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ACombatMapManager> CombatMapManagerClass;
@@ -114,26 +94,24 @@ protected:
 	UInputAction* PlaceUnitAction;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputAction* MoveUnitAction;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	UInputAction* StartTurnAction;
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraMoveAction = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraRotateAction = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
-	class UInputAction* RMBHoldAction = nullptr; 
+	class UInputAction* StartCameraRotateAction = nullptr; 
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraZoomAction = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
-	class UInputAction* CameraToggleLockAction = nullptr;
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;
 	UPROPERTY()
 	ABaseUnitActor* GhostActor_ = nullptr;
 
-	FIntPoint HoveredTile = FIntPoint(-2, -2);
-	FIntPoint PrevHoveredTile = FIntPoint(-1, -1);
+	uint32 SelectedUnitID = 0;
+
+	FIntVector2 HoveredTile = FIntVector2(-2, -2);
+	FIntVector2 PrevHoveredTile = FIntVector2(-1, -1);
 	uint32 LastFocusedTurnUnitId = 0;
 	float MouseYawScaleDegPerUnit = 1.0f;
 

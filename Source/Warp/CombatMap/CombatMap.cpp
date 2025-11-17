@@ -49,7 +49,7 @@ void UCombatMap::InitializeFreeTiles()
 	OccupiedTiles.Empty();
 }
 
-void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntPoint& InCenter)
+void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntVector2& InCenter)
 {
 	if (!InUnitToPlace)
 	{
@@ -80,7 +80,7 @@ void UCombatMap::PlaceUnitOnMapRand(UUnitBase* InUnitToPlace)
 	SetupUnitPosOnMap(InUnitToPlace, Center, OutFootprint);
 }
 
-bool UCombatMap::CheckPositionForUnit(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
+bool UCombatMap::CheckPositionForUnit(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
 {
 	TArray<FCombatMapTile> OutFootprint;
 	return ExtractFootprint(MakeTile(InUnitCenter.X, InUnitCenter.Y), InUnitSize, InUnitRotation, OutFootprint, &OutBlockers);

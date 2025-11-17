@@ -5,6 +5,7 @@
 
 #include "MGLogs.h"
 #include "MGLogTypes.h"
+#include "Misc/MapErrors.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
@@ -50,6 +51,11 @@ void ABaseUnitActor::ResizeMeshToSize(const FVector& InScale) const
 	MeshComponent->SetRelativeScale3D(InScale);
 }
 
+void ABaseUnitActor::SetUnitMesh(UStaticMesh* InMesh) const
+{
+	MeshComponent->SetStaticMesh(InMesh);
+}
+
 void ABaseUnitActor::UpdatePosition(const FVector& InPosition)
 {
 	MG_COND_LOG(ABaseUnitActorLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
@@ -85,5 +91,4 @@ void ABaseUnitActor::SetHighlighted(const bool bOn) const
 		MeshComponent->SetMaterial(0, DefaultMaterial);
 	}
 }
-
 

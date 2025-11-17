@@ -28,9 +28,10 @@ public:
 	AWarpGameState();
 	void PreLoginInit();
 
-	void CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord);
-	bool CreateUnitAt(const FUnitRecord& InUnitRecord, const FIntPoint& InGridPosition,
+	void CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation);
+	bool CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation, const FIntVector2& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit);
+	bool MoveUnitTo(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
 	
 	uint32 GetMapGridSize() const;
 	uint32 GetMapTileSize() const;
@@ -38,14 +39,14 @@ public:
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const {return TurnManager;}
 	
 	UUnitBase* FindUnitByCombatID(const uint32 InCombatID) const;
-	bool CheckPositionForUnitWithCombatMap(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
+	bool CheckPositionForUnitWithCombatMap(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
 	void SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source);
 	
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
 	
 protected:
 	void ProcessNewUnit(UUnitBase* InNewUnit);
-	UUnitBase* CreateUnit(const FUnitRecord& InUnitRecord);
+	UUnitBase* CreateUnit(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation);
 	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 
 	UFUNCTION()

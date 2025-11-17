@@ -31,7 +31,7 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void StartTurns(int32 Seed = 12345);
+	void StartCombat();
 	void AdvanceToNextUnit();
 	void RebuildTurnOrder();
 
@@ -47,9 +47,6 @@ protected:
 	void BuildTurnOrder();
 	void SortTurnOrder();
 	void BeginTurnFor(uint32 UnitId);
-	int32 GetTieBreak(uint32 UnitId) const;
-	
-	void ProcessAITurn(UUnitBase* Unit);
 	
 	AWarpGameState* GetGameState() const;
 	
@@ -70,6 +67,5 @@ protected:
 
 	uint32 MinActionPointCost = 1;
 	int32 TurnIt = 0;
-	uint32 TurnSeed = 0;
 	bool bTurnsStarted = false;
 };

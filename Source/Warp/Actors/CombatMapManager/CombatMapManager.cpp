@@ -7,6 +7,7 @@
 #include "MGLogTypes.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/Units/UnitBase.h"
@@ -139,10 +140,10 @@ void ACombatMapManager::BuildBaseInstances()
 	CurrentHoveredInstance = INDEX_NONE;
 }
 
-void ACombatMapManager::SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
+void ACombatMapManager::SpawnUnit(const uint32 InUnitID, UStaticMesh* InStaticMesh, const FIntVector2& InUnitPos, const FUnitSize& InUnitSize,
 	const FUnitRotation& InUnitRotation,  EUnitActorState InUnitActorState)
 {
-	FVector SpawnLoc = CombatMapToLevelPosition(InUnitPos);
+	FVector SpawnLoc = GridToLevelPosition(InUnitPos);
 	SpawnLoc.Z += UnitZOffset;
 
 	FActorSpawnParameters Params;
@@ -155,15 +156,27 @@ void ACombatMapManager::SpawnUnit(const uint32 InUnitID, const FVector2f& InUnit
 				FRotator(0, InUnitRotation.GetUnitFRotation(), 0),
 				Params);
 	NewUnit->SetID(InUnitID);
-	NewUnit->ResizeMeshToSize(InUnitSize.GetUnitTileLength().X * GetTileSizeUU(), InUnitSize.GetUnitTileLength().Y * GetTileSizeUU());
 	NewUnit->SetUnitActorSize(InUnitSize);
 	NewUnit->SetUnitActorRotation(InUnitRotation);
 	NewUnit->SetUnitActorState(InUnitActorState);
+	NewUnit->SetUnitMesh(InStaticMesh);
+	NewUnit->ResizeMeshToSize(InUnitSize.GetUnitTileLength().X * GetTileSizeUU(), InUnitSize.GetUnitTileLength().Y * GetTileSizeUU());
 	UnitActorsByID.Add(InUnitID, NewUnit);
 
 	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
 				TEXT("Placing Unit {id = %d} at a Pos = {%s}"), NewUnit->GetID(), *SpawnLoc.ToString());
 }
+
+void ACombatMapManager::MoveUnitTo(const uint32 InUnitID, const FIntVector2& InUnitPos) const
+{
+	ABaseUnitActor* UnitActor = UnitActorsByID[InUnitID];
+	UnitActor->SetUnitGridPosition(InUnitPos);
+	
+	FVector SpawnLoc = GridToLevelPosition(InUnitPos);
+	SpawnLoc.Z += UnitZOffset;
+	UnitActor->SetUnitWorldPosition(SpawnLoc);
+}
+
 
 void ACombatMapManager::DestroyGhostActor(ABaseUnitActor* InGhostActor)
 {
@@ -171,43 +184,18 @@ void ACombatMapManager::DestroyGhostActor(ABaseUnitActor* InGhostActor)
 	InGhostActor = nullptr;
 }
 
-
-ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
-                                                       const FUnitRotation& InUnitRotation)
+ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const uint32 InBasedOnUnitActorID)
 {
-	FVector SpawnLoc = CombatMapToLevelPosition(InUnitPos);
-	SpawnLoc.Z += UnitZOffset;
-
+	ABaseUnitActor* BasedOnActor = UnitActorsByID[InBasedOnUnitActorID];
+	
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 
-	ABaseUnitActor* Ghost =
-			GetWorld()->SpawnActor<ABaseUnitActor>(
-				UnitActorClass,
-				SpawnLoc,
-				FRotator(0, InUnitRotation.GetUnitFRotation(), 0),
-				Params);
-
-	Ghost->ResizeMeshToSize(InUnitSize.GetUnitTileLength().X * GetTileSizeUU(), InUnitSize.GetUnitTileLength().Y * GetTileSizeUU());
-	Ghost->SetUnitActorSize(InUnitSize);
-	Ghost->SetUnitActorRotation(InUnitRotation);
-	Ghost->SetUnitActorState(EUnitActorState::Ghost);
-
-	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
-				TEXT("Placing Ghost at a Pos = {%s}"), *SpawnLoc.ToString());
-
-	return Ghost;
-}
-
-ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const ABaseUnitActor* InBasedOnUnitActor)
-{
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-
-	FVector Loc = InBasedOnUnitActor->GetActorLocation();
-	float Rot = InBasedOnUnitActor->GetUnitActorRotation().GetUnitFRotation();
-	FUnitSize UnitSize = InBasedOnUnitActor->GetUnitActorSize();
-	FUnitRotation Rotation = InBasedOnUnitActor->GetUnitActorRotation();
+	FVector Loc = BasedOnActor->GetActorLocation();
+	float Rot = BasedOnActor->GetUnitActorRotation().GetUnitFRotation();
+	FUnitSize UnitSize = BasedOnActor->GetUnitActorSize();
+	FUnitRotation Rotation = BasedOnActor->GetUnitActorRotation();
+	UStaticMesh* Mesh = BasedOnActor->GetUnitStaticMesh();
 	
 	ABaseUnitActor* Ghost =
 			GetWorld()->SpawnActor<ABaseUnitActor>(
@@ -215,14 +203,15 @@ ABaseUnitActor* ACombatMapManager::SpawnUnitActorGhost(const ABaseUnitActor* InB
 				Loc,
 				FRotator(0, Rot, 0),
 				Params);
-
-	Ghost->ResizeMeshToSize(UnitSize.GetUnitTileLength().X * GetTileSizeUU(), UnitSize.GetUnitTileLength().Y * GetTileSizeUU());
+	
 	Ghost->SetUnitActorSize(UnitSize);
 	Ghost->SetUnitActorRotation(Rotation);
 	Ghost->SetUnitActorState(EUnitActorState::Ghost);
+	Ghost->SetUnitMesh(Mesh);
+	Ghost->ResizeMeshToSize(UnitSize.GetUnitTileLength().X * GetTileSizeUU(), UnitSize.GetUnitTileLength().Y * GetTileSizeUU());
 
 	MG_COND_LOG(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
-				TEXT("Placing Ghost at a Pos = {%s} based on unit id = %d"), *Loc.ToString(), InBasedOnUnitActor->GetID());
+				TEXT("Placing Ghost at a Pos = {%s} based on unit id = %d"), *Loc.ToString(), InBasedOnUnitActorID);
 
 	return Ghost;
 }
@@ -236,16 +225,31 @@ void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnit
 		
 		if (UnitActorsByID.Contains(Unit->GetUnitCombatID()))
 			continue;
+
+		FUnitActorEssentialInfo ActorEssentialInfo = Unit->GetUnitActorEssentialInfo();
+		UStaticMesh* UnitMesh = GetStaticMeshComponentForUnitType(Unit->GetUnitTypeName());
+
+		SpawnUnit(ActorEssentialInfo.UnitCombatID, UnitMesh, ActorEssentialInfo.UnitGridPosition,
+			ActorEssentialInfo.UnitSize, ActorEssentialInfo.UnitRotation, EUnitActorState::Playable);
 		
-		SpawnUnit(Unit->GetUnitCombatID(), Unit->UnitPosition.GetUnitWorldPosition(), Unit->UnitSize,
-			Unit->UnitRotation, EUnitActorState::Playable);
 	}
 	IsInitialUnitsSpawned = true;
 }
 
-bool ACombatMapManager::IsPositionForUnitAvailable(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
+bool ACombatMapManager::IsPositionForUnitAvailable(const uint32 InUnitID, const FIntVector2& InUnitCenter, TArray<FIntPoint>& OutBlockers) const
 {
-	bool IsAvailable = GetGameState()->CheckPositionForUnitWithCombatMap(InUnitCenter, InUnitRotation, InUnitSize, OutBlockers);
+	ABaseUnitActor* UnitActor = UnitActorsByID[InUnitID];
+	FUnitSize UnitSize = UnitActor->GetUnitActorSize();
+	FUnitRotation UnitRotation = UnitActor->GetUnitActorRotation();
+	bool IsAvailable = GetGameState()->CheckPositionForUnitWithCombatMap(InUnitCenter, UnitRotation, UnitSize, OutBlockers);
+	return IsAvailable;
+}
+
+
+bool ACombatMapManager::IsPositionAvailable(const FUnitSize& InUnitSize, const FUnitRotation& UnitRotation,
+	const FIntVector2& InUnitCenter, TArray<FIntPoint>& OutBlockers) const
+{
+	bool IsAvailable = GetGameState()->CheckPositionForUnitWithCombatMap(InUnitCenter, UnitRotation, InUnitSize, OutBlockers);
 	return IsAvailable;
 }
 
@@ -288,6 +292,7 @@ void ACombatMapManager::ClearHover() const
 	HoverISMC->ClearInstances();
 }
 
+
 void ACombatMapManager::UpdateVisualForBlockers(const TArray<FIntPoint>& InBlockers)
 {
 	if (InBlockers.Num() > 0)
@@ -325,6 +330,28 @@ void ACombatMapManager::ClearBlocker() const
 	BlockedISMC->ClearInstances();
 }
 
+UStaticMesh* ACombatMapManager::GetStaticMeshComponentForUnitType(const FName& InUnitTypeName)
+{
+	FSoftObjectPath Path = GetUnitDataSubsystem(this)->GetUnitMeshObjectPath(InUnitTypeName);
+	if (UStaticMesh* Mesh = Cast<UStaticMesh>(Path.TryLoad()))
+	{
+		return Mesh;
+	}
+	return nullptr;
+}
+
+UUnitDataSubsystem* ACombatMapManager::GetUnitDataSubsystem(const UObject* WorldContext)
+{
+	if (!WorldContext) return nullptr;
+	if (const UWorld* World = WorldContext->GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			return GI->GetSubsystem<UUnitDataSubsystem>();
+		}
+	}
+	return nullptr;
+}
 
 FVector ACombatMapManager::CombatMapToLevelPosition(const FVector2f& InPos) const
 {
@@ -332,7 +359,7 @@ FVector ACombatMapManager::CombatMapToLevelPosition(const FVector2f& InPos) cons
 	return Res;
 }
 
-FVector ACombatMapManager::GridToLevelPosition(const FIntPoint& TileGridCoords) const
+FVector ACombatMapManager::GridToLevelPosition(const FIntVector2& TileGridCoords) const
 {
 	const float Half = TileSize * 0.5f;
 	FVector Res = GridOrigin + FVector(TileGridCoords.X * TileSize + Half, TileGridCoords.Y * TileSize + Half,0.f);
@@ -345,14 +372,14 @@ int32 ACombatMapManager::GridToTileIndex(const FIntPoint& InGridPos) const
 }
 
 
-FIntPoint ACombatMapManager::TileInstanceToGridPosition(const int32 TileInstanceIndex) const
+FIntVector2 ACombatMapManager::TileInstanceToGridPosition(const int32 TileInstanceIndex) const
 {
 	if (TileInstanceIndex < 0 || GridSize == 0)
-		return FIntPoint(-1, -1);
+		return FIntVector2(-1, -1);
 
 	const int32 X = TileInstanceIndex / GridSize;
 	const int32 Y = TileInstanceIndex % GridSize;
-	return FIntPoint(X, Y);
+	return FIntVector2(X, Y);
 }
 
 AWarpGameState* ACombatMapManager::GetGameState() const

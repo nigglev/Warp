@@ -23,8 +23,10 @@ public:
 	bool IsUnitCatalogReady() const { return bUnitCatalogReady; }
 
 	const TMap<FName, FUnitRecord>& GetUnitData() const { return RemoteUnits; }
-	FUnitRecord GetBasicUnitRecord() const;
-
+	FUnitRecord GetPlayerMainShipRecord() const;
+	FUnitRecord GetCorvetteRecord() const;
+	FSoftObjectPath GetUnitMeshObjectPath(const FName& InUnitTypeName) const;
+	
 	FOnUnitCatalogReady OnUnitCatalogReady;
 	
 protected:

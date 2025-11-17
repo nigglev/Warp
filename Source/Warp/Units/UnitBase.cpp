@@ -12,22 +12,25 @@ DEFINE_LOG_CATEGORY_STATIC(UUnitBaseLog, Log, All);
 void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUnitBase, UnitTypeName);
-	DOREPLIFETIME(UUnitBase, UnitCombatID);
+	DOREPLIFETIME(UUnitBase, UnitTypeName_);
+	DOREPLIFETIME(UUnitBase, UnitCombatID_);
+	DOREPLIFETIME(UUnitBase, UnitAffiliation_);
 	DOREPLIFETIME(UUnitBase, UnitSize);
 	DOREPLIFETIME(UUnitBase, UnitPosition);
 	DOREPLIFETIME(UUnitBase, UnitRotation);
 	
-	DOREPLIFETIME(UUnitBase, Speed);
-	DOREPLIFETIME(UUnitBase, MaxAP);
-	DOREPLIFETIME(UUnitBase, CurrentAP);
+	DOREPLIFETIME(UUnitBase, Speed_);
+	DOREPLIFETIME(UUnitBase, MaxAP_);
+	DOREPLIFETIME(UUnitBase, CurrentAP_);
 }
 
-auto UUnitBase::CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize) -> UUnitBase*
+auto UUnitBase::CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation,
+	const EUnitSizeCategory InUnitSize) -> UUnitBase*
 {
 	UUnitBase* NewUnit = NewObject<UUnitBase>(Outer);
-	NewUnit->UnitTypeName = InUnitTypeName;
-	NewUnit->UnitCombatID = InUnitCombatID;
+	NewUnit->UnitTypeName_ = InUnitTypeName;
+	NewUnit->UnitCombatID_ = InUnitCombatID;
+	NewUnit->UnitAffiliation_ = InUnitAffiliation;
 	NewUnit->UnitSize = FUnitSize(InUnitSize);
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
 		TEXT("New Unit Created: %s"), *NewUnit->ToString());
@@ -36,21 +39,38 @@ auto UUnitBase::CreateUnit(UObject* Outer, const FName& InUnitTypeName, const ui
 
 void UUnitBase::InitStats(int32 InSpeed, int32 InMaxAP)
 {
-	Speed = InSpeed;
-	MaxAP = InMaxAP;
-	CurrentAP = 0;
+	Speed_ = InSpeed;
+	MaxAP_ = InMaxAP;
+	CurrentAP_ = 0;
+}
+
+
+FUnitActorEssentialInfo UUnitBase::GetUnitActorEssentialInfo() const
+{
+	FUnitActorEssentialInfo UnitActorEssentialInfo;
+	UnitActorEssentialInfo.UnitCombatID = UnitCombatID_;
+	UnitActorEssentialInfo.UnitSize = UnitSize;
+	UnitActorEssentialInfo.UnitGridPosition = UnitPosition.GetUnitTilePosition();
+	UnitActorEssentialInfo.UnitRotation = UnitRotation;
+	return UnitActorEssentialInfo;
 }
 
 void UUnitBase::OnRep_UnitTypeName()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: UnitTypeName: %s"), *GetName(), *UnitTypeName.ToString());
+	TEXT("Name = %s: UnitTypeName: %s"), *GetName(), *UnitTypeName_.ToString());
 }
 
 void UUnitBase::OnRep_CombatUnitID()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: UnitID: %d"), *GetName(), UnitCombatID);
+	TEXT("Name = %s: UnitID: %d"), *GetName(), UnitCombatID_);
+}
+
+void UUnitBase::OnRep_UnitAffiliation()
+{
+	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
+	TEXT("Name = %s: UnitAffiliation: %d"), *GetName(), UnitAffiliation_);
 }
 
 void UUnitBase::OnRep_UnitPosition()
@@ -76,26 +96,27 @@ void UUnitBase::OnRep_UnitSize()
 void UUnitBase::OnRep_UnitSpeed()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: Speed: %d"), *GetName(), Speed);
+	TEXT("Name = %s: Speed: %d"), *GetName(), Speed_);
 }
 
 void UUnitBase::OnRep_UnitMaxAP()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: MaxAP: %d"), *GetName(), MaxAP);
+	TEXT("Name = %s: MaxAP: %d"), *GetName(), MaxAP_);
 }
 
 void UUnitBase::OnRep_UnitCurrentAP()
 {
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
-	TEXT("Name = %s: CurrentAP: %d"), *GetName(), CurrentAP);
+	TEXT("Name = %s: CurrentAP: %d"), *GetName(), CurrentAP_);
 }
+
 
 FString UUnitBase::ToString() const
 {
 	return FString::Printf(
-		TEXT("UUnitBase { UnitID = %d, UnitSize = %d (%d, %d), UnitWorldPosition = (%f, %f), UnitGridPosition = (%u, %u), UnitRotationValue = (%f) }"),
-		UnitCombatID,
+		TEXT("UUnitBase { Unit: ID = %d, Type = %s, Affiliation = %d, UnitSize = %d (%d, %d), UnitWorldPosition = (%f, %f), UnitGridPosition = (%u, %u), UnitRotationValue = (%f) }"),
+		UnitCombatID_, *UnitTypeName_.ToString(), UnitAffiliation_,
 		UnitSize.GetUnitSize(), UnitSize.GetUnitTileLength().X, UnitSize.GetUnitTileLength().Y,
 		UnitPosition.GetUnitWorldPosition().X, UnitPosition.GetUnitWorldPosition().Y,
 		UnitPosition.GetUnitTilePosition().X, UnitPosition.GetUnitTilePosition().Y,

@@ -80,18 +80,18 @@ void AWarpGameState::SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Sourc
 	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, UnitCatalog, this);
 }
 
-void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord)
+void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
 {
-	UUnitBase* Unit = CreateUnit(InUnitRecord);
+	UUnitBase* Unit = CreateUnit(InUnitRecord, InAffiliation);
 	Unit->UnitRotation.SetRandomRotation();
 	StaticCombatMap->PlaceUnitOnMapRand(Unit);
 	ProcessNewUnit(Unit);
 }
 
-bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const FIntPoint& InGridPosition,
+bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation, const FIntVector2& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit)
 {
-	UUnitBase* Unit = CreateUnit(InUnitRecord);
+	UUnitBase* Unit = CreateUnit(InUnitRecord, InAffiliation);
 	Unit->UnitRotation = Rotation;
 	TArray<FIntPoint> Blockers;
 	
@@ -112,8 +112,33 @@ bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const FIntPoi
 	return true;
 }
 
+bool AWarpGameState::MoveUnitTo(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)
+{
+	if (!HasAuthority())
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
+		return false;
+	}
+	if (!IsValid(StaticCombatMap))
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("No Map (HasAuthority = %d)"), HasAuthority());
+		return false;
+	}
 
-UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord)
+	if (UUnitBase** Found = Algo::FindBy(ActiveUnits, InUnitToMoveID, &UUnitBase::GetUnitCombatID))
+	{
+		UUnitBase* Unit = *Found;
+		Unit->UnitPosition.SetUnitTilePosition(InGridPosition);
+		return true;
+	}
+
+	return false;
+}
+
+
+UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
 {
 	if (!HasAuthority())
 	{
@@ -138,7 +163,7 @@ UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord)
 	uint32 UnitSpeed = InUnitRecord.Props.UnitSpeed;
 	uint32 UnitMaxAP = InUnitRecord.Props.UnitMaxAP;
 
-	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeName, AssignedCombatID, UnitSize);
+	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeName, AssignedCombatID, InAffiliation, UnitSize);
 
 	if (!IsValid(NewUnit))
 	{
@@ -174,7 +199,7 @@ UUnitBase* AWarpGameState::FindUnitByCombatID(const uint32 InCombatID) const
 	return nullptr;
 }
 
-bool AWarpGameState::CheckPositionForUnitWithCombatMap(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
+bool AWarpGameState::CheckPositionForUnitWithCombatMap(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const
 {
 	return StaticCombatMap->CheckPositionForUnit(InUnitCenter, InUnitRotation, InUnitSize, OutBlockers);
 }

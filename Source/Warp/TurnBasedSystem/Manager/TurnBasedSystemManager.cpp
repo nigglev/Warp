@@ -21,23 +21,21 @@ void UTurnBasedSystemManager::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_WITH_PARAMS_FAST(UTurnBasedSystemManager, Phase, RepParams);
 }
 
-void UTurnBasedSystemManager::StartTurns(const int32 Seed)
+void UTurnBasedSystemManager::StartCombat()
 {
 	if (!GetGameState() || !GetGameState()->HasAuthority() || bTurnsStarted)
 		return;
-	TurnSeed = Seed;
 	BuildTurnOrder();
 
 	if (TurnOrderUnitIds.Num() == 0)
 	{
 		MG_COND_ERROR(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
 		TEXT("StartTurns: no units."));
-		return;
 	}
 
-	bTurnsStarted = true;
-	TurnIt = 0;
-	BeginTurnFor(TurnOrderUnitIds[TurnIt]);
+	// bTurnsStarted = true;
+	// TurnIt = 0;
+	// BeginTurnFor(TurnOrderUnitIds[TurnIt]);
 }
 
 void UTurnBasedSystemManager::BuildTurnOrder()
@@ -124,21 +122,13 @@ void UTurnBasedSystemManager::SortTurnOrder()
 
 	Copy.Sort([&](const UUnitBase& A, const UUnitBase& B)
 	{
-		if (A.GetSpeed() != B.GetSpeed()) return A.GetSpeed() > B.GetSpeed();
-		return GetTieBreak(A.GetUnitCombatID()) < GetTieBreak(B.GetUnitCombatID()); 
+		return A.GetSpeed() > B.GetSpeed();
 	});
 
 	TurnOrderUnitIds.Reset(Copy.Num());
 	for (const UUnitBase* U : Copy)
 		TurnOrderUnitIds.Add(U->GetUnitCombatID());
 	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
-}
-
-int32 UTurnBasedSystemManager::GetTieBreak(uint32 UnitId) const
-{
-	const uint32 Seed = HashCombine(TurnSeed, ::GetTypeHash(UnitId));
-	FRandomStream Rng(Seed);
-	return static_cast<int32>(Rng.GetUnsignedInt());
 }
 
 UUnitBase* UTurnBasedSystemManager::GetCurrentTurnUnit() const

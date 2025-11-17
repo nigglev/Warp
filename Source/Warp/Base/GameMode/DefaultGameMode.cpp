@@ -42,12 +42,15 @@ void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 	
 	if (!HasAuthority()) return;
-	if (bInitialUnitsSpawned) return;
+	if (bMainPlayerSpawned && bAISpawned) return;
 
 	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
 
 	if (Sys->IsUnitCatalogReady())
-		SpawnInitialUnitsOnce();
+	{
+		SpawnPlayerMainShip();
+		SpawnAIShips(AINumber);
+	}
 	else
 		Sys->OnUnitCatalogReady.AddUniqueDynamic(this, &ADefaultGameMode::HandleUnitCatalogReady);
 
@@ -55,24 +58,35 @@ void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ADefaultGameMode::HandleUnitCatalogReady(bool bSuccess)
 {
-	if (!HasAuthority() || bInitialUnitsSpawned) return;
+	if (!HasAuthority() || (bMainPlayerSpawned && bAISpawned)) return;
 	if (!bSuccess) return;
 
-	SpawnInitialUnitsOnce();
+	SpawnPlayerMainShip();
+	SpawnAIShips(AINumber);
 }
 
-void ADefaultGameMode::SpawnInitialUnitsOnce()
+void ADefaultGameMode::SpawnPlayerMainShip()
 {
-	if (bInitialUnitsSpawned) return;
-	bInitialUnitsSpawned = true;
-
-	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-	FUnitRecord Record = Sys->GetBasicUnitRecord();
+	if (bMainPlayerSpawned) return;
 	
-	for (int i = 0; i < 4; i++)
-	{
-		GetWarpGameState()->CreateUnitAtRandomPosition(Record);
-	}
+	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
+	FUnitRecord Record = Sys->GetPlayerMainShipRecord();
+	GetWarpGameState()->CreateUnitAtRandomPosition(Record, EUnitAffiliation::Player);
+	
+	bMainPlayerSpawned = true;
+}
+
+void ADefaultGameMode::SpawnAIShips(int InAINumber)
+{
+	if (bAISpawned) return;
+	
+	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
+	FUnitRecord Record = Sys->GetCorvetteRecord();
+
+	for (int i = 0; i < InAINumber; i++)
+		GetWarpGameState()->CreateUnitAtRandomPosition(Record, EUnitAffiliation::Enemy);
+	
+	bAISpawned = true;
 }
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const

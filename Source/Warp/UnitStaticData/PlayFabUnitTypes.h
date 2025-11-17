@@ -42,6 +42,12 @@ struct FUnitRecord
 		if (Props.UnitSize == FName(TEXT("Small")))
 			return EUnitSizeCategory::Small;
 
+		if (Props.UnitSize == FName(TEXT("Medium")))
+			return EUnitSizeCategory::Medium;
+
+		if (Props.UnitSize == FName(TEXT("Big")))
+			return EUnitSizeCategory::Big;
+
 		return EUnitSizeCategory::None;
 	}
 	

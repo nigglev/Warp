@@ -33,6 +33,12 @@ public:
 	uint32 GetID() const {return UnitID;}
 	void SetID(const uint32 InID) {UnitID = InID;}
 
+	FIntVector2 GetUnitGridPosition() const {return UnitGridPosition;}
+	void SetUnitGridPosition(const FIntVector2 InUnitGridPosition) {UnitGridPosition = InUnitGridPosition;}
+
+	FVector GetUnitWorldPosition() const {return GetActorLocation();}
+	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
+
 	FUnitSize GetUnitActorSize() const {return UnitActorSize;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
 	
@@ -42,10 +48,15 @@ public:
 	EUnitActorState GetUnitActorState() const {	return UnitActorState;	}
 	void SetUnitActorState(const EUnitActorState InState) {UnitActorState = InState;}
 
+	UStaticMesh* GetUnitStaticMesh() const {return MeshComponent->GetStaticMesh();}
+	void SetUnitMesh(UStaticMesh* InMesh) const;
+
 	void UpdatePosition(const FVector& InPosition);
 	void Rotate(bool InClockwise);
 	
 protected:
+	
+	
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* MeshComponent;
 	UPROPERTY(EditAnywhere, Category="Highlight")
@@ -55,6 +66,8 @@ protected:
 
 	UPROPERTY(Replicated)
 	uint32 UnitID = 0;
+	UPROPERTY(Replicated)
+	FIntVector2 UnitGridPosition = FIntVector2::ZeroValue;
 	UPROPERTY(Replicated)
 	FUnitSize UnitActorSize = FUnitSize::None();
 	UPROPERTY(Replicated)

@@ -13,7 +13,17 @@ struct FCombatMapTile;
  * 
  */
 
-UENUM(BlueprintType)
+UENUM()
+enum class EUnitAffiliation
+{
+	Neutral = 0	UMETA(DisplayName="Neutral"),
+	Player		UMETA(DisplayName="Player"),
+	Enemy		UMETA(DisplayName="Enemy"),
+	Ally		UMETA(DisplayName="Ally"),
+	Max			UMETA(DisplayName="MAX")
+};
+
+UENUM()
 enum class EUnitRotation : uint8
 {
 	Rot_0 = 0	UMETA(DisplayName="0°"),
@@ -27,7 +37,7 @@ enum class EUnitRotation : uint8
 	Max			UMETA(DisplayName="MAX")
 };
 
-UENUM(BlueprintType)
+UENUM()
 enum class EUnitSizeCategory : uint8
 {
 	None   UMETA(DisplayName="None"),
@@ -145,6 +155,17 @@ private:
 	EUnitSizeCategory SizeCategory = EUnitSizeCategory::None;
 };
 
+USTRUCT()
+struct FUnitActorEssentialInfo
+{
+	GENERATED_BODY()
+	
+	uint32 UnitCombatID;
+	FUnitSize UnitSize;
+	FIntVector2 UnitGridPosition;
+	FUnitRotation UnitRotation;
+	
+};
 
 UCLASS()
 class WARP_API UUnitBase : public UObject
@@ -155,12 +176,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION()
-	static UUnitBase* CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitSizeCategory InUnitSize);
+	static UUnitBase* CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation, const EUnitSizeCategory InUnitSize);
 
-	FName GetUnitTypeName() const {return UnitTypeName;}
-	uint32 GetUnitCombatID() const {return UnitCombatID;}
-	
-	FString ToString() const;
+	FName GetUnitTypeName() const {return UnitTypeName_;}
+	uint32 GetUnitCombatID() const {return UnitCombatID_;}
+	EUnitAffiliation GetUnitAffiliation() const {return UnitAffiliation_;}
+	FUnitActorEssentialInfo GetUnitActorEssentialInfo() const;
 
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitPosition)
 	FUnitPosition UnitPosition;
@@ -172,20 +193,23 @@ public:
 
 	void InitStats(int32 InSpeed, int32 InMaxAP);
 
-	void StartNewTurn() { CurrentAP = MaxAP; }
-	bool SpendAP(const int32 Amount) { if (Amount <= 0) return false; if (CurrentAP < Amount) return false; CurrentAP -= Amount; return true; }
-	bool HasAnyAffordableAction(const int32 MinActionCost) const { return CurrentAP >= MinActionCost; }
+	void StartNewTurn() { CurrentAP_ = MaxAP_; }
+	bool SpendAP(const int32 Amount) { if (Amount <= 0) return false; if (CurrentAP_ < Amount) return false; CurrentAP_ -= Amount; return true; }
+	bool HasAnyAffordableAction(const int32 MinActionCost) const { return CurrentAP_ >= MinActionCost; }
 
-	int32 GetSpeed() const {return Speed;}
-	int32 GetMaxAP() const {return MaxAP;}
-	int32 GetCurrentAP	() const {return CurrentAP;}
+	int32 GetSpeed() const {return Speed_;}
+	int32 GetMaxAP() const {return MaxAP_;}
+	int32 GetCurrentAP	() const {return CurrentAP_;}
 
+	FString ToString() const;
 	
 protected:
 	UFUNCTION()
 	void OnRep_UnitTypeName();
 	UFUNCTION()
 	void OnRep_CombatUnitID();
+	UFUNCTION()
+	void OnRep_UnitAffiliation();
 	UFUNCTION()
 	void OnRep_UnitPosition();
 	UFUNCTION()
@@ -201,15 +225,17 @@ protected:
 	void OnRep_UnitCurrentAP();
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitTypeName)
-	FName UnitTypeName;
+	FName UnitTypeName_;
 	UPROPERTY(ReplicatedUsing=OnRep_CombatUnitID)
-	uint32 UnitCombatID;
+	uint32 UnitCombatID_;
+	UPROPERTY(ReplicatedUsing=OnRep_UnitAffiliation)
+	EUnitAffiliation UnitAffiliation_;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitSpeed)
-	int32 Speed = 10;
+	int32 Speed_ = 10;
 	UPROPERTY(ReplicatedUsing=OnRep_UnitMaxAP)
-	int32 MaxAP = 2;
+	int32 MaxAP_ = 2;
 	UPROPERTY(ReplicatedUsing=OnRep_UnitCurrentAP)
-	int32 CurrentAP = 0;
+	int32 CurrentAP_ = 0;
 
 };

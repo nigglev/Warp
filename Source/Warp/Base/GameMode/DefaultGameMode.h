@@ -25,12 +25,16 @@ public:
 protected:
 	UFUNCTION()
 	void HandleUnitCatalogReady(bool bSuccess);
-	void SpawnInitialUnitsOnce();
+	void SpawnPlayerMainShip();
+	void SpawnAIShips(int InAINumber);
 
 	AWarpGameState* GetWarpGameState() const;
 	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 
 	bool bInitialUnitsSpawned = false;
+	bool bMainPlayerSpawned = false;
+	bool bAISpawned = false;
+	int AINumber = 5;
 };
 
 

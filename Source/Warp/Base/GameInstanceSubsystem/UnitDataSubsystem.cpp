@@ -22,10 +22,22 @@ void UUnitDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	StartAuthAndLoadUnits();
 }
 
-FUnitRecord UUnitDataSubsystem::GetBasicUnitRecord() const
+FUnitRecord UUnitDataSubsystem::GetPlayerMainShipRecord() const
+{
+    FUnitRecord UnitRecord = RemoteUnits["Battleship"];
+    return UnitRecord;
+}
+
+FUnitRecord UUnitDataSubsystem::GetCorvetteRecord() const
 {
     FUnitRecord UnitRecord = RemoteUnits["Corvette"];
     return UnitRecord;
+}
+
+FSoftObjectPath UUnitDataSubsystem::GetUnitMeshObjectPath(const FName& InUnitTypeName) const
+{
+    FUnitRecord Rec = RemoteUnits[InUnitTypeName];
+    return Rec.Props.MeshPath;
 }
 
 void UUnitDataSubsystem::StartAuthAndLoadUnits()
@@ -38,14 +50,6 @@ void UUnitDataSubsystem::StartAuthAndLoadUnits()
         MG_COND_LOG(AUnitDataSubsystemLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitDataSubsystem),
             TEXT("UnitDataSubsystem: client; skipping PlayFab fetch (server authoritative)"));
     }
-	
-    // FString Secret = TEXT("HYBF1BJ3FA8PC3PWPNC395H9X9WWTBFX5WQU4SPKE9BMZANIR1");
-    // if (Secret.IsEmpty())
-    // {
-    //     MG_COND_LOG(AUnitDataSubsystemLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitDataSubsystem),
-    //         TEXT("UnitDataSubsystem: PLAYFAB_SECRET_KEY env var is missing. Cannot fetch catalog."));
-    //     return;
-    // }
     
     FString Secret;
     if (!ReadPlayFabSecretFromFile(Secret))

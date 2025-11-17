@@ -27,14 +27,16 @@ public:
 	
 	void Init(uint32 InGridSize, uint32 InTileSize);
 	void GenerateGrid();
-
-	ABaseUnitActor* SpawnUnitActorGhost(const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
-		const FUnitRotation& InUnitRotation);
-	ABaseUnitActor* SpawnUnitActorGhost(const ABaseUnitActor* InBasedOnUnitActor);
-	void SpawnUnit(const uint32 InUnitID, const FVector2f& InUnitPos, const FUnitSize& InUnitSize,
-		const FUnitRotation& InUnitRotation, EUnitActorState InUnitActorState);
+	
+	ABaseUnitActor* SpawnUnitActorGhost(const uint32 InBasedOnUnitActorID);
 	void DestroyGhostActor(ABaseUnitActor* InGhostActor);
-	bool IsPositionForUnitAvailable(const FIntPoint& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
+	
+	void SpawnUnit(const uint32 InUnitID, UStaticMesh* InStaticMesh, const FIntVector2& InUnitPos, const FUnitSize& InUnitSize,
+		const FUnitRotation& InUnitRotation, EUnitActorState InUnitActorState);
+
+	void MoveUnitTo(const uint32 InUnitID, const FIntVector2& InUnitPos) const;
+	bool IsPositionAvailable(const FUnitSize& InUnitSize, const FUnitRotation& UnitRotation, const FIntVector2& InUnitCenter, TArray<FIntPoint>& OutBlockers) const;
+	bool IsPositionForUnitAvailable(const uint32 InUnitID, const FIntVector2& InUnitCenter, TArray<FIntPoint>& OutBlockers) const;
 
 	void UpdateHoveredTile(int32 NewInstanceIndex);
 	void UpdateVisualForBlockers(const TArray<FIntPoint>& InBlockers);
@@ -46,24 +48,25 @@ public:
 	int32 GetGridSquare() const { return GridSize * GridSize; }
 
 	int32 GridToTileIndex(const FIntPoint& InGridPos) const;
-	FIntPoint TileInstanceToGridPosition(int32 TileInstanceIndex) const;
-	FVector GridToLevelPosition(const FIntPoint& TileGridCoords) const;
+	FIntVector2 TileInstanceToGridPosition(int32 TileInstanceIndex) const;
+	FVector GridToLevelPosition(const FIntVector2& TileGridCoords) const;
 	FVector CombatMapToLevelPosition(const FVector2f& InPos) const;
 	
 protected:
-
 	void SetupLayers() const;
 	void BuildBaseInstances();
 	
 	UFUNCTION()
 	void SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnits);
-	
 
 	void SetBlocker(int32 TileIdx);
 	void ClearBlocker() const;
 	void SetHover(int32 TileIdx);
 	void ClearHover() const;
 
+	UStaticMesh* GetStaticMeshComponentForUnitType(const FName& InUnitTypeName);
+	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
+	
 	UPROPERTY()
 	FVector GridOrigin;
 	UPROPERTY()

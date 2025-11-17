@@ -6,6 +6,7 @@
 #include "GameFramework/HUD.h"
 #include "DefaultWarpHUD.generated.h"
 
+class UStartBattleWidget;
 class AWarpGameState;
 class UTurnBasedSystemManager;
 class UUnitSpawnWidget;
@@ -25,25 +26,12 @@ public:
 	
 protected:
 	APlayerController* Init() const;
-	void CreateSpawnWidgets(APlayerController* InPC);
-	void BuildTurnOrderOverlay();
 	AWarpGameState* GetGameState() const;
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
-	UFUNCTION()
-	void UI_SpawnSmall();
-	UFUNCTION()
-	void UI_SpawnMedium();
-	UFUNCTION()
-	void UI_SpawnLarge();
-	UFUNCTION()
-	void HandleTurnOrderUpdated(const TArray<uint32>& Order, uint32 CurrentId);
-	void PushInitialTurnOrder();
 
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UStartBattleWidget> StartBattleWidgetClass;
 	UPROPERTY()
-	UUnitSpawnWidget* SpawnWidget = nullptr;
-	
-	TSharedPtr<SOverlay> RootOverlay;
-	TSharedPtr<STurnOrderWidget> TurnOrderSlate;
+	UStartBattleWidget* StartBattleWidget = nullptr;
 
-	FDelegateHandle TurnOrderUpdatedHandle;
 };
