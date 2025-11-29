@@ -32,11 +32,34 @@ void UTurnBasedSystemManager::StartCombat()
 		MG_COND_ERROR(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
 		TEXT("StartTurns: no units."));
 	}
-
-	// bTurnsStarted = true;
-	// TurnIt = 0;
-	// BeginTurnFor(TurnOrderUnitIds[TurnIt]);
+	
+	ActiveUnitIndex = 0;
+	CurrentTurnUnitId = TurnOrderUnitIds[ActiveUnitIndex];
+	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, CurrentTurnUnitId, this);
 }
+
+void UTurnBasedSystemManager::AdvanceToNextUnit()
+{
+	if (!GetGameState() || !GetGameState()->HasAuthority() || TurnOrderUnitIds.Num() == 0) return;
+	ActiveUnitIndex = (ActiveUnitIndex + 1) % TurnOrderUnitIds.Num();
+	CurrentTurnUnitId = TurnOrderUnitIds[ActiveUnitIndex];
+	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, CurrentTurnUnitId, this);
+}
+
+bool UTurnBasedSystemManager::IsEnoughActionForMovement(const FIntVector2& InDistanceToTargetPosition)
+{
+	int32 dx = FMath::Abs(InDistanceToTargetPosition.X);
+	int32 dy = FMath::Abs(InDistanceToTargetPosition.Y);
+	int32 Steps = FMath::Max(dx, dy);
+
+	bool bCanMove = GetCurrentUnitActionPoints() >= Steps;
+	if (!bCanMove)
+		MG_COND_LOG(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
+			TEXT("Not enough action points to move. Need: %d action points; Currently have: %d action points"), Steps, GetCurrentUnitActionPoints());
+
+	return GetCurrentUnitActionPoints() >= Steps;
+}
+
 
 void UTurnBasedSystemManager::BuildTurnOrder()
 {
@@ -44,7 +67,6 @@ void UTurnBasedSystemManager::BuildTurnOrder()
 		return;
 	
 	SortTurnOrder();
-	OnTurnOrderUpdated.Broadcast(TurnOrderUnitIds, CurrentTurnUnitId);
 	
 	MG_COND_LOG(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),  TEXT("Current turn order on server {%d}: "), GetGameState()->HasAuthority());
 	for (int i = 0; i < TurnOrderUnitIds.Num(); i++)
@@ -72,44 +94,16 @@ void UTurnBasedSystemManager::RebuildTurnOrder()
 	const int32 NewIdx = TurnOrderUnitIds.IndexOfByKey(PrevCurrent);
 	if (NewIdx != INDEX_NONE)
 	{
-		TurnIt = NewIdx;
+		ActiveUnitIndex = NewIdx;
 	}
 	else
 	{
-		TurnIt = 0;
+		ActiveUnitIndex = 0;
 		CurrentTurnUnitId = TurnOrderUnitIds.Num() ? TurnOrderUnitIds[0] : 0;
 		MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, CurrentTurnUnitId, this);
 		
 	}
 	OnTurnOrderUpdated.Broadcast(TurnOrderUnitIds, CurrentTurnUnitId);
-}
-
-
-void UTurnBasedSystemManager::BeginTurnFor(uint32 UnitId)
-{
-	if (!GetGameState() || !GetGameState()->HasAuthority())
-		return;
-	
-	CurrentTurnUnitId = UnitId;
-	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, CurrentTurnUnitId, this);
-	Phase = ETurnPhase::InTurn;
-	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, Phase, this);
-	
-	OnTurnPhaseChanged.Broadcast(Phase);
-	MG_COND_LOG(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),  TEXT("Starting turn for unit id = %d") , CurrentTurnUnitId);
-	
-	if (UUnitBase* U = GetCurrentTurnUnit())
-	{
-		U->StartNewTurn();
-		//ProcessAITurn(U);
-	}
-}
-
-void UTurnBasedSystemManager::AdvanceToNextUnit()
-{
-	if (!GetGameState() || !GetGameState()->HasAuthority() || TurnOrderUnitIds.Num() == 0) return;
-	TurnIt = (TurnIt + 1) % TurnOrderUnitIds.Num();
-	BeginTurnFor(TurnOrderUnitIds[TurnIt]);
 }
 
 void UTurnBasedSystemManager::SortTurnOrder()
@@ -128,40 +122,41 @@ void UTurnBasedSystemManager::SortTurnOrder()
 	TurnOrderUnitIds.Reset(Copy.Num());
 	for (const UUnitBase* U : Copy)
 		TurnOrderUnitIds.Add(U->GetUnitCombatID());
-	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
+	//MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
 }
-
-UUnitBase* UTurnBasedSystemManager::GetCurrentTurnUnit() const
-{
-	if (!GetGameState())
-		return nullptr;
-	
-	for (UUnitBase* U : GetGameState()->GetActiveUnits())
-	{
-		if (U && U->GetUnitCombatID() == CurrentTurnUnitId) return U;
-	}
-	return nullptr;
-}
-
-
-// void AWarpGameState::ProcessAITurn(UUnitBase* Unit)
-// {
-// 	if (!Unit) return;
-//
-// 	const bool bPlayer = (Unit->GetAffiliation() == EUnitAffiliation::PlayerControlled);
-// 	if (bPlayer)
-// 		return;
-//
-// 	while (Unit->HasAnyAffordableAction(MinActionPointCost))
-// 	{
-// 		Unit->SpendAP(MinActionPointCost);
-// 	}
-// 	AdvanceToNextUnit();
-// }
 
 AWarpGameState* UTurnBasedSystemManager::GetGameState() const
 {
 	return GetTypedOuter<AWarpGameState>();
+}
+
+int32 UTurnBasedSystemManager::GetCurrentUnitActionPoints()
+{
+	UUnitBase* U = GetGameState()->GetUnitByID(GetActiveUnitID());
+	if (!IsValid(U))
+	{
+		MG_COND_ERROR(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
+		TEXT("Invalid UNIT."));
+		return -1;
+	}
+	return U->GetCurrentAP();
+}
+
+
+uint32 UTurnBasedSystemManager::GetActiveUnitID() const
+{
+	return CurrentTurnUnitId;
+}
+
+uint32 UTurnBasedSystemManager::GetFirstUnitIDInOrder() const
+{
+	if (TurnOrderUnitIds.Num() == 0)
+	{
+		MG_COND_ERROR(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
+		TEXT("StartTurns: no units."));
+	}
+
+	return TurnOrderUnitIds[0];
 }
 
 
@@ -169,7 +164,7 @@ void UTurnBasedSystemManager::OnRep_CurrentTurn()
 {
 	MG_COND_LOG(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
 	TEXT("CurrentTurn %d"),	CurrentTurnUnitId);
-	OnTurnOrderUpdated.Broadcast(TurnOrderUnitIds, CurrentTurnUnitId);
+	OnActiveUnitChanged.Broadcast(CurrentTurnUnitId);
 }
 
 void UTurnBasedSystemManager::OnRep_CurrentPhase()

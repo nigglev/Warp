@@ -15,7 +15,9 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
-#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
+#include "Warp/UI/HUD/DefaultWarpHUD.h"
+#include "Warp/UI/CombatUI/CombatUIWidget.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultPlayerControllerLog, Log, All);
 
@@ -30,6 +32,7 @@ void ADefaultPlayerController::BeginPlay()
 	Super::BeginPlay();
 	SetupEnhancedInput();
 	CreateCombatMapManager();
+	HandleEvents();
 }
 
 void ADefaultPlayerController::PlayerTick(float DeltaTime)
@@ -121,48 +124,27 @@ void ADefaultPlayerController::TryInitCombatMapManager()
 	}
 }
 
-void ADefaultPlayerController::ServerStartCombat_Implementation()
+void ADefaultPlayerController::HandleEvents()
 {
-	if (UTurnBasedSystemManager* TBSM = GetGameState()->GetTurnBasedSystemManager())
+	GetGameState()->OnCombatStarted.AddUniqueDynamic(this, &ADefaultPlayerController::HandleCombatStarted);
+
+	if (GetGameState()->IsCombatStarted())
 	{
-		TBSM->StartCombat();
-		
-		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("Start combat"));
+		HandleCombatStarted();
 	}
 }
 
-void ADefaultPlayerController::UpdateTileHovering()
+void ADefaultPlayerController::HandleCombatStarted()
 {
-	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
-
-	int32 TileIndex;
-	PrevHoveredTile = HoveredTile;
-	if (!GetHoveredTileIndexAndCoordinates(TileIndex, HoveredTile))
-		return;
-	if (TileIndex < 0 || HoveredTile.X < 0 || HoveredTile.Y < 0)
-		return;
-	if (HoveredTile == PrevHoveredTile)
-		return;
-	CombatMapManager->UpdateHoveredTile(TileIndex);
+	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(this, &ADefaultPlayerController::HandleActiveUnitChanged);
 }
 
-void ADefaultPlayerController::UpdateUnitGhostPosition() const
+void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
 {
-	if ((!bPlacingUnit_ && !bMovingUnit_) || !IsValid(GhostActor_))
-		return;
-	if (HoveredTile == PrevHoveredTile)
-		return;
-	
-	const FVector WorldCenter = CombatMapManager->GridToLevelPosition(HoveredTile);
-	TArray<FIntPoint> OutBlockers;
-	if (CombatMapManager->IsPositionAvailable(GhostActor_->GetUnitActorSize(), GhostActor_->GetUnitActorRotation(), HoveredTile, OutBlockers))
-	{
-		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("GOOD POSITION"));
-	}
-	CombatMapManager->UpdateVisualForBlockers(OutBlockers);
-	GhostActor_->UpdatePosition(WorldCenter);
+	MoveCameraToUnit(InActiveUnitID);
+	UUnitBase* U = GetGameState()->GetUnitByID(InActiveUnitID);
+	GetWarpHUD()->GetCombatUI()->SetActionPoints(U->GetMaxAP(), U->GetMaxAP());
+
 }
 
 void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
@@ -230,6 +212,7 @@ void ADefaultPlayerController::OnRotateCameraReleased(const FInputActionValue& V
 	bRotateCamera = false;
 }
 
+
 void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 {
 	const float Axis = Value.Get<float>();
@@ -239,17 +222,40 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	}
 }
 
+void ADefaultPlayerController::ServerStartCombat_Implementation()
+{
+	GetTurnBasedSystemManager()->StartCombat();
+	GetGameState()->SetCombatStarted(true);
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("Start combat"));
+}
+
+
+void ADefaultPlayerController::ServerEndTurn_Implementation()
+{
+	GetTurnBasedSystemManager()->AdvanceToNextUnit();
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("Ending turn"));
+}
+
 bool ADefaultPlayerController::MoveUnitServerAuthoritative(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)
 {
 	if (!CombatMapManager) return false;
 	TArray<FIntPoint> Blockers;
-
+	
 	if (!CombatMapManager->IsPositionForUnitAvailable(InUnitToMoveID, InGridPosition, Blockers))
 		return false;
 
+	FIntVector2 D = CombatMapManager->CalculateDistanceToForUnitID(InUnitToMoveID, InGridPosition);
+	
+	if (!GetTurnBasedSystemManager()->IsEnoughActionForMovement(D))
+	{
+		return false;
+	}
+		
+
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Requesting to place unit %d at a pos %s"),
-	InUnitToMoveID, *InGridPosition.ToString());
+	TEXT("Requesting to place unit %d at a pos %s"), InUnitToMoveID, *InGridPosition.ToString());
 
 	CombatMapManager->MoveUnitTo(InUnitToMoveID, InGridPosition);
 	
@@ -285,6 +291,48 @@ void ADefaultPlayerController::ClientPlacementResult_Implementation(bool bSucces
 	{
 		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 		TEXT("Failed to place unit"));
+	}
+}
+
+void ADefaultPlayerController::UpdateTileHovering()
+{
+	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
+
+	int32 TileIndex;
+	PrevHoveredTile = HoveredTile;
+	if (!GetHoveredTileIndexAndCoordinates(TileIndex, HoveredTile))
+		return;
+	if (TileIndex < 0 || HoveredTile.X < 0 || HoveredTile.Y < 0)
+		return;
+	if (HoveredTile == PrevHoveredTile)
+		return;
+	CombatMapManager->UpdateHoveredTile(TileIndex);
+}
+
+void ADefaultPlayerController::UpdateUnitGhostPosition() const
+{
+	if ((!bPlacingUnit_ && !bMovingUnit_) || !IsValid(GhostActor_))
+		return;
+	if (HoveredTile == PrevHoveredTile)
+		return;
+	
+	const FVector WorldCenter = CombatMapManager->GridToLevelPosition(HoveredTile);
+	TArray<FIntPoint> OutBlockers;
+	if (CombatMapManager->IsPositionAvailable(GhostActor_->GetUnitActorSize(), GhostActor_->GetUnitActorRotation(), HoveredTile, OutBlockers))
+	{
+		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+			TEXT("GOOD POSITION"));
+	}
+	CombatMapManager->UpdateVisualForBlockers(OutBlockers);
+	GhostActor_->UpdatePosition(WorldCenter);
+}
+
+void ADefaultPlayerController::MoveCameraToUnit(uint32 InUnitID) const
+{
+	if (ATacticalCameraPawn* Cam = Cast<ATacticalCameraPawn>(GetPawn()))
+	{
+		FVector P = CombatMapManager->GetUnitWorldPositionByID(InUnitID);
+		Cam->FocusOn(P);
 	}
 }
 
@@ -360,6 +408,30 @@ AWarpGameState* ADefaultPlayerController::GetGameState() const
 	{
 		return GameState;
 	}
+	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("GameState is Invalid"));
+	return nullptr;
+}
+
+ADefaultWarpHUD* ADefaultPlayerController::GetWarpHUD() const
+{
+	if (ADefaultWarpHUD* WarpHUD = Cast<ADefaultWarpHUD>(MyHUD))
+	{
+		return WarpHUD;
+	}
+	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("WarpHUD is Invalid"));
+	return nullptr;
+}
+
+UTurnBasedSystemManager* ADefaultPlayerController::GetTurnBasedSystemManager() const
+{
+	if (UTurnBasedSystemManager* TBSM = GetGameState()->GetTurnBasedSystemManager())
+	{
+		return TBSM;
+	}
+	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("TurnBasedSystemManager is Invalid"));
 	return nullptr;
 }
 
@@ -373,5 +445,7 @@ UUnitDataSubsystem* ADefaultPlayerController::GetUnitDataSubsystem(const UObject
 			return GI->GetSubsystem<UUnitDataSubsystem>();
 		}
 	}
+	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("UnitDataSubsystem is Invalid"));
 	return nullptr;
 }

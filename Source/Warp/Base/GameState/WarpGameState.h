@@ -15,6 +15,7 @@ class UTurnBasedSystemManager;
 class UUnitBase;
 class UCombatMap;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitsReplicatedSignature, const TArray<UUnitBase*>&);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCombatStarted);
 /**
  * 
  */
@@ -35,6 +36,7 @@ public:
 	
 	uint32 GetMapGridSize() const;
 	uint32 GetMapTileSize() const;
+	UUnitBase* GetUnitByID(uint32 InUnitID);
 	TArray<UUnitBase*> GetActiveUnits() {return ActiveUnits;}
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const {return TurnManager;}
 	
@@ -42,7 +44,11 @@ public:
 	bool CheckPositionForUnitWithCombatMap(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
 	void SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source);
 	
+	bool IsCombatStarted() const { return bCombatStarted; }
+	void SetCombatStarted(bool bStarted);
+	
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
+	FOnCombatStarted OnCombatStarted;
 	
 protected:
 	void ProcessNewUnit(UUnitBase* InNewUnit);
@@ -57,6 +63,8 @@ protected:
 	void OnRep_ActiveUnits();
 	UFUNCTION()
 	void OnRep_UnitCatalog();
+	UFUNCTION()
+	void OnRep_CombatStarted();
 	
 
 	UPROPERTY(ReplicatedUsing=OnRep_SpaceCombatGrid)
@@ -67,6 +75,8 @@ protected:
 	TArray<UUnitBase*> ActiveUnits;
 	UPROPERTY(ReplicatedUsing=OnRep_UnitCatalog)
 	TArray<FUnitRecordDTO> UnitCatalog;
+	UPROPERTY(ReplicatedUsing=OnRep_CombatStarted)
+	bool bCombatStarted = false;
 
 	uint32 NextUnitCombatID;
 };

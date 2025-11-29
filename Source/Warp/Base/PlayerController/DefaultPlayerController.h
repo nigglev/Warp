@@ -11,6 +11,7 @@
 #include "Warp/Units/UnitBase.h"
 #include "DefaultPlayerController.generated.h"
 
+class ADefaultWarpHUD;
 class AUnitGhost;
 class UTurnBasedSystemManager;
 enum class ETurnPhase : uint8;
@@ -35,6 +36,8 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerStartCombat();
+	UFUNCTION(Server, Reliable)
+	void ServerEndTurn();
 protected:
 	//SETUP//
 	virtual void BeginPlay() override;
@@ -48,10 +51,15 @@ protected:
 	void UpdateTileHovering();
 	void UpdateUnitGhostPosition() const;
 
+	void HandleEvents();
+	void MoveCameraToUnit(uint32 InUnitID) const;
+
 	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 
 	//GET//
 	AWarpGameState* GetGameState() const;
+	ADefaultWarpHUD* GetWarpHUD() const;
+	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
 	bool GetHoveredTileIndexAndCoordinates(int32& OutInstanceIndex, FIntVector2& OutCoord) const;
 	bool GetHoveredTileIndex(int32& OutInstanceIndex) const;
 	uint32 GetMouseoverUnitID() const;
@@ -102,6 +110,11 @@ protected:
 	class UInputAction* StartCameraRotateAction = nullptr; 
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraZoomAction = nullptr;
+
+	UFUNCTION()
+	void HandleCombatStarted();
+	UFUNCTION()
+	void HandleActiveUnitChanged(uint32 InActiveUnitID);
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;

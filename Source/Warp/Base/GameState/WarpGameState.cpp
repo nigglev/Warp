@@ -50,6 +50,7 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, TurnManager, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, ActiveUnits, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, UnitCatalog, RepParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, bCombatStarted, RepParams);
 }
 
 void AWarpGameState::SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source)
@@ -78,6 +79,23 @@ void AWarpGameState::SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Sourc
 	}
 	
 	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, UnitCatalog, this);
+}
+
+void AWarpGameState::SetCombatStarted(bool bStarted)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (bCombatStarted == bStarted)
+	{
+		return;
+	}
+
+	bCombatStarted = bStarted;
+	
+	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, bCombatStarted, this);
 }
 
 void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
@@ -214,6 +232,23 @@ uint32 AWarpGameState::GetMapTileSize() const
 	return StaticCombatMap->GetTileSize();
 }
 
+UUnitBase* AWarpGameState::GetUnitByID(uint32 InUnitID)
+{
+	if (InUnitID <= 0)
+	{
+		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),  TEXT("Invalid ID; HasAuthority = %d"), HasAuthority());
+		return nullptr;
+	}
+	UUnitBase* const* FoundPtr = ActiveUnits.FindByPredicate(
+		[InUnitID](const UUnitBase* Unit)
+		{
+			return Unit && Unit->GetUnitCombatID() == InUnitID;
+		});
+
+	UUnitBase* FoundUnit = FoundPtr ? *FoundPtr : nullptr;
+	return FoundUnit;
+}
+
 UUnitDataSubsystem* AWarpGameState::GetUnitDataSubsystem(const UObject* WorldContext)
 {
 	if (!WorldContext) return nullptr;
@@ -258,5 +293,15 @@ void AWarpGameState::OnRep_UnitCatalog()
 	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
 	RETURN_ON_FAIL(AWarpGameStateLog, Sys);
 	Sys->SetUnitCatalog_Client(UnitCatalog);
+}
+
+void AWarpGameState::OnRep_CombatStarted()
+{
+	if (bCombatStarted)
+	{
+		MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+		TEXT("Battle Started"));
+		OnCombatStarted.Broadcast();
+	}
 }
 

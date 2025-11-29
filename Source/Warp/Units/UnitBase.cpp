@@ -41,7 +41,7 @@ void UUnitBase::InitStats(int32 InSpeed, int32 InMaxAP)
 {
 	Speed_ = InSpeed;
 	MaxAP_ = InMaxAP;
-	CurrentAP_ = 0;
+	CurrentAP_ = InMaxAP;
 }
 
 

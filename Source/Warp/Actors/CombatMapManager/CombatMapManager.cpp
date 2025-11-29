@@ -359,11 +359,37 @@ FVector ACombatMapManager::CombatMapToLevelPosition(const FVector2f& InPos) cons
 	return Res;
 }
 
+FIntVector2 ACombatMapManager::CalculateDistanceToForUnitID(const uint32 InUnitID,
+	const FIntVector2& InGridPosition) const
+{
+	ABaseUnitActor* A = UnitActorsByID[InUnitID];
+	if (!A)
+	{
+		MG_COND_ERROR(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
+				TEXT("Could not find Unit with ID = {%d}"), InUnitID);
+		return FIntVector2::NoneValue;
+	}
+	return (A->GetUnitGridPosition() - InGridPosition);
+}
+
 FVector ACombatMapManager::GridToLevelPosition(const FIntVector2& TileGridCoords) const
 {
 	const float Half = TileSize * 0.5f;
 	FVector Res = GridOrigin + FVector(TileGridCoords.X * TileSize + Half, TileGridCoords.Y * TileSize + Half,0.f);
 	return Res;
+}
+
+FVector ACombatMapManager::GetUnitWorldPositionByID(const uint32 InUnitID) const
+{
+	ABaseUnitActor* A = UnitActorsByID[InUnitID];
+	if (!A)
+	{
+		MG_COND_ERROR(ACombatMapManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::CombatMapManager),
+				TEXT("Could not find Unit with ID = {%d}"), InUnitID);
+		return FVector::ZeroVector;
+	}
+	return A->GetUnitWorldPosition();
+		
 }
 
 int32 ACombatMapManager::GridToTileIndex(const FIntPoint& InGridPos) const

@@ -193,10 +193,6 @@ public:
 
 	void InitStats(int32 InSpeed, int32 InMaxAP);
 
-	void StartNewTurn() { CurrentAP_ = MaxAP_; }
-	bool SpendAP(const int32 Amount) { if (Amount <= 0) return false; if (CurrentAP_ < Amount) return false; CurrentAP_ -= Amount; return true; }
-	bool HasAnyAffordableAction(const int32 MinActionCost) const { return CurrentAP_ >= MinActionCost; }
-
 	int32 GetSpeed() const {return Speed_;}
 	int32 GetMaxAP() const {return MaxAP_;}
 	int32 GetCurrentAP	() const {return CurrentAP_;}

@@ -47,10 +47,14 @@ public:
 	uint32 GetTileSizeUU() const { return TileSize; }
 	int32 GetGridSquare() const { return GridSize * GridSize; }
 
+	FVector GetUnitWorldPositionByID(const uint32 InUnitID) const;
+
 	int32 GridToTileIndex(const FIntPoint& InGridPos) const;
 	FIntVector2 TileInstanceToGridPosition(int32 TileInstanceIndex) const;
 	FVector GridToLevelPosition(const FIntVector2& TileGridCoords) const;
 	FVector CombatMapToLevelPosition(const FVector2f& InPos) const;
+
+	FIntVector2 CalculateDistanceToForUnitID(const uint32 InUnitID, const FIntVector2& InGridPosition) const;
 	
 protected:
 	void SetupLayers() const;
