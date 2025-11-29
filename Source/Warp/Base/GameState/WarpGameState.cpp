@@ -26,13 +26,21 @@ AWarpGameState::AWarpGameState()
 	NextUnitCombatID = 1;
 }
 
+void AWarpGameState::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	if (HasAuthority())
+	{
+		PreLoginInit();
+	}
+}
+
 void AWarpGameState::PreLoginInit()
 {
-	if (!StaticCombatMap)
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+	MG_COND_ERROR(AWarpGameStateLog, !IsValid(StaticCombatMap) && MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 			TEXT("StaticCombatMap is INVALID %d)"), HasAuthority());
-	if (!TurnManager)
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+	
+	MG_COND_ERROR(AWarpGameStateLog, !IsValid(TurnManager) && MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 			TEXT("TurnManager is INVALID %d)"), HasAuthority());
 
 	AddReplicatedSubObject(StaticCombatMap);

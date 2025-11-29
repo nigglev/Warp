@@ -29,6 +29,8 @@ public:
 	AWarpGameState();
 	void PreLoginInit();
 
+	virtual void PostInitializeComponents() override;
+
 	void CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation);
 	bool CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation, const FIntVector2& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit);

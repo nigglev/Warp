@@ -20,7 +20,6 @@ class WARP_API ADefaultGameMode : public AGameModeBase
 
 public:
 	ADefaultGameMode();
-	virtual void StartPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 protected:
 	UFUNCTION()

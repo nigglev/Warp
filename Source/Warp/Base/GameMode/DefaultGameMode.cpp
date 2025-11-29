@@ -23,25 +23,13 @@ ADefaultGameMode::ADefaultGameMode()
 	PlayerControllerClass = ADefaultPlayerController::StaticClass();
 	HUDClass = ADefaultWarpHUD::StaticClass();
 	DefaultPawnClass = ATacticalCameraPawn::StaticClass();
-	static ConstructorHelpers::FClassFinder<APlayerController> PlayerControllerBPClass(TEXT("/Game/UEBase/PlayerController/BP_DefaultPlayerController"));
-	if (PlayerControllerBPClass.Class != nullptr)
-	{
-		PlayerControllerClass = PlayerControllerBPClass.Class;
-	}
-}
-
-void ADefaultGameMode::StartPlay()
-{
-	Super::StartPlay();
-	MG_FUNC_LABEL(ADefaultGameModeLog);
-	GetWarpGameState()->PreLoginInit();
+	PlayerControllerClass = ADefaultPlayerController::StaticClass();
 }
 
 void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	
-	if (!HasAuthority()) return;
 	if (bMainPlayerSpawned && bAISpawned) return;
 
 	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
