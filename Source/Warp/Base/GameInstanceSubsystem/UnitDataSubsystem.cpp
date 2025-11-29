@@ -281,9 +281,11 @@ void UUnitDataSubsystem::SetUnitCatalog_Client(const TArray<FUnitRecordDTO>& InU
 
 bool UUnitDataSubsystem::ReadPlayFabSecretFromFile(FString& OutSecret) const
 {
-    const FString SecretIni = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Secrets/PlayFab.ini"));
-    
-    if (GConfig->GetString(TEXT("PlayFab"), TEXT("SecretKey"), OutSecret, SecretIni))
+    const FString PlayfabKeysPath(TEXT("PlayfabKeys"));
+    const FString PathValue = FPlatformMisc::GetEnvironmentVariable(*PlayfabKeysPath);
+
+    // Считать значение
+    if (GConfig->GetString(TEXT("PlayFab"), TEXT("SecretKey"), OutSecret, PathValue))
     {
         OutSecret.TrimStartAndEndInline();
         OutSecret.ReplaceInline(TEXT("\""), TEXT(""));
