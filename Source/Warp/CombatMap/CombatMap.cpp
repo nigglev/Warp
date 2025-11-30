@@ -61,7 +61,7 @@ void UCombatMap::PlaceUnitAt(UUnitBase* InUnitToPlace, const FIntVector2& InCent
 	FCombatMapTile CenterTile = MakeTile(InCenter.X, InCenter.Y);
 	
 	TArray<FCombatMapTile> Footprint;
-	if (ExtractFootprint(CenterTile, InUnitToPlace->UnitSize, InUnitToPlace->UnitRotation, Footprint))
+	if (ExtractFootprint(CenterTile, InUnitToPlace->UnitSize_, InUnitToPlace->UnitRotation, Footprint))
 		SetupUnitPosOnMap(InUnitToPlace, CenterTile, Footprint);
 }
 
@@ -76,7 +76,7 @@ void UCombatMap::PlaceUnitOnMapRand(UUnitBase* InUnitToPlace)
 	}
 	
 	TArray<FCombatMapTile> OutFootprint;
-	const FCombatMapTile Center = GetRandomPlaceableTile(InUnitToPlace->UnitSize, InUnitToPlace->UnitRotation, OutFootprint);
+	const FCombatMapTile Center = GetRandomPlaceableTile(InUnitToPlace->UnitSize_, InUnitToPlace->UnitRotation, OutFootprint);
 	SetupUnitPosOnMap(InUnitToPlace, Center, OutFootprint);
 }
 

@@ -3,157 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UnitEnums.h"
+#include "UnitPosition.h"
+#include "UnitRotation.h"
+#include "UnitSize.h"
 #include "UObject/Object.h"
 #include "UnitBase.generated.h"
 
+struct FUnitRecord;
 class UUnitDataSubsystem;
 class ADefaultPlayerController;
 struct FCombatMapTile;
 /**
  * 
  */
-
-UENUM()
-enum class EUnitAffiliation
-{
-	Neutral = 0	UMETA(DisplayName="Neutral"),
-	Player		UMETA(DisplayName="Player"),
-	Enemy		UMETA(DisplayName="Enemy"),
-	Ally		UMETA(DisplayName="Ally"),
-	Max			UMETA(DisplayName="MAX")
-};
-
-UENUM()
-enum class EUnitRotation : uint8
-{
-	Rot_0 = 0	UMETA(DisplayName="0°"),
-	Rot_45		UMETA(DisplayName="45°"),
-	Rot_90		UMETA(DisplayName="90°"),
-	Rot_135		UMETA(DisplayName="135°"),
-	Rot_180		UMETA(DisplayName="180°"),
-	Rot_225		UMETA(DisplayName="225°"),
-	Rot_270		UMETA(DisplayName="270°"),
-	Rot_315		UMETA(DisplayName="315°"),
-	Max			UMETA(DisplayName="MAX")
-};
-
-UENUM()
-enum class EUnitSizeCategory : uint8
-{
-	None   UMETA(DisplayName="None"),
-	Small  UMETA(DisplayName="Small (1×1)"),
-	Medium UMETA(DisplayName="Medium (2×1)"),
-	Big    UMETA(DisplayName="Big (3×1)")
-};
-
-USTRUCT()
-struct FUnitPosition
-{
-	GENERATED_BODY()
-
-	FIntVector2 GetUnitTilePosition() const {return FIntVector2(UnitTileX, UnitTileY);}
-	FVector2f GetUnitWorldPosition() const { return UnitWorldPosition; }
-
-	void SetUnitPosition(const FVector2f& InWorldPosition, const FIntVector2& InTilePosition) {UnitWorldPosition = InWorldPosition; UnitTileX = InTilePosition.X; UnitTileY = InTilePosition.Y;}
-	void SetUnitTilePosition(const FIntVector2& InTilePosition) {UnitTileX = InTilePosition.X; UnitTileY = InTilePosition.Y;}
-	void SetUnitWorldPosition(const FVector2f& InWorldPosition) {UnitWorldPosition = InWorldPosition;}
-	
-private:	
-	UPROPERTY()
-	uint32 UnitTileX = UINT32_MAX;
-	UPROPERTY()
-	uint32 UnitTileY = UINT32_MAX;
-	UPROPERTY()
-	FVector2f UnitWorldPosition = FVector2f::ZeroVector;
-};
-
-USTRUCT()
-struct FUnitRotation
-{
-	GENERATED_BODY()
-
-	FUnitRotation() = default;
-	explicit FUnitRotation(const EUnitRotation In) : UnitRotation(In) {}
-	
-	static FUnitRotation Max()   { return FUnitRotation(EUnitRotation::Max); }
-	static FUnitRotation Rot0()  { return FUnitRotation(EUnitRotation::Rot_0); }
-	static FUnitRotation Rot45() { return FUnitRotation(EUnitRotation::Rot_45); }
-	static FUnitRotation Rot90()    { return FUnitRotation(EUnitRotation::Rot_90); }
-	static FUnitRotation Rot35()   { return FUnitRotation(EUnitRotation::Rot_135); }
-	static FUnitRotation Rot180()  { return FUnitRotation(EUnitRotation::Rot_180); }
-	static FUnitRotation Rot225() { return FUnitRotation(EUnitRotation::Rot_225); }
-	static FUnitRotation Rot270()    { return FUnitRotation(EUnitRotation::Rot_270); }
-	static FUnitRotation Rot315()    { return FUnitRotation(EUnitRotation::Rot_315); }
-	
-	void RotateClockwise()
-	{
-		constexpr uint8 Count = static_cast<uint8>(EUnitRotation::Max);
-		const uint8 Cur   = static_cast<uint8>(UnitRotation) % Count;
-		UnitRotation      = static_cast<EUnitRotation>((Cur + 1) % Count);
-	}
-
-	void RotateCounterClockwise()
-	{
-		constexpr uint8 Count = static_cast<uint8>(EUnitRotation::Max);
-		const uint8 Cur   = static_cast<uint8>(UnitRotation) % Count;
-		UnitRotation      = static_cast<EUnitRotation>((Cur + Count - 1) % Count);
-	}
-		
-	EUnitRotation GetUnitRotation() const {return UnitRotation;}
-	float GetUnitFRotation () const
-	{
-		const uint8 i = static_cast<uint8>(UnitRotation);
-		return (i < static_cast<uint8>(EUnitRotation::Max)) ? i * 45.f : 0.f;
-	}
-
-	void SetDefaultUnitRotation() {UnitRotation = EUnitRotation::Rot_0;}
-	void SetRandomRotation() {UnitRotation = static_cast<EUnitRotation>(FMath::RandRange(0, static_cast<uint8>(EUnitRotation::Max) - 1));}
-	void SetUnitRotation(const EUnitRotation InUnitRotation) {UnitRotation = InUnitRotation;}
-	void SetUnitRotation(const float InUnitRotation)
-	{
-		float Norm = FMath::Fmod(InUnitRotation, 360.f);
-		if (Norm < 0.f)
-			Norm += 360.f;
-		const int32 Step = FMath::RoundToInt(Norm / 45.f) % 8;
-		UnitRotation = static_cast<EUnitRotation>(1 + Step);
-	}
-	
-private:	
-	UPROPERTY()
-	EUnitRotation UnitRotation = EUnitRotation::Max;
-};
-
-USTRUCT()
-struct FUnitSize
-{
-	GENERATED_BODY()
-
-	FUnitSize() = default;
-	explicit FUnitSize(const EUnitSizeCategory In) : SizeCategory(In) {}
-	
-	static FUnitSize None()   { return FUnitSize(EUnitSizeCategory::None); }
-	static FUnitSize Small()  { return FUnitSize(EUnitSizeCategory::Small); }
-	static FUnitSize Medium() { return FUnitSize(EUnitSizeCategory::Medium); }
-	static FUnitSize Big()    { return FUnitSize(EUnitSizeCategory::Big); }
-	
-	EUnitSizeCategory GetUnitSize() const {return SizeCategory;}
-	FIntVector2 GetUnitTileLength() const
-	{
-		switch (SizeCategory)
-		{
-			case EUnitSizeCategory::None:	return FIntVector2(0,0);
-			case EUnitSizeCategory::Small:  return FIntVector2(1,1);
-			case EUnitSizeCategory::Medium: return FIntVector2(3,1);
-			case EUnitSizeCategory::Big:    return FIntVector2(5,1);
-			default:                        return FIntVector2(0,0);
-		}
-	}
-	void SetUnitSize(const EUnitSizeCategory InSizeCategory) {SizeCategory = InSizeCategory;}
-	
-private:	
-	UPROPERTY()
-	EUnitSizeCategory SizeCategory = EUnitSizeCategory::None;
-};
 
 USTRUCT()
 struct FUnitActorEssentialInfo
@@ -175,8 +38,9 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UFUNCTION()
-	static UUnitBase* CreateUnit(UObject* Outer, const FName& InUnitTypeName, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation, const EUnitSizeCategory InUnitSize);
+	static UUnitBase* CreateUnit(UObject* Outer, const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
+
+	void Init(const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
 
 	FName GetUnitTypeName() const {return UnitTypeName_;}
 	uint32 GetUnitCombatID() const {return UnitCombatID_;}
@@ -188,10 +52,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitRotation)
 	FUnitRotation UnitRotation;
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitSize)
-	FUnitSize UnitSize;
-
-
-	void InitStats(int32 InSpeed, int32 InMaxAP);
+	FUnitSize UnitSize_;
 
 	int32 GetSpeed() const {return Speed_;}
 	int32 GetMaxAP() const {return MaxAP_;}

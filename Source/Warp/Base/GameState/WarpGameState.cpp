@@ -121,7 +121,7 @@ bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAf
 	Unit->UnitRotation = Rotation;
 	TArray<FIntPoint> Blockers;
 	
-	if (!CheckPositionForUnitWithCombatMap(InGridPosition, Unit->UnitRotation, Unit->UnitSize, Blockers))
+	if (!CheckPositionForUnitWithCombatMap(InGridPosition, Unit->UnitRotation, Unit->UnitSize_, Blockers))
 	{
 		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 		TEXT("Invalid Tile (HasAuthority = %d)"), HasAuthority());
@@ -166,39 +166,17 @@ bool AWarpGameState::MoveUnitTo(const uint32 InUnitToMoveID, const FIntVector2& 
 
 UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
 {
-	if (!HasAuthority())
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
-		return nullptr;
-	}
-	if (!IsValid(StaticCombatMap))
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("No Map (HasAuthority = %d)"), HasAuthority());
-		return nullptr;
-	}
-		
+	RETURN_ON_FAIL_NULL(AWarpGameStateLog, HasAuthority());
+	RETURN_ON_FAIL_NULL(AWarpGameStateLog, IsValid(StaticCombatMap));
 	
 	const UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
 	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Sys);
 	
 	const uint32 AssignedCombatID = NextUnitCombatID++;
-	const FName UnitTypeName = InUnitRecord.UnitName;
-	EUnitSizeCategory UnitSize = InUnitRecord.GetSizeCategory();
-	uint32 UnitSpeed = InUnitRecord.Props.UnitSpeed;
-	uint32 UnitMaxAP = InUnitRecord.Props.UnitMaxAP;
 
-	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, UnitTypeName, AssignedCombatID, InAffiliation, UnitSize);
+	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, InUnitRecord, AssignedCombatID, InAffiliation);
 
-	if (!IsValid(NewUnit))
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("Failed to create unit (HasAuthority = %d)"), HasAuthority());
-		return nullptr;
-	}
-
-	NewUnit->InitStats(UnitSpeed, UnitMaxAP);
+	MG_COND_ERROR(AWarpGameStateLog, !IsValid(NewUnit), TEXT("Failed to create unit (HasAuthority = %d)"), HasAuthority());
 
 	return NewUnit;
 }
