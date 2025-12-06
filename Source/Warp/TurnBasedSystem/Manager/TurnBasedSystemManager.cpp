@@ -122,7 +122,7 @@ void UTurnBasedSystemManager::SortTurnOrder()
 	TurnOrderUnitIds.Reset(Copy.Num());
 	for (const UUnitBase* U : Copy)
 		TurnOrderUnitIds.Add(U->GetUnitCombatID());
-	//MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(UTurnBasedSystemManager, TurnOrderUnitIds, this);
 }
 
 AWarpGameState* UTurnBasedSystemManager::GetGameState() const

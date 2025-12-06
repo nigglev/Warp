@@ -282,12 +282,12 @@ bool ADefaultPlayerController::MoveUnitServerAuthoritative(const uint32 InUnitTo
 	if (!CombatMapManager->IsPositionForUnitAvailable(InUnitToMoveID, InGridPosition, Blockers))
 		return false;
 
-	FIntVector2 D = CombatMapManager->CalculateDistanceToForUnitID(InUnitToMoveID, InGridPosition);
-	
-	if (!GetTurnBasedSystemManager()->IsEnoughActionForMovement(D))
-	{
-		return false;
-	}
+	// FIntVector2 D = CombatMapManager->CalculateDistanceToForUnitID(InUnitToMoveID, InGridPosition);
+	//
+	// if (!GetTurnBasedSystemManager()->IsEnoughActionForMovement(D))
+	// {
+	// 	return false;
+	// }
 		
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),

@@ -135,7 +135,7 @@ void ADefaultGameMode::HandleMatchHasStarted()
 			TEXT("Match has started: building map and spawning starting units."));
 	RETURN_ON_FAIL(ADefaultGameModeLog, Content_);
 	SpawnPlayerMainShip();
-	
+	SpawnAIShips(AINumber);
 }
 
 void ADefaultGameMode::HandleUnitCatalogReady(bool bSuccess)
