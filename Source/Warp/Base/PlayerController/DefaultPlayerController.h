@@ -46,7 +46,7 @@ public:
 	//SETUP//
 	virtual void PostInitializeComponents() override;
 
-	bool IsClientValidState() const { return CombatMapManager != nullptr; }
+	bool IsClientValidState() const;
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 

@@ -52,7 +52,7 @@ public:
 	bool IsCombatStarted() const { return bCombatStarted; }
 	void SetCombatStarted(bool bStarted);
 
-	bool IsValidState() const { return StaticCombatMap != nullptr && TurnManager != nullptr;}
+	bool IsClientValidState() const { return StaticCombatMap != nullptr && TurnManager != nullptr;}
 
 	FOnWarpGameStateValid OnWarpGameStateValid;
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
@@ -85,6 +85,6 @@ protected:
 
 	uint32 NextUnitCombatID;
 
-	bool bValidState_ = false;
+	bool bClientValidState_ = false;
 };
 

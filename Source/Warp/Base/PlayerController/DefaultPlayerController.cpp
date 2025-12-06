@@ -91,6 +91,27 @@ void ADefaultPlayerController::SetupClientContent()
 	}
 }
 
+bool ADefaultPlayerController::IsClientValidState() const
+{
+	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, IsLocalController());
+	
+	if (CombatMapManager == nullptr)
+	{
+		return false;
+	}
+
+	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, GI);
+	
+	UWarpPlayfabContentSubSystem* Content =
+		GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+
+	if (Content->AreUnitsLoaded())
+		return true;
+
+	return false;
+}
+
 void ADefaultPlayerController::SetupEnhancedInput() const
 {
 	if (ULocalPlayer* LP = GetLocalPlayer())
@@ -135,7 +156,7 @@ void ADefaultPlayerController::CreateCombatMapManager()
 	AWarpGameState* GS = GetGameState();
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS != nullptr);
 
-	if (!GS->IsValidState())
+	if (!GS->IsClientValidState())
 	{
 		GS->OnWarpGameStateValid.AddWeakLambda(this, [this](AWarpGameState* InWarpGameState)
 		{
@@ -192,7 +213,7 @@ void ADefaultPlayerController::HandleUnitsReadyLocal()
 {
 	if (IsLocalController())
 	{
-		ServerSetContentReady();
+		CheckValidState();
 	}
 }
 
@@ -205,6 +226,8 @@ void ADefaultPlayerController::CheckValidState()
 		return;
 
 	bClientValidState_ = true;
+
+	ServerSetContentReady();
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
 	OnDefaultPlayerControllerValid.Broadcast(this);

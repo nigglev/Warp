@@ -202,13 +202,13 @@ UUnitBase* AWarpGameState::GetUnitByID(uint32 InUnitID)
 
 void AWarpGameState::CheckValidState()
 {
-	if (bValidState_)
+	if (bClientValidState_)
 		return;
 
-	if (!IsValidState())
+	if (!IsClientValidState())
 		return;
 
-	bValidState_ = true;
+	bClientValidState_ = true;
 
 	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState), TEXT("Valid State"));
 	OnWarpGameStateValid.Broadcast(this);
