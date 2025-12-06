@@ -24,6 +24,10 @@ class FUnitGhostDeleter
 {
 	
 };
+
+class ADefaultPlayerController;
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnClientPlayerControllerValid, ADefaultPlayerController*);
+
 /**
  * 
  */
@@ -39,8 +43,14 @@ public:
 	void ServerStartCombat();
 	UFUNCTION(Server, Reliable)
 	void ServerEndTurn();
-protected:
 	//SETUP//
+	virtual void PostInitializeComponents() override;
+
+	bool IsClientValidState() const;
+
+	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
+
+protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
@@ -48,7 +58,6 @@ protected:
 	void SetupClientContent();
 	void SetupEnhancedInput() const;
 	void CreateCombatMapManager();
-	void TryInitCombatMapManager();
 	
 	void UpdateTileHovering();
 	void UpdateUnitGhostPosition() const;
@@ -121,6 +130,8 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerSetContentReady();
 
+	void CheckValidState();
+
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;
@@ -137,11 +148,10 @@ protected:
 	bool bRotateCamera = false;
 	bool bCameraLockedToTurnUnit = false;
 	
-	FTimerHandle InitMapTimerHandle;
-	
 	bool bPlacingUnit_ = false;
 	bool bMovingUnit_ = false;
 
+	bool bClientValidState_ = false; 
 };
 
 

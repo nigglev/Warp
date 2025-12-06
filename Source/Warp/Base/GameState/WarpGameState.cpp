@@ -200,16 +200,34 @@ UUnitBase* AWarpGameState::GetUnitByID(uint32 InUnitID)
 	return FoundUnit;
 }
 
+void AWarpGameState::CheckValidState()
+{
+	if (bClientValidState_)
+		return;
+
+	if (!IsClientValidState())
+		return;
+
+	bClientValidState_ = true;
+
+	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState), TEXT("Valid State"));
+	OnWarpGameStateValid.Broadcast(this);
+}
+
 void AWarpGameState::OnRep_SpaceCombatGrid()
 {
 	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 		TEXT("SpaceCombatGrid = %p; GridSize: %u"),	StaticCombatMap, StaticCombatMap == nullptr ? 0 : StaticCombatMap->GetGridSize());
+	
+	CheckValidState();
 }
 
 void AWarpGameState::OnRep_TurnBasedSystemManager()
 {
 	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
 	TEXT("OnRep_TurnBasedSystemManager"));
+
+	CheckValidState();
 }
 
 void AWarpGameState::OnRep_ActiveUnits()

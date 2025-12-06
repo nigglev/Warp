@@ -91,41 +91,46 @@ void ADefaultGameMode::CheckStartConditions()
 	//StartMatch();
 }
 
-bool ADefaultGameMode::ReadyToStartMatch_Implementation()
+namespace ReadyToStartMatchErrors
 {
-	MG_FUNC_LABEL(ADefaultGameModeLog);
+	const FName NoServerContentReady = FName("NoServerContentReady");
+	const FName PlayerArrayIsEmpty = FName("PlayerArrayIsEmpty");
+	const FName PlayerIsNotReady = FName("PlayerIsNotReady");
+}
+
+TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::ReadyToStartMatchValue() const
+{
 	if (!bServerContentReady_)
-	{
-		MG_COND_LOG(ADefaultGameModeLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("bServerContentReady IS NOT READY"));
-		return false;
-	}
-
-	MG_COND_LOG(ADefaultGameModeLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("Checking player state array"));
-
+		return MakeError(ReadyToStartMatchErrors::NoServerContentReady);
 	if (GameState->PlayerArray.Num() == 0)
-	{
-		MG_COND_LOG(ADefaultGameModeLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("No player states are available"));
-		return false;
-	}	
+		return MakeError(ReadyToStartMatchErrors::PlayerArrayIsEmpty);
 	
 	for (APlayerState* PS : GameState->PlayerArray)
 	{	
 		if (AWarpPlayerState* WPS = Cast<AWarpPlayerState>(PS))
 		{
-			MG_COND_LOG(ADefaultGameModeLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-				TEXT("%s is %d"), *WPS->GetName(), WPS->bClientContentReady);
 			if (!WPS->bClientContentReady)
 			{
-				return false;
+				return MakeError(ReadyToStartMatchErrors::PlayerIsNotReady, WPS->GetName());
 			}
 		}
 	}
-	
-	return true;
-	
+	return MakeValue();
+}
+
+bool ADefaultGameMode::ReadyToStartMatch_Implementation()
+{
+	TValueOrError<void, FReadyToStartMatchError> ReadyValue = ADefaultGameMode::ReadyToStartMatchValue();
+	if (ReadyValue.HasValue())
+		return true;
+
+	if (LastReadyToStartMatchError_ != ReadyValue.GetError())
+	{
+		LastReadyToStartMatchError_ = ReadyValue.GetError();
+		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastReadyToStartMatchError_.ToString());
+	}
+
+	return false;	
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
