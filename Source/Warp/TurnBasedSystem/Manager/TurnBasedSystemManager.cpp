@@ -27,11 +27,7 @@ void UTurnBasedSystemManager::StartCombat()
 		return;
 	BuildTurnOrder();
 
-	if (TurnOrderUnitIds.Num() == 0)
-	{
-		MG_COND_ERROR(UTurnBasedSystemManagerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::TurnBasedSystemManager),
-		TEXT("StartTurns: no units."));
-	}
+	RETURN_ON_FAIL_T(UTurnBasedSystemManagerLog, !TurnOrderUnitIds.IsEmpty(), TEXT("StartTurns: no units."))
 	
 	ActiveUnitIndex = 0;
 	CurrentTurnUnitId = TurnOrderUnitIds[ActiveUnitIndex];

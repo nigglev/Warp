@@ -29,25 +29,48 @@ ADefaultPlayerController::ADefaultPlayerController()
 	bShowMouseCursor = true;
 }
 
+void ADefaultPlayerController::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AWarpGameState* GS = GetWorld()->GetGameState<AWarpGameState>();
+	if (GS == nullptr)
+	{
+		GetWorld()->GameStateSetEvent.AddWeakLambda(this, [this](AGameStateBase* InGameState)
+	   {
+		   AWarpGameState* GS = Cast<AWarpGameState>(InGameState);
+		   RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS);
+
+		   this->CreateCombatMapManager();
+	   });
+	}
+	else
+	{
+		CreateCombatMapManager();
+	}
+}
+
 void ADefaultPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	SetupClientContent();
 	SetupEnhancedInput();
-	CreateCombatMapManager();
 	HandleEvents();
 }
 
 void ADefaultPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	if (!IsClientValidState())
+		return;
+	
 	UpdateTileHovering();
 	UpdateUnitGhostPosition();
 }
 
 void ADefaultPlayerController::SetupClientContent()
 {	
-	if (HasAuthority())
+	if (!IsLocalController())
 		return;
 
 	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -103,11 +126,29 @@ void ADefaultPlayerController::SetupInputComponent()
 
 void ADefaultPlayerController::CreateCombatMapManager()
 {
-	if (HasAuthority())
-		return;
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManagerClass != nullptr);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
 	
-	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, IsLocalController());
-	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, CombatMapManagerClass);
+	if (!IsLocalController())
+		return;
+
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS != nullptr);
+
+	if (!GS->IsValidState())
+	{
+		GS->OnWarpGameStateValid.AddWeakLambda(this, [this](AWarpGameState* InWarpGameState)
+		{
+			this->CreateCombatMapManager();
+		});
+		return;
+	}
+
+	const uint32 Grid = GS->GetMapGridSize();
+	const uint32 Tile = GS->GetMapTileSize();
+
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Grid > 0);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Tile > 0);
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;
@@ -115,42 +156,14 @@ void ADefaultPlayerController::CreateCombatMapManager()
 
 	CombatMapManager = GetWorld()->SpawnActor<ACombatMapManager>(
 		CombatMapManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
+	
+	CombatMapManager->Init(Grid, Tile);
+	CombatMapManager->GenerateGrid();
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("Spawned local CombatMapManager [%s]"), *GetNameSafe(CombatMapManager));
-	
-	TryInitCombatMapManager();
-	if (!InitMapTimerHandle.IsValid())
-	{
-		GetWorldTimerManager().SetTimer(InitMapTimerHandle, this,
-			&ADefaultPlayerController::TryInitCombatMapManager, 0.1f, true);
-	}
-	
-}
+		TEXT("CombatMapManager [%s] initialized from GameState (Grid=%d, Tile=%d)"), *GetNameSafe(CombatMapManager), Grid, Tile);
 
-void ADefaultPlayerController::TryInitCombatMapManager()
-{
-	if (!CombatMapManager) return;
-
-	if (AWarpGameState* GS = GetGameState())
-	{
-		const uint32 Grid = GS->GetMapGridSize();
-		const uint32 Tile = GS->GetMapTileSize();
-
-		if (Grid > 0 && Tile > 0)
-		{
-			CombatMapManager->Init(Grid, Tile);
-			CombatMapManager->GenerateGrid();
-
-			if (InitMapTimerHandle.IsValid())
-			{
-				GetWorldTimerManager().ClearTimer(InitMapTimerHandle);
-			}
-
-			MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-				TEXT("CombatMapManager initialized from GameState (Grid=%d, Tile=%d)"), Grid, Tile);
-		}
-	}
+	CheckValidState();
 }
 
 void ADefaultPlayerController::HandleEvents()
@@ -177,10 +190,24 @@ void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
 
 void ADefaultPlayerController::HandleUnitsReadyLocal()
 {
-	if (!HasAuthority())
+	if (IsLocalController())
 	{
 		ServerSetContentReady();
 	}
+}
+
+void ADefaultPlayerController::CheckValidState()
+{
+	if (bClientValidState_)
+		return;
+
+	if (!IsClientValidState())
+		return;
+
+	bClientValidState_ = true;
+
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
+	OnDefaultPlayerControllerValid.Broadcast(this);
 }
 
 void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
@@ -343,7 +370,7 @@ void ADefaultPlayerController::ClientPlacementResult_Implementation(bool bSucces
 
 void ADefaultPlayerController::UpdateTileHovering()
 {
-	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager != nullptr);
 
 	int32 TileIndex;
 	PrevHoveredTile = HoveredTile;

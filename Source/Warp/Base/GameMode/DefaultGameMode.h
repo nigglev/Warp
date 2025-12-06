@@ -11,6 +11,7 @@ class UWarpPlayfabContentSubSystem;
 class ADefaultPlayerController;
 class ACombatMapManager;
 class AWarpGameState;
+
 /**
  * 
  */
@@ -32,6 +33,34 @@ protected:
 
 	virtual bool ReadyToStartMatch_Implementation() override;
 	virtual void HandleMatchHasStarted() override;
+
+	struct FReadyToStartMatchError
+	{
+		FName ErrorName;
+		FString ErrorDescription;
+		
+		FReadyToStartMatchError() = default;
+		FReadyToStartMatchError(FName InErrorName) : ErrorName(InErrorName) {}
+		FReadyToStartMatchError(FName InErrorName, const FString& InErrorDescription) : ErrorName(InErrorName), ErrorDescription(InErrorDescription) {}
+		
+		bool operator==(const FReadyToStartMatchError& InOther) const
+		{
+			return InOther.ErrorName == ErrorName && InOther.ErrorDescription == ErrorDescription;
+		}
+		bool operator!=(const FReadyToStartMatchError& InOther) const
+		{
+			return !(*this == InOther);
+		}
+
+		FString ToString() const
+		{
+			if (ErrorDescription.IsEmpty())
+				return FString::Printf(TEXT("%s"), *ErrorName.ToString());
+			return FString::Printf(TEXT("%s: %s"), *ErrorName.ToString(), *ErrorDescription);
+		}
+	};
+	
+	TValueOrError<void, FReadyToStartMatchError> ReadyToStartMatchValue() const;
 	
 	UFUNCTION()
 	void HandleUnitCatalogReady(bool bSuccess);
@@ -42,6 +71,8 @@ protected:
 	void SpawnAIShips(int InAINumber);
 
 	AWarpGameState* GetWarpGameState() const;
+
+	FReadyToStartMatchError LastReadyToStartMatchError_;
 
 	UWarpPlayfabContentSubSystem* Content_;
 	

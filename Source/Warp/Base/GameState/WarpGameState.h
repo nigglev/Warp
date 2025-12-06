@@ -15,6 +15,9 @@ struct FUnitRecord;
 class UTurnBasedSystemManager;
 class UUnitBase;
 class UCombatMap;
+class AWarpGameState;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnWarpGameStateValid, AWarpGameState*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitsReplicatedSignature, const TArray<UUnitBase*>&);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCombatStarted);
 /**
@@ -48,13 +51,18 @@ public:
 	
 	bool IsCombatStarted() const { return bCombatStarted; }
 	void SetCombatStarted(bool bStarted);
-	
+
+	bool IsValidState() const { return StaticCombatMap != nullptr && TurnManager != nullptr;}
+
+	FOnWarpGameStateValid OnWarpGameStateValid;
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
 	FOnCombatStarted OnCombatStarted;
 	
 protected:
 	void ProcessNewUnit(UUnitBase* InNewUnit);
 	UUnitBase* CreateUnit(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation);
+
+	void CheckValidState();
 
 	UFUNCTION()
 	void OnRep_SpaceCombatGrid();
@@ -76,5 +84,7 @@ protected:
 	bool bCombatStarted = false;
 
 	uint32 NextUnitCombatID;
+
+	bool bValidState_ = false;
 };
 
