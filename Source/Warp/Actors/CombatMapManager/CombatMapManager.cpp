@@ -7,10 +7,10 @@
 #include "MGLogTypes.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
-#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/Units/UnitBase.h"
+#include "Warp/UnitStaticData/UnitMeshRow.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ACombatMapManagerLog, Log, All);
 
@@ -226,7 +226,7 @@ void ACombatMapManager::SpawnUnitActors(const TArray<UUnitBase*>& ReplicatedUnit
 		if (UnitActorsByID.Contains(Unit->GetUnitCombatID()))
 			continue;
 
-		FUnitActorEssentialInfo ActorEssentialInfo = Unit->GetUnitActorEssentialInfo();
+		FEssentialInfoForUnitActor ActorEssentialInfo = Unit->GetUnitActorEssentialInfo();
 		UStaticMesh* UnitMesh = GetStaticMeshComponentForUnitType(Unit->GetUnitTypeName());
 
 		SpawnUnit(ActorEssentialInfo.UnitCombatID, UnitMesh, ActorEssentialInfo.UnitGridPosition,
@@ -332,25 +332,21 @@ void ACombatMapManager::ClearBlocker() const
 
 UStaticMesh* ACombatMapManager::GetStaticMeshComponentForUnitType(const FName& InUnitTypeName)
 {
-	FSoftObjectPath Path = GetUnitDataSubsystem(this)->GetUnitMeshObjectPath(InUnitTypeName);
-	if (UStaticMesh* Mesh = Cast<UStaticMesh>(Path.TryLoad()))
+	if (!UnitMeshesTable)
 	{
-		return Mesh;
+		UE_LOG(LogTemp, Warning, TEXT("UnitMeshesTable is null"));
+		return nullptr;
 	}
-	return nullptr;
-}
+	
+	const FUnitMeshRow* Row = UnitMeshesTable->FindRow<FUnitMeshRow>(InUnitTypeName,TEXT("UnitMeshLookup"));
 
-UUnitDataSubsystem* ACombatMapManager::GetUnitDataSubsystem(const UObject* WorldContext)
-{
-	if (!WorldContext) return nullptr;
-	if (const UWorld* World = WorldContext->GetWorld())
+	if (!Row)
 	{
-		if (UGameInstance* GI = World->GetGameInstance())
-		{
-			return GI->GetSubsystem<UUnitDataSubsystem>();
-		}
+		UE_LOG(LogTemp, Warning, TEXT("No row for unit type %s"), *InUnitTypeName.ToString());
+		return nullptr;
 	}
-	return nullptr;
+	
+	return Row->Mesh.LoadSynchronous();
 }
 
 FVector ACombatMapManager::CombatMapToLevelPosition(const FVector2f& InPos) const

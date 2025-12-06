@@ -11,9 +11,11 @@
 #include "Net/UnrealNetwork.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
-#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
+#include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
+#include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
+#include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 #include "Warp/UI/CombatUI/CombatUIWidget.h"
@@ -30,6 +32,7 @@ ADefaultPlayerController::ADefaultPlayerController()
 void ADefaultPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	SetupClientContent();
 	SetupEnhancedInput();
 	CreateCombatMapManager();
 	HandleEvents();
@@ -40,6 +43,29 @@ void ADefaultPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 	UpdateTileHovering();
 	UpdateUnitGhostPosition();
+}
+
+void ADefaultPlayerController::SetupClientContent()
+{	
+	if (HasAuthority())
+		return;
+
+	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GI);
+
+	UWarpPlayfabContentSubSystem* Content =
+		GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content);
+
+	if (Content->AreUnitsLoaded())
+	{
+		HandleUnitsReadyLocal();
+	}
+	else
+	{
+		Content->OnUnitsLoaded.AddDynamic(this, &ADefaultPlayerController::HandleUnitsReadyLocal);
+	}
 }
 
 void ADefaultPlayerController::SetupEnhancedInput() const
@@ -77,6 +103,9 @@ void ADefaultPlayerController::SetupInputComponent()
 
 void ADefaultPlayerController::CreateCombatMapManager()
 {
+	if (HasAuthority())
+		return;
+	
 	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, IsLocalController());
 	MG_COND_ERROR_SHORT(ADefaultPlayerControllerLog, CombatMapManagerClass);
 
@@ -144,7 +173,14 @@ void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
 	MoveCameraToUnit(InActiveUnitID);
 	UUnitBase* U = GetGameState()->GetUnitByID(InActiveUnitID);
 	GetWarpHUD()->GetCombatUI()->SetActionPoints(U->GetMaxAP(), U->GetMaxAP());
+}
 
+void ADefaultPlayerController::HandleUnitsReadyLocal()
+{
+	if (!HasAuthority())
+	{
+		ServerSetContentReady();
+	}
 }
 
 void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
@@ -262,6 +298,17 @@ bool ADefaultPlayerController::MoveUnitServerAuthoritative(const uint32 InUnitTo
 	ServerRequestMoveUnit(InUnitToMoveID, InGridPosition);
 	
 	return true;
+}
+
+void ADefaultPlayerController::ServerSetContentReady_Implementation()
+{
+	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
+
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("Setting client content ready to true"));
+	PS->bClientContentReady = true;
+	GetGameMode()->CheckStartConditions();
 }
 
 void ADefaultPlayerController::ServerRequestMoveUnit_Implementation(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)
@@ -402,6 +449,23 @@ bool ADefaultPlayerController::GetHoveredTileIndex(int32& OutInstanceIndex) cons
 	return false;
 }
 
+
+ADefaultGameMode* ADefaultPlayerController::GetGameMode() const
+{
+	AGameModeBase* GM = GetWorld()->GetAuthGameMode();
+	RETURN_ON_FAIL_NULL(ADefaultPlayerControllerLog, GM);
+	
+	if (ADefaultGameMode* GameMode = Cast<ADefaultGameMode>(GM))
+	{
+		return GameMode;
+	}
+	
+	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("GameMode is Invalid"));
+	
+	return nullptr;
+}
+
 AWarpGameState* ADefaultPlayerController::GetGameState() const
 {
 	if (AWarpGameState* GameState = GetWorld()->GetGameState<AWarpGameState>())
@@ -435,17 +499,3 @@ UTurnBasedSystemManager* ADefaultPlayerController::GetTurnBasedSystemManager() c
 	return nullptr;
 }
 
-UUnitDataSubsystem* ADefaultPlayerController::GetUnitDataSubsystem(const UObject* WorldContext)
-{
-	if (!WorldContext) return nullptr;
-	if (const UWorld* World = WorldContext->GetWorld())
-	{
-		if (UGameInstance* GI = World->GetGameInstance())
-		{
-			return GI->GetSubsystem<UUnitDataSubsystem>();
-		}
-	}
-	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("UnitDataSubsystem is Invalid"));
-	return nullptr;
-}

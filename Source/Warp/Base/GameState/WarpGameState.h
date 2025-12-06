@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "MGLogTypes.h"
+#include "GameFramework/GameState.h"
 #include "GameFramework/GameStateBase.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "WarpGameState.generated.h"
 
+struct FUnitDefinition;
 struct FUnitRecordDTO;
 struct FUnitRecord;
-class UUnitDataSubsystem;
 class UTurnBasedSystemManager;
 class UUnitBase;
 class UCombatMap;
@@ -21,7 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCombatStarted);
  */
 
 UCLASS()
-class WARP_API AWarpGameState : public AGameStateBase
+class WARP_API AWarpGameState : public AGameState
 {
 	GENERATED_BODY()
 	
@@ -31,7 +32,7 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	void CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation);
+	void CreateUnitAtRandomPosition(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation);
 	bool CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation, const FIntVector2& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit);
 	bool MoveUnitTo(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
@@ -44,7 +45,6 @@ public:
 	
 	UUnitBase* FindUnitByCombatID(const uint32 InCombatID) const;
 	bool CheckPositionForUnitWithCombatMap(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
-	void SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source);
 	
 	bool IsCombatStarted() const { return bCombatStarted; }
 	void SetCombatStarted(bool bStarted);
@@ -54,8 +54,7 @@ public:
 	
 protected:
 	void ProcessNewUnit(UUnitBase* InNewUnit);
-	UUnitBase* CreateUnit(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation);
-	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
+	UUnitBase* CreateUnit(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation);
 
 	UFUNCTION()
 	void OnRep_SpaceCombatGrid();
@@ -63,8 +62,6 @@ protected:
 	void OnRep_TurnBasedSystemManager();
 	UFUNCTION()
 	void OnRep_ActiveUnits();
-	UFUNCTION()
-	void OnRep_UnitCatalog();
 	UFUNCTION()
 	void OnRep_CombatStarted();
 	
@@ -75,8 +72,6 @@ protected:
 	UTurnBasedSystemManager* TurnManager = nullptr;
 	UPROPERTY(ReplicatedUsing=OnRep_ActiveUnits)
 	TArray<UUnitBase*> ActiveUnits;
-	UPROPERTY(ReplicatedUsing=OnRep_UnitCatalog)
-	TArray<FUnitRecordDTO> UnitCatalog;
 	UPROPERTY(ReplicatedUsing=OnRep_CombatStarted)
 	bool bCombatStarted = false;
 

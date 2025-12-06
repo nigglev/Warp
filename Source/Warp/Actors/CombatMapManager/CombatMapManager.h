@@ -69,7 +69,6 @@ protected:
 	void ClearHover() const;
 
 	UStaticMesh* GetStaticMeshComponentForUnitType(const FName& InUnitTypeName);
-	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
 	
 	UPROPERTY()
 	FVector GridOrigin;
@@ -130,6 +129,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category="Grid|Assets")
 	UMaterialInterface* MovementMaterial = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category="Units")
+	UDataTable* UnitMeshesTable;;
 };
 
 

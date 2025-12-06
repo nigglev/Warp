@@ -7,7 +7,7 @@
 #include "MGLogTypes.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
-#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
+#include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
 DEFINE_LOG_CATEGORY_STATIC(UUnitBaseLog, Log, All);
 
 void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -25,10 +25,10 @@ void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UUnitBase, CurrentAP_);
 }
 
-UUnitBase* UUnitBase::CreateUnit(UObject* Outer, const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation)
+UUnitBase* UUnitBase::CreateUnit(UObject* Outer, const FUnitDefinition* InUnitDefinition, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation)
 {
 	UUnitBase* NewUnit = NewObject<UUnitBase>(Outer);
-	NewUnit->Init(InUnitRecord, InUnitCombatID, InUnitAffiliation);
+	NewUnit->Init(InUnitDefinition, InUnitCombatID, InUnitAffiliation);
 	
 	MG_COND_LOG(UUnitBaseLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitBase),
 		TEXT("New Unit Created: %s"), *NewUnit->ToString());
@@ -36,21 +36,23 @@ UUnitBase* UUnitBase::CreateUnit(UObject* Outer, const FUnitRecord& InUnitRecord
 	return NewUnit;
 }
 
-void UUnitBase::Init(const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID,
+void UUnitBase::Init(const FUnitDefinition* InUnitDefinition, const uint32 InUnitCombatID,
 	const EUnitAffiliation InUnitAffiliation)
 {
 	UnitCombatID_ = InUnitCombatID;
 	UnitAffiliation_ = InUnitAffiliation;
-	UnitTypeName_ = InUnitRecord.UnitName;
-	UnitSize_ = FUnitSize(InUnitRecord.GetSizeCategory());
-	Speed_ = InUnitRecord.Props.UnitSpeed;
-	MaxAP_ = InUnitRecord.Props.UnitMaxAP;
-	CurrentAP_ = InUnitRecord.Props.UnitMaxAP;
+	UnitTypeName_ = InUnitDefinition->UnitTypeName;
+	EUnitSizeCategory UnitSizeCategory;
+	if (TryParseUnitSizeEnum(InUnitDefinition->UnitSize, UnitSizeCategory))
+		UnitSize_ = FUnitSize(UnitSizeCategory);
+	Speed_ = InUnitDefinition->UnitSpeed;
+	MaxAP_ = InUnitDefinition->UnitMaxAP;
+	CurrentAP_ = MaxAP_;
 }
 
-FUnitActorEssentialInfo UUnitBase::GetUnitActorEssentialInfo() const
+FEssentialInfoForUnitActor UUnitBase::GetUnitActorEssentialInfo() const
 {
-	FUnitActorEssentialInfo UnitActorEssentialInfo;
+	FEssentialInfoForUnitActor UnitActorEssentialInfo;
 	UnitActorEssentialInfo.UnitCombatID = UnitCombatID_;
 	UnitActorEssentialInfo.UnitSize = UnitSize_;
 	UnitActorEssentialInfo.UnitGridPosition = UnitPosition.GetUnitTilePosition();
@@ -125,5 +127,31 @@ FString UUnitBase::ToString() const
 		UnitPosition.GetUnitTilePosition().X, UnitPosition.GetUnitTilePosition().Y,
 		UnitRotation.GetUnitFRotation()
 	);
+}
+
+bool UUnitBase::TryParseUnitSizeEnum(const FString& InString, EUnitSizeCategory& OutValue)
+{
+	UEnum* Enum = StaticEnum<EUnitSizeCategory>();
+	if (!Enum)
+	{
+		return false;
+	}
+	
+	FString Normalized = InString.TrimStartAndEnd();
+	
+	int32 ScopeIdx = Normalized.Find(TEXT("::"));
+	if (ScopeIdx != INDEX_NONE)
+	{
+		Normalized = Normalized.RightChop(ScopeIdx + 2);
+	}
+	
+	const int64 Value = Enum->GetValueByNameString(Normalized);
+	if (Value == INDEX_NONE)
+	{
+		return false;
+	}
+
+	OutValue = static_cast<EUnitSizeCategory>(Value);
+	return true;
 }
 

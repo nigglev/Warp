@@ -11,6 +11,7 @@
 #include "Warp/Units/UnitBase.h"
 #include "DefaultPlayerController.generated.h"
 
+class ADefaultGameMode;
 class ADefaultWarpHUD;
 class AUnitGhost;
 class UTurnBasedSystemManager;
@@ -44,6 +45,7 @@ protected:
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
 
+	void SetupClientContent();
 	void SetupEnhancedInput() const;
 	void CreateCombatMapManager();
 	void TryInitCombatMapManager();
@@ -53,10 +55,8 @@ protected:
 
 	void HandleEvents();
 	void MoveCameraToUnit(uint32 InUnitID) const;
-
-	UUnitDataSubsystem* GetUnitDataSubsystem(const UObject* WorldContext);
-
 	//GET//
+	ADefaultGameMode* GetGameMode() const;
 	AWarpGameState* GetGameState() const;
 	ADefaultWarpHUD* GetWarpHUD() const;
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
@@ -115,6 +115,12 @@ protected:
 	void HandleCombatStarted();
 	UFUNCTION()
 	void HandleActiveUnitChanged(uint32 InActiveUnitID);
+	UFUNCTION()
+	void HandleUnitsReadyLocal();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerSetContentReady();
+
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;
@@ -137,6 +143,7 @@ protected:
 	bool bMovingUnit_ = false;
 
 };
+
 
 
 

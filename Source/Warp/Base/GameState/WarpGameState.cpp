@@ -9,13 +9,10 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
-#include "Warp/Base/GameInstanceSubsystem/UnitDataSubsystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
 #include "Warp/Units/UnitBase.h"
-#include "Warp/UnitStaticData/PlayFabUnitTypes.h"
-#include "Warp/UnitStaticData/UnitCatalogDTO.h"
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -57,36 +54,7 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, StaticCombatMap, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, TurnManager, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, ActiveUnits, RepParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, UnitCatalog, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, bCombatStarted, RepParams);
-}
-
-void AWarpGameState::SetUnitCatalogFromMap(const TMap<FName, FUnitRecord>& Source)
-{
-	if (!HasAuthority())
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("No Server (HasAuthority = %d)"), HasAuthority());
-		return;
-	}
-	UnitCatalog.Reset(Source.Num());
-	for (const auto& UnitRecord : Source)
-	{
-		FName UnitName = UnitRecord.Key;
-		FUnitRecord Rec = UnitRecord.Value;
-
-		FUnitRecordDTO DTO;
-		DTO.UnitName  = UnitName;
-		DTO.UnitSize  = Rec.Props.UnitSize;
-		DTO.UnitSpeed = Rec.Props.UnitSpeed;
-		DTO.UnitMaxAP = Rec.Props.UnitMaxAP;
-		DTO.MeshPath  = Rec.Props.MeshPath.ToString();
-		DTO.Tags      = Rec.Props.Tags;
-
-		UnitCatalog.Add(MoveTemp(DTO));
-	}
-	
-	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, UnitCatalog, this);
 }
 
 void AWarpGameState::SetCombatStarted(bool bStarted)
@@ -106,9 +74,9 @@ void AWarpGameState::SetCombatStarted(bool bStarted)
 	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, bCombatStarted, this);
 }
 
-void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
+void AWarpGameState::CreateUnitAtRandomPosition(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation)
 {
-	UUnitBase* Unit = CreateUnit(InUnitRecord, InAffiliation);
+	UUnitBase* Unit = CreateUnit(InUnitDefinition, InAffiliation);
 	Unit->UnitRotation.SetRandomRotation();
 	StaticCombatMap->PlaceUnitOnMapRand(Unit);
 	ProcessNewUnit(Unit);
@@ -117,24 +85,24 @@ void AWarpGameState::CreateUnitAtRandomPosition(const FUnitRecord& InUnitRecord,
 bool AWarpGameState::CreateUnitAt(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation, const FIntVector2& InGridPosition,
 	const FUnitRotation& Rotation, UUnitBase*& OutUnit)
 {
-	UUnitBase* Unit = CreateUnit(InUnitRecord, InAffiliation);
-	Unit->UnitRotation = Rotation;
-	TArray<FIntPoint> Blockers;
-	
-	if (!CheckPositionForUnitWithCombatMap(InGridPosition, Unit->UnitRotation, Unit->UnitSize_, Blockers))
-	{
-		MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("Invalid Tile (HasAuthority = %d)"), HasAuthority());
-		return false;
-	}
-	StaticCombatMap->PlaceUnitAt(Unit, InGridPosition);
-
-	ProcessNewUnit(Unit);
-	if (TurnManager->GetCurrentTurnPhase() == ETurnPhase::InTurn)
-		TurnManager->RebuildTurnOrder();
-
-	OutUnit = Unit;
-	
+	// UUnitBase* Unit = CreateUnit(InUnitRecord, InAffiliation);
+	// Unit->UnitRotation = Rotation;
+	// TArray<FIntPoint> Blockers;
+	//
+	// if (!CheckPositionForUnitWithCombatMap(InGridPosition, Unit->UnitRotation, Unit->UnitSize_, Blockers))
+	// {
+	// 	MG_COND_ERROR(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+	// 	TEXT("Invalid Tile (HasAuthority = %d)"), HasAuthority());
+	// 	return false;
+	// }
+	// StaticCombatMap->PlaceUnitAt(Unit, InGridPosition);
+	//
+	// ProcessNewUnit(Unit);
+	// if (TurnManager->GetCurrentTurnPhase() == ETurnPhase::InTurn)
+	// 	TurnManager->RebuildTurnOrder();
+	//
+	// OutUnit = Unit;
+	//
 	return true;
 }
 
@@ -164,17 +132,14 @@ bool AWarpGameState::MoveUnitTo(const uint32 InUnitToMoveID, const FIntVector2& 
 }
 
 
-UUnitBase* AWarpGameState::CreateUnit(const FUnitRecord& InUnitRecord, const EUnitAffiliation InAffiliation)
+UUnitBase* AWarpGameState::CreateUnit(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation)
 {
 	RETURN_ON_FAIL_NULL(AWarpGameStateLog, HasAuthority());
 	RETURN_ON_FAIL_NULL(AWarpGameStateLog, IsValid(StaticCombatMap));
 	
-	const UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-	RETURN_ON_FAIL_NULL(AWarpGameStateLog, Sys);
-	
 	const uint32 AssignedCombatID = NextUnitCombatID++;
 
-	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, InUnitRecord, AssignedCombatID, InAffiliation);
+	UUnitBase* NewUnit = UUnitBase::CreateUnit(this, InUnitDefinition, AssignedCombatID, InAffiliation);
 
 	MG_COND_ERROR(AWarpGameStateLog, !IsValid(NewUnit), TEXT("Failed to create unit (HasAuthority = %d)"), HasAuthority());
 
@@ -235,19 +200,6 @@ UUnitBase* AWarpGameState::GetUnitByID(uint32 InUnitID)
 	return FoundUnit;
 }
 
-UUnitDataSubsystem* AWarpGameState::GetUnitDataSubsystem(const UObject* WorldContext)
-{
-	if (!WorldContext) return nullptr;
-	if (const UWorld* World = WorldContext->GetWorld())
-	{
-		if (UGameInstance* GI = World->GetGameInstance())
-		{
-			return GI->GetSubsystem<UUnitDataSubsystem>();
-		}
-	}
-	return nullptr;
-}
-
 void AWarpGameState::OnRep_SpaceCombatGrid()
 {
 	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
@@ -272,13 +224,6 @@ void AWarpGameState::OnRep_ActiveUnits()
 			TEXT("%s; "), ActiveUnits[i] ? *ActiveUnits[i]->ToString() : TEXT("NULL"));
 	}
 	OnUnitsReplicated.Broadcast(ActiveUnits);
-}
-
-void AWarpGameState::OnRep_UnitCatalog()
-{
-	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-	RETURN_ON_FAIL(AWarpGameStateLog, Sys);
-	Sys->SetUnitCatalog_Client(UnitCatalog);
 }
 
 void AWarpGameState::OnRep_CombatStarted()

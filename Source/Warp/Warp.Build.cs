@@ -11,7 +11,7 @@ public class Warp : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "Slate", "SlateCore", 
 			"EnhancedInput", "NetCore", "GameplayTags", "HTTP", "Json", "JsonUtilities" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput", "NetCore", "DebugUtility", "Slate", "SlateCore", "UMG" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput", "NetCore", "DebugUtility", "Slate", "SlateCore", "UMG", "PlayFab", "PlayFabCpp", "PlayFabCommon" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

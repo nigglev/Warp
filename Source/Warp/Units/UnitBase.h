@@ -10,8 +10,8 @@
 #include "UObject/Object.h"
 #include "UnitBase.generated.h"
 
+struct FUnitDefinition;
 struct FUnitRecord;
-class UUnitDataSubsystem;
 class ADefaultPlayerController;
 struct FCombatMapTile;
 /**
@@ -19,7 +19,7 @@ struct FCombatMapTile;
  */
 
 USTRUCT()
-struct FUnitActorEssentialInfo
+struct FEssentialInfoForUnitActor
 {
 	GENERATED_BODY()
 	
@@ -38,14 +38,14 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	static UUnitBase* CreateUnit(UObject* Outer, const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
+	static UUnitBase* CreateUnit(UObject* Outer, const FUnitDefinition* InUnitDefinition, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
 
-	void Init(const FUnitRecord& InUnitRecord, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
+	void Init(const FUnitDefinition* InUnitDefinition, const uint32 InUnitCombatID, const EUnitAffiliation InUnitAffiliation);
 
 	FName GetUnitTypeName() const {return UnitTypeName_;}
 	uint32 GetUnitCombatID() const {return UnitCombatID_;}
 	EUnitAffiliation GetUnitAffiliation() const {return UnitAffiliation_;}
-	FUnitActorEssentialInfo GetUnitActorEssentialInfo() const;
+	FEssentialInfoForUnitActor GetUnitActorEssentialInfo() const;
 
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_UnitPosition)
 	FUnitPosition UnitPosition;
@@ -59,6 +59,7 @@ public:
 	int32 GetCurrentAP	() const {return CurrentAP_;}
 
 	FString ToString() const;
+	bool TryParseUnitSizeEnum(const FString& InString, EUnitSizeCategory& OutValue);
 	
 protected:
 	UFUNCTION()
