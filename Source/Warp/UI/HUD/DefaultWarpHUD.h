@@ -27,34 +27,21 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UCombatUIWidget* GetCombatUI() const;
-
-	void GetTurnOrderInfo(TArray<uint32>& OutUnitCombatIds, uint32& OutCurrentUnitCombatId) const;
-	void GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const;
+	AWarpGameState* GetGameState() const;
+	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
 	
 protected:
 	APlayerController* Init() const;
 	void SetupWidgets(APlayerController* InPC);
-	void SetupTBSMEvents();
-	
-	AWarpGameState* GetGameState() const;
-	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
-		
-	void HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitCombatIds, uint32 InCurrentTurnUnitCombatId);
-	void HandleActiveUnitChanged(uint32 InCurrentTurnUnitCombatId);
 
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UCombatUIWidget> CombatUIWidgetClass_;
 	UPROPERTY()
 	UCombatUIWidget* CombatUIWidget_ = nullptr;
 	
-	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
-	UPROPERTY()
-	UTurnOrderWidget* TurnOrderWidget_ = nullptr;
+
 	
-	TArray<uint32> TurnOrderUnitCombatIds_;
-	uint32 CurrentTurnUnitCombatId_ = INDEX_NONE;
+	
 
 };
 

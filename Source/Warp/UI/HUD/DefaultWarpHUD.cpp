@@ -20,7 +20,6 @@ void ADefaultWarpHUD::BeginPlay()
 	Super::BeginPlay();
 
 	APlayerController* PC = Init();
-	SetupTBSMEvents();
 	SetupWidgets(PC);
 }
 
@@ -53,69 +52,12 @@ void ADefaultWarpHUD::SetupWidgets(APlayerController* InPC)
 		CombatUIWidget_ = CreateWidget<UCombatUIWidget>(InPC, CombatUIWidgetClass_);
 		if (CombatUIWidget_)
 		{
+			CombatUIWidget_->Init(this);
 			CombatUIWidget_->AddToViewport();
 		}
 	}
-
-	if (TurnOrderWidgetClass_)
-	{
-		TurnOrderWidget_ = CreateWidget<UTurnOrderWidget>(InPC, TurnOrderWidgetClass_);
-		if (TurnOrderWidget_)
-		{
-			TurnOrderWidget_->Init(this);
-			TurnOrderWidget_->AddToViewport();
-		}
-	}
 }
 
-void ADefaultWarpHUD::SetupTBSMEvents()
-{
-	GetTurnBasedSystemManager()->OnTurnOrderUpdated.AddUObject(
-			this, &ADefaultWarpHUD::HandleTurnOrderUpdated);
-
-	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(
-		this, &ADefaultWarpHUD::HandleActiveUnitChanged);
-}
-
-void ADefaultWarpHUD::HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitCombatIds, uint32 InCurrentTurnUnitCombatId)
-{
-	TurnOrderUnitCombatIds_ = InTurnOrderUnitCombatIds;
-	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
-
-	if (TurnOrderWidget_)
-	{
-		TurnOrderWidget_->RebuildFromHUD();
-	}
-}
-
-void ADefaultWarpHUD::HandleActiveUnitChanged(uint32 InCurrentTurnUnitCombatId)
-{
-	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
-
-	if (TurnOrderWidget_)
-	{
-		TurnOrderWidget_->UpdateCurrentFromHUD();
-	}
-}
-
-
-void ADefaultWarpHUD::GetTurnOrderInfo(TArray<uint32>& OutUnitCombatIds, uint32& OutCurrentUnitCombatId) const
-{
-	OutUnitCombatIds = TurnOrderUnitCombatIds_;
-	OutCurrentUnitCombatId = CurrentTurnUnitCombatId_;
-}
-
-void ADefaultWarpHUD::GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const
-{
-	RETURN_ON_FAIL(ADefaultWarpHUDLog, GetTurnBasedSystemManager());
-	
-	OutInfo.UnitTypeName_ = GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitTypeName();
-	EUnitAffiliation Affiliation = GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitAffiliation();
-	if (Affiliation == EUnitAffiliation::Ally || Affiliation == EUnitAffiliation::Player)
-		OutInfo.bIsAlly_ = true;
-	if (Affiliation == EUnitAffiliation::Enemy)
-		OutInfo.bIsAlly_ = false;
-}
 
 AWarpGameState* ADefaultWarpHUD::GetGameState() const
 {
@@ -125,10 +67,5 @@ AWarpGameState* ADefaultWarpHUD::GetGameState() const
 UTurnBasedSystemManager* ADefaultWarpHUD::GetTurnBasedSystemManager() const
 {
 	return GetGameState() ? GetGameState()->GetTurnBasedSystemManager() : nullptr;
-}
-
-UCombatUIWidget* ADefaultWarpHUD::GetCombatUI() const
-{
-	return CombatUIWidget_;
 }
 

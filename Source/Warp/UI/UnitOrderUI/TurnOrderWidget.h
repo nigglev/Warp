@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderWidget.generated.h"
 
+class UCombatUIWidget;
 class UVerticalBox;
 class UTurnOrderEntryWidget;
 class ADefaultWarpHUD;
@@ -18,7 +19,7 @@ class WARP_API UTurnOrderWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void Init(ADefaultWarpHUD* InHUD);
+	void Init(UCombatUIWidget* InCombatWidgetOwner);
 
 	void RebuildFromHUD();
 	void UpdateCurrentFromHUD();
@@ -30,7 +31,7 @@ protected:
 	TObjectPtr<UVerticalBox> EntriesBox_;
 	
 	UPROPERTY()
-	ADefaultWarpHUD* HUD_;
+	UCombatUIWidget* CombatWidgetOwner_;
 	UPROPERTY()
 	TArray<UTurnOrderEntryWidget*> EntryWidgets_;
 };

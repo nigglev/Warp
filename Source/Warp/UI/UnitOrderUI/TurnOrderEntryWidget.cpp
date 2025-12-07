@@ -41,6 +41,7 @@ void UTurnOrderEntryWidget::SetIsCurrent(bool bInCurrent)
 	if (bInCurrent)
 	{
 		FinalColor.A = 1.0f;
+		FinalColor = FLinearColor::Yellow;
 	}
 
 	BackgroundBorder->SetBrushColor(FinalColor);

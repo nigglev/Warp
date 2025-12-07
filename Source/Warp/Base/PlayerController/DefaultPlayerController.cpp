@@ -205,8 +205,6 @@ void ADefaultPlayerController::HandleCombatStarted()
 void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
 {
 	MoveCameraToUnit(InActiveUnitID);
-	UUnitBase* U = GetGameState()->GetUnitByID(InActiveUnitID);
-	GetWarpHUD()->GetCombatUI()->SetActionPoints(U->GetMaxAP(), U->GetMaxAP());
 }
 
 void ADefaultPlayerController::HandleUnitsReadyLocal()

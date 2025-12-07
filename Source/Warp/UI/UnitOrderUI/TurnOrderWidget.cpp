@@ -7,24 +7,25 @@
 #include "TurnOrderEntryWidget.h"
 #include "TurnOrderUnitInfo.h"
 #include "Components/VerticalBox.h"
+#include "Warp/UI/CombatUI/CombatUIWidget.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(UTurnOrderWidgetLog, Log, All);
 
-void UTurnOrderWidget::Init(ADefaultWarpHUD* InHUD)
+void UTurnOrderWidget::Init(UCombatUIWidget* InCombatWidgetOwner)
 {
-	HUD_ = InHUD;
+	CombatWidgetOwner_ = InCombatWidgetOwner;
 }
 
 void UTurnOrderWidget::RebuildFromHUD()
 {
-	RETURN_ON_FAIL(UTurnOrderWidgetLog, HUD_);
+	RETURN_ON_FAIL(UTurnOrderWidgetLog, CombatWidgetOwner_);
 	RETURN_ON_FAIL(UTurnOrderWidgetLog, EntriesBox_);
 	RETURN_ON_FAIL(UTurnOrderWidgetLog, EntryWidgetClass_);
 
 	TArray<uint32> UnitCombatIds;
 	uint32 CurrentUnitCombatId = INDEX_NONE;
-	HUD_->GetTurnOrderInfo(UnitCombatIds, CurrentUnitCombatId);
+	CombatWidgetOwner_->GetTurnOrderInfo(UnitCombatIds, CurrentUnitCombatId);
 
 	EntriesBox_->ClearChildren();
 	EntryWidgets_.Reset();
@@ -32,7 +33,7 @@ void UTurnOrderWidget::RebuildFromHUD()
 	for (uint32 UnitCombatId : UnitCombatIds)
 	{
 		FTurnOrderUnitInfo Info;
-		HUD_->GetTurnOrderUnitInfo(UnitCombatId, Info);
+		CombatWidgetOwner_->GetTurnOrderUnitInfo(UnitCombatId, Info);
 		
 		UTurnOrderEntryWidget* Row =
 			CreateWidget<UTurnOrderEntryWidget>(GetWorld(), EntryWidgetClass_);
@@ -48,11 +49,11 @@ void UTurnOrderWidget::RebuildFromHUD()
 
 void UTurnOrderWidget::UpdateCurrentFromHUD()
 {
-	RETURN_ON_FAIL(UTurnOrderWidgetLog, HUD_);
+	RETURN_ON_FAIL(UTurnOrderWidgetLog, CombatWidgetOwner_);
 
 	TArray<uint32> UnitCombatIds;
 	uint32 CurrentUnitCombatId = INDEX_NONE;
-	HUD_->GetTurnOrderInfo(UnitCombatIds, CurrentUnitCombatId);
+	CombatWidgetOwner_->GetTurnOrderInfo(UnitCombatIds, CurrentUnitCombatId);
 
 	for (UTurnOrderEntryWidget* Row : EntryWidgets_)
 	{

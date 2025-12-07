@@ -3,13 +3,20 @@
 
 #include "CombatUIWidget.h"
 
+#include "MGLogs.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/SizeBox.h"
+#include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
+#include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
+#include "Warp/UI/HUD/DefaultWarpHUD.h"
+#include "Warp/UI/UnitOrderUI/TurnOrderUnitInfo.h"
+#include "Warp/UI/UnitOrderUI/TurnOrderWidget.h"
+DEFINE_LOG_CATEGORY_STATIC(UCombatUIWidgetLog, Log, All);
 
 void UCombatUIWidget::NativeConstruct()
 {
@@ -29,6 +36,61 @@ void UCombatUIWidget::NativeConstruct()
 	if (ActionPointsBox)
 	{
 		ActionPointsBox->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UCombatUIWidget::Init(ADefaultWarpHUD* InHUD)
+{
+	RETURN_ON_FAIL(UCombatUIWidgetLog, InHUD);
+	HUD_ = InHUD;
+
+	SubscribeToTurnBasedEvents();
+
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->Init(this);
+		TurnOrderWidget_->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
+	// if (TurnOrderWidgetClass_)
+	// {
+	// 	TurnOrderWidget_ = CreateWidget<UTurnOrderWidget>(this, TurnOrderWidgetClass_);
+	// 	if (TurnOrderWidget_)
+	// 	{
+	// 		TurnOrderWidget_->Init(this);
+	// 		TurnOrderWidget_->AddToViewport();
+	// 		TurnOrderWidget_->SetVisibility(ESlateVisibility::Collapsed);
+	// 	}
+	// }
+}
+
+void UCombatUIWidget::SubscribeToTurnBasedEvents()
+{
+	HUD_->GetTurnBasedSystemManager()->OnTurnOrderUpdated.AddUObject(
+		this, &UCombatUIWidget::HandleTurnOrderUpdated);
+
+	HUD_->GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(
+		this, &UCombatUIWidget::HandleActiveUnitChanged);
+}
+
+void UCombatUIWidget::HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitCombatIds, uint32 InCurrentTurnUnitCombatId)
+{
+	TurnOrderUnitCombatIds_ = InTurnOrderUnitCombatIds;
+	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
+
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->RebuildFromHUD();
+	}
+}
+
+void UCombatUIWidget::HandleActiveUnitChanged(uint32 InCurrentTurnUnitCombatId)
+{
+	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
+
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->UpdateCurrentFromHUD();
 	}
 }
 
@@ -69,7 +131,31 @@ void UCombatUIWidget::ShowCombatUI(bool InShowCombatUI)
 	{
 	    ActionPointsBox->SetVisibility(ESlateVisibility::Visible);
 	}
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->SetVisibility(ESlateVisibility::Visible);
+	}
 }
+
+
+void UCombatUIWidget::GetTurnOrderInfo(TArray<uint32>& OutUnitCombatIds, uint32& OutCurrentUnitCombatId) const
+{
+	OutUnitCombatIds = TurnOrderUnitCombatIds_;
+	OutCurrentUnitCombatId = CurrentTurnUnitCombatId_;
+}
+
+void UCombatUIWidget::GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const
+{
+	RETURN_ON_FAIL(UCombatUIWidgetLog, HUD_);
+	
+	OutInfo.UnitTypeName_ = HUD_->GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitTypeName();
+	EUnitAffiliation Affiliation = HUD_->GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitAffiliation();
+	if (Affiliation == EUnitAffiliation::Ally || Affiliation == EUnitAffiliation::Player)
+		OutInfo.bIsAlly_ = true;
+	if (Affiliation == EUnitAffiliation::Enemy)
+		OutInfo.bIsAlly_ = false;
+}
+
 
 void UCombatUIWidget::SetActionPoints(int32 CurrentPoints, int32 MaxPoints)
 {
@@ -88,6 +174,7 @@ void UCombatUIWidget::SetActionPoints(int32 CurrentPoints, int32 MaxPoints)
 
 	UpdateActionPointFill(CurrentPoints);
 }
+
 
 void UCombatUIWidget::RebuildActionPoints(int32 MaxPoints)
 {

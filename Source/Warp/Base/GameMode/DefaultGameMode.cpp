@@ -171,15 +171,12 @@ void ADefaultGameMode::SpawnPlayerMainShip()
 
 void ADefaultGameMode::SpawnAIShips(int InAINumber)
 {
-// 	if (bAISpawned) return;
-// 	
-// 	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-// 	FUnitRecord Record = Sys->GetCorvetteRecord();
-//
-// 	for (int i = 0; i < InAINumber; i++)
-// 		GetWarpGameState()->CreateUnitAtRandomPosition(Record, EUnitAffiliation::Enemy);
-// 	
-// 	bAISpawned = true;
+	RETURN_ON_FAIL(ADefaultGameModeLog, Content_);
+	const FUnitDefinition* CorvetteUnitDef = Content_->GetUnitDefinition(FName(TEXT("Corvette")));
+	RETURN_ON_FAIL_T(ADefaultGameModeLog, CorvetteUnitDef, TEXT("No 'corvette' unit definition in content"));
+
+	for (int i = 0; i < InAINumber; i++)
+		GetWarpGameState()->CreateUnitAtRandomPosition(CorvetteUnitDef, EUnitAffiliation::Enemy);
 }
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const
