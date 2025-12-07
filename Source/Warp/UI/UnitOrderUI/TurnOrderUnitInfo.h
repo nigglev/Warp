@@ -10,11 +10,6 @@ struct FTurnOrderUnitInfo
 {
 	GENERATED_BODY()
 	
-	uint32 UnitCombatId_ = INDEX_NONE;
-	
 	FName UnitTypeName_;
-	
-	TObjectPtr<class UTexture2D> Icon_ = nullptr;
-	
 	bool bIsAlly_ = false;
 };

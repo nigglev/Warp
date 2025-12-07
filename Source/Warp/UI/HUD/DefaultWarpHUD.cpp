@@ -46,6 +46,28 @@ APlayerController* ADefaultWarpHUD::Init() const
 	return PC;
 }
 
+void ADefaultWarpHUD::SetupWidgets(APlayerController* InPC)
+{
+	if (CombatUIWidgetClass_)
+	{
+		CombatUIWidget_ = CreateWidget<UCombatUIWidget>(InPC, CombatUIWidgetClass_);
+		if (CombatUIWidget_)
+		{
+			CombatUIWidget_->AddToViewport();
+		}
+	}
+
+	if (TurnOrderWidgetClass_)
+	{
+		TurnOrderWidget_ = CreateWidget<UTurnOrderWidget>(InPC, TurnOrderWidgetClass_);
+		if (TurnOrderWidget_)
+		{
+			TurnOrderWidget_->Init(this);
+			TurnOrderWidget_->AddToViewport();
+		}
+	}
+}
+
 void ADefaultWarpHUD::SetupTBSMEvents()
 {
 	GetTurnBasedSystemManager()->OnTurnOrderUpdated.AddUObject(
@@ -55,63 +77,44 @@ void ADefaultWarpHUD::SetupTBSMEvents()
 		this, &ADefaultWarpHUD::HandleActiveUnitChanged);
 }
 
-void ADefaultWarpHUD::SetupWidgets(APlayerController* InPC)
+void ADefaultWarpHUD::HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitCombatIds, uint32 InCurrentTurnUnitCombatId)
 {
-	if (CombatUIWidgetClass)
-	{
-		CombatUIWidget = CreateWidget<UCombatUIWidget>(InPC, CombatUIWidgetClass);
-		if (CombatUIWidget)
-		{
-			CombatUIWidget->AddToViewport();
-		}
-	}
+	TurnOrderUnitCombatIds_ = InTurnOrderUnitCombatIds;
+	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
 
-	if (TurnOrderWidgetClass)
+	if (TurnOrderWidget_)
 	{
-		TurnOrderWidget = CreateWidget<UTurnOrderWidget>(InPC, TurnOrderWidgetClass);
-		if (TurnOrderWidget)
-		{
-			TurnOrderWidget->AddToViewport();
-		}
+		TurnOrderWidget_->RebuildFromHUD();
 	}
 }
 
-void ADefaultWarpHUD::GetTurnOrder(TArray<uint32>& OutUnitIds, uint32& OutCurrentUnitId) const
+void ADefaultWarpHUD::HandleActiveUnitChanged(uint32 InCurrentTurnUnitCombatId)
 {
-	OutUnitIds = CachedTurnOrderUnitIds_;
-	OutCurrentUnitId = CachedCurrentTurnUnitId_;
-}
+	CurrentTurnUnitCombatId_ = InCurrentTurnUnitCombatId;
 
-bool ADefaultWarpHUD::GetTurnOrderUnitInfo(FTurnOrderUnitInfo& OutInfo) const
-{
-	RETURN_ON_FAIL_BOOL(ADefaultWarpHUDLog, GetTurnBasedSystemManager());
-
-	OutInfo.UnitCombatId_ = CachedCurrentTurnUnitId_;
-	OutInfo.UnitTypeName_ = GetGameState()->GetUnitByID(CachedCurrentTurnUnitId_)->GetUnitTypeName();
-	//OutInfo.bIsAlly_ = GetGameState()->GetUnitByID(OutInfo.UnitCombatId_)->GetUnitAffiliation();
-
-	return true;
-}
-
-void ADefaultWarpHUD::HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitIds, uint32 InCurrentTurnUnitId)
-{
-	CachedTurnOrderUnitIds_ = InTurnOrderUnitIds;
-	CachedCurrentTurnUnitId_ = InCurrentTurnUnitId;
-
-	if (TurnOrderWidget)
+	if (TurnOrderWidget_)
 	{
-		//TurnOrderWidget->RebuildFromHUD();
+		TurnOrderWidget_->UpdateCurrentFromHUD();
 	}
 }
 
-void ADefaultWarpHUD::HandleActiveUnitChanged(uint32 InCurrentTurnUnitId)
-{
-	CachedCurrentTurnUnitId_ = InCurrentTurnUnitId;
 
-	if (TurnOrderWidget)
-	{
-		//TurnOrderWidget->UpdateCurrentFromHUD();
-	}
+void ADefaultWarpHUD::GetTurnOrderInfo(TArray<uint32>& OutUnitCombatIds, uint32& OutCurrentUnitCombatId) const
+{
+	OutUnitCombatIds = TurnOrderUnitCombatIds_;
+	OutCurrentUnitCombatId = CurrentTurnUnitCombatId_;
+}
+
+void ADefaultWarpHUD::GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const
+{
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, GetTurnBasedSystemManager());
+	
+	OutInfo.UnitTypeName_ = GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitTypeName();
+	EUnitAffiliation Affiliation = GetGameState()->GetUnitByID(InUnitCombatId)->GetUnitAffiliation();
+	if (Affiliation == EUnitAffiliation::Ally || Affiliation == EUnitAffiliation::Player)
+		OutInfo.bIsAlly_ = true;
+	if (Affiliation == EUnitAffiliation::Enemy)
+		OutInfo.bIsAlly_ = false;
 }
 
 AWarpGameState* ADefaultWarpHUD::GetGameState() const
@@ -126,6 +129,6 @@ UTurnBasedSystemManager* ADefaultWarpHUD::GetTurnBasedSystemManager() const
 
 UCombatUIWidget* ADefaultWarpHUD::GetCombatUI() const
 {
-	return CombatUIWidget;
+	return CombatUIWidget_;
 }
 

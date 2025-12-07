@@ -6,6 +6,9 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderEntryWidget.generated.h"
 
+struct FTurnOrderUnitInfo;
+class UTextBlock;
+class UBorder;
 /**
  * 
  */
@@ -13,35 +16,22 @@ UCLASS()
 class WARP_API UTurnOrderEntryWidget : public UUserWidget
 {
 	GENERATED_BODY()
-
-	
 public:
-	void Init(int32 InUnitId, class ATurnBasedSystem* InManager);
-
+	void Init(uint32 InUnitCombatID, const FTurnOrderUnitInfo& Info, bool bIsCurrent);
 	void SetIsCurrent(bool bInCurrent);
-	int32 GetUnitId() const { return UnitId; }
+
+	int32 GetUnitId() const { return UnitCombatId_; }
 
 protected:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UImage> UnitImage_;
-
+	UTextBlock* UnitNameText;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UTextBlock> UnitNameText_;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UBorder> BackgroundBorder_;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
-	FLinearColor AllyColor_ = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
-	FLinearColor EnemyColor_ = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
-	FLinearColor CurrentOutlineColor_ = FLinearColor::Yellow;
+	UBorder* BackgroundBorder;
+	
+	FLinearColor AllyColor = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
+	FLinearColor EnemyColor = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
 
 private:
-
-	int32 UnitId = INDEX_NONE;
-	bool bIsAlly = false;
+	int32 UnitCombatId_ = INDEX_NONE;
+	bool bIsAlly_ = false;
 };

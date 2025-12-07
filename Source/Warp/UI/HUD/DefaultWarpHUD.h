@@ -29,8 +29,8 @@ public:
 
 	UCombatUIWidget* GetCombatUI() const;
 
-	void GetTurnOrder(TArray<uint32>& OutUnitIds, uint32& OutCurrentUnitId) const;
-	bool GetTurnOrderUnitInfo(FTurnOrderUnitInfo& OutInfo) const;
+	void GetTurnOrderInfo(TArray<uint32>& OutUnitCombatIds, uint32& OutCurrentUnitCombatId) const;
+	void GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const;
 	
 protected:
 	APlayerController* Init() const;
@@ -40,21 +40,21 @@ protected:
 	AWarpGameState* GetGameState() const;
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
 		
-	void HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitIds, uint32 InCurrentTurnUnitId);
-	void HandleActiveUnitChanged(uint32 InCurrentTurnUnitId);
+	void HandleTurnOrderUpdated(const TArray<uint32>& InTurnOrderUnitCombatIds, uint32 InCurrentTurnUnitCombatId);
+	void HandleActiveUnitChanged(uint32 InCurrentTurnUnitCombatId);
 
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UCombatUIWidget> CombatUIWidgetClass;
+	TSubclassOf<UCombatUIWidget> CombatUIWidgetClass_;
 	UPROPERTY()
-	UCombatUIWidget* CombatUIWidget = nullptr;
+	UCombatUIWidget* CombatUIWidget_ = nullptr;
 	
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass;
+	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
 	UPROPERTY()
-	UTurnOrderWidget* TurnOrderWidget = nullptr;
+	UTurnOrderWidget* TurnOrderWidget_ = nullptr;
 	
-	TArray<uint32> CachedTurnOrderUnitIds_;
-	uint32 CachedCurrentTurnUnitId_ = INDEX_NONE;
+	TArray<uint32> TurnOrderUnitCombatIds_;
+	uint32 CurrentTurnUnitCombatId_ = INDEX_NONE;
 
 };
 
