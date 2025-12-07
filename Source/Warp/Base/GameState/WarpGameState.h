@@ -19,7 +19,7 @@ class AWarpGameState;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnWarpGameStateValid, AWarpGameState*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitsReplicatedSignature, const TArray<UUnitBase*>&);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCombatStarted);
+DECLARE_MULTICAST_DELEGATE(FOnCombatStarted);
 /**
  * 
  */
@@ -31,7 +31,6 @@ class WARP_API AWarpGameState : public AGameState
 	
 public:
 	AWarpGameState();
-	void PreLoginInit();
 
 	virtual void PostInitializeComponents() override;
 
@@ -49,16 +48,17 @@ public:
 	UUnitBase* FindUnitByCombatID(const uint32 InCombatID) const;
 	bool CheckPositionForUnitWithCombatMap(const FIntVector2& InUnitCenter, const FUnitRotation& InUnitRotation, const FUnitSize& InUnitSize, TArray<FIntPoint>& OutBlockers) const;
 	
-	bool IsCombatStarted() const { return bCombatStarted; }
-	void SetCombatStarted(bool bStarted);
-
 	bool IsClientValidState() const { return StaticCombatMap != nullptr && TurnManager != nullptr;}
 
 	FOnWarpGameStateValid OnWarpGameStateValid;
 	FOnUnitsReplicatedSignature OnUnitsReplicated;
-	FOnCombatStarted OnCombatStarted;
 	
 protected:
+	virtual void OnRep_MatchState() override;
+
+	void HandleMatchHasLoading();
+	virtual void HandleMatchHasStarted() override;
+	
 	void ProcessNewUnit(UUnitBase* InNewUnit);
 	UUnitBase* CreateUnit(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation);
 
@@ -70,8 +70,6 @@ protected:
 	void OnRep_TurnBasedSystemManager();
 	UFUNCTION()
 	void OnRep_ActiveUnits();
-	UFUNCTION()
-	void OnRep_CombatStarted();
 	
 
 	UPROPERTY(ReplicatedUsing=OnRep_SpaceCombatGrid)
@@ -80,8 +78,6 @@ protected:
 	UTurnBasedSystemManager* TurnManager = nullptr;
 	UPROPERTY(ReplicatedUsing=OnRep_ActiveUnits)
 	TArray<UUnitBase*> ActiveUnits;
-	UPROPERTY(ReplicatedUsing=OnRep_CombatStarted)
-	bool bCombatStarted = false;
 
 	uint32 NextUnitCombatID;
 

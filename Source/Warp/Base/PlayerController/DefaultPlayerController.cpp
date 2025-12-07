@@ -33,6 +33,19 @@ void ADefaultPlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	if (!IsLocalController())
+		return;
+
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
+	
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content != nullptr);
+
+	if (!Content->AreUnitsLoaded())
+	{
+		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientValidState);
+	}
+
 	AWarpGameState* GS = GetWorld()->GetGameState<AWarpGameState>();
 	if (GS == nullptr)
 	{
@@ -50,12 +63,59 @@ void ADefaultPlayerController::PostInitializeComponents()
 	}
 }
 
+void ADefaultPlayerController::CreateCombatMapManager()
+{
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
+	
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManagerClass != nullptr);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
+	
+	if (!IsLocalController())
+		return;
+
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS != nullptr);
+
+	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(this, &ADefaultPlayerController::HandleActiveUnitChanged);
+
+	if (!GS->IsClientValidState())
+	{
+		GS->OnWarpGameStateValid.AddWeakLambda(this, [this](AWarpGameState* InWarpGameState)
+		{
+			this->CreateCombatMapManager();
+		});
+		return;
+	}
+
+	const uint32 Grid = GS->GetMapGridSize();
+	const uint32 Tile = GS->GetMapTileSize();
+
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Grid > 0);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Tile > 0);
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	CombatMapManager = GetWorld()->SpawnActor<ACombatMapManager>(
+		CombatMapManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
+	
+	CombatMapManager->Init(Grid, Tile);
+	CombatMapManager->GenerateGrid();
+
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+		TEXT("CombatMapManager [%s] initialized from GameState (Grid=%d, Tile=%d)"), *GetNameSafe(CombatMapManager), Grid, Tile);
+
+	CheckClientValidState();
+}
+
 void ADefaultPlayerController::BeginPlay()
 {
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
+	
 	Super::BeginPlay();
-	SetupClientContent();
+
 	SetupEnhancedInput();
-	HandleEvents();
 }
 
 void ADefaultPlayerController::PlayerTick(float DeltaTime)
@@ -68,27 +128,22 @@ void ADefaultPlayerController::PlayerTick(float DeltaTime)
 	UpdateUnitGhostPosition();
 }
 
-void ADefaultPlayerController::SetupClientContent()
-{	
-	if (!IsLocalController())
+void ADefaultPlayerController::CheckClientValidState()
+{
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, IsLocalController());
+	
+	if (bClientValidState_)
 		return;
 
-	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GI);
+	if (!IsClientValidState())
+		return;
 
-	UWarpPlayfabContentSubSystem* Content =
-		GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+	bClientValidState_ = true;
 
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content);
+	ServerSetContentReady();
 
-	if (Content->AreUnitsLoaded())
-	{
-		HandleUnitsReadyLocal();
-	}
-	else
-	{
-		Content->OnUnitsLoaded.AddDynamic(this, &ADefaultPlayerController::HandleUnitsReadyLocal);
-	}
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
+	OnDefaultPlayerControllerValid.Broadcast(this);
 }
 
 bool ADefaultPlayerController::IsClientValidState() const
@@ -100,16 +155,30 @@ bool ADefaultPlayerController::IsClientValidState() const
 		return false;
 	}
 
-	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, GI);
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);
+
+	return Content->AreUnitsLoaded();
+}
+
+void ADefaultPlayerController::ServerSetContentReady_Implementation()
+{
+	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
+
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+	TEXT("Setting client content ready to true"));
+	PS->bClientContentReady = true;
+}
+
+void ADefaultPlayerController::ServerStartCombat_Implementation()
+{
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
 	
-	UWarpPlayfabContentSubSystem* Content =
-		GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+	ADefaultGameMode* DGM = Cast<ADefaultGameMode>(GetWorld()->GetAuthGameMode());
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, DGM);
 
-	if (Content->AreUnitsLoaded())
-		return true;
-
-	return false;
+	DGM->StartBattle();
 }
 
 void ADefaultPlayerController::SetupEnhancedInput() const
@@ -144,93 +213,11 @@ void ADefaultPlayerController::SetupInputComponent()
 	}
 }
 
-
-void ADefaultPlayerController::CreateCombatMapManager()
-{
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManagerClass != nullptr);
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
-	
-	if (!IsLocalController())
-		return;
-
-	AWarpGameState* GS = GetGameState();
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS != nullptr);
-
-	if (!GS->IsClientValidState())
-	{
-		GS->OnWarpGameStateValid.AddWeakLambda(this, [this](AWarpGameState* InWarpGameState)
-		{
-			this->CreateCombatMapManager();
-		});
-		return;
-	}
-
-	const uint32 Grid = GS->GetMapGridSize();
-	const uint32 Tile = GS->GetMapTileSize();
-
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Grid > 0);
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Tile > 0);
-
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	CombatMapManager = GetWorld()->SpawnActor<ACombatMapManager>(
-		CombatMapManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
-	
-	CombatMapManager->Init(Grid, Tile);
-	CombatMapManager->GenerateGrid();
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("CombatMapManager [%s] initialized from GameState (Grid=%d, Tile=%d)"), *GetNameSafe(CombatMapManager), Grid, Tile);
-
-	CheckValidState();
-}
-
-void ADefaultPlayerController::HandleEvents()
-{
-	GetGameState()->OnCombatStarted.AddUniqueDynamic(this, &ADefaultPlayerController::HandleCombatStarted);
-
-	if (GetGameState()->IsCombatStarted())
-	{
-		HandleCombatStarted();
-	}
-}
-
-void ADefaultPlayerController::HandleCombatStarted()
-{
-	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(this, &ADefaultPlayerController::HandleActiveUnitChanged);
-}
-
 void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
 {
 	MoveCameraToUnit(InActiveUnitID);
 	UUnitBase* U = GetGameState()->GetUnitByID(InActiveUnitID);
 	GetWarpHUD()->GetCombatUI()->SetActionPoints(U->GetMaxAP(), U->GetMaxAP());
-}
-
-void ADefaultPlayerController::HandleUnitsReadyLocal()
-{
-	if (IsLocalController())
-	{
-		CheckValidState();
-	}
-}
-
-void ADefaultPlayerController::CheckValidState()
-{
-	if (bClientValidState_)
-		return;
-
-	if (!IsClientValidState())
-		return;
-
-	bClientValidState_ = true;
-
-	ServerSetContentReady();
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
-	OnDefaultPlayerControllerValid.Broadcast(this);
 }
 
 void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
@@ -308,15 +295,6 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	}
 }
 
-void ADefaultPlayerController::ServerStartCombat_Implementation()
-{
-	GetTurnBasedSystemManager()->StartCombat();
-	GetGameState()->SetCombatStarted(true);
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Start combat"));
-}
-
-
 void ADefaultPlayerController::ServerEndTurn_Implementation()
 {
 	GetTurnBasedSystemManager()->AdvanceToNextUnit();
@@ -348,17 +326,6 @@ bool ADefaultPlayerController::MoveUnitServerAuthoritative(const uint32 InUnitTo
 	ServerRequestMoveUnit(InUnitToMoveID, InGridPosition);
 	
 	return true;
-}
-
-void ADefaultPlayerController::ServerSetContentReady_Implementation()
-{
-	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Setting client content ready to true"));
-	PS->bClientContentReady = true;
-	GetGameMode()->CheckStartConditions();
 }
 
 void ADefaultPlayerController::ServerRequestMoveUnit_Implementation(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)

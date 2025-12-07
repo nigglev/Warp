@@ -24,14 +24,19 @@ public:
 	
 	ADefaultGameMode();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-	virtual void BeginPlay() override;
-	
-	void CheckStartConditions();
+
+	virtual void StartPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+
+	bool StartBattle();
 	
 protected:
-	void SetupServerContent();
 
-	virtual bool ReadyToStartMatch_Implementation() override;
+	virtual void OnMatchStateSet() override;
+	virtual void HandleMatchHasLoading();
+
+	virtual bool CheckLoading();
+
 	virtual void HandleMatchHasStarted() override;
 
 	struct FReadyToStartMatchError
@@ -59,11 +64,9 @@ protected:
 			return FString::Printf(TEXT("%s: %s"), *ErrorName.ToString(), *ErrorDescription);
 		}
 	};
+
+	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerLoadValue() const;
 	
-	TValueOrError<void, FReadyToStartMatchError> ReadyToStartMatchValue() const;
-	
-	UFUNCTION()
-	void HandleUnitCatalogReady(bool bSuccess);
 	UFUNCTION()
 	void HandleUnitsReadyServer();
 	
@@ -72,9 +75,7 @@ protected:
 
 	AWarpGameState* GetWarpGameState() const;
 
-	FReadyToStartMatchError LastReadyToStartMatchError_;
-
-	UWarpPlayfabContentSubSystem* Content_;
+	FReadyToStartMatchError LastPlayersAndServerLoadError_;
 	
 	bool bServerContentReady_ = false;
 	

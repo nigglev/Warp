@@ -12,6 +12,20 @@
 
 DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
 
+UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
+{
+    UWorld* World = WorldContextObject->GetWorld();
+    RETURN_ON_FAIL_NULL(ContentLog, World);
+    
+    UGameInstance* GI = World->GetGameInstance();
+    RETURN_ON_FAIL_NULL(ContentLog, GI);
+
+    auto Content =	GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+    RETURN_ON_FAIL_NULL(ContentLog, Content);
+
+    return Content;
+}
+
 void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);

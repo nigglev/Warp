@@ -55,14 +55,12 @@ protected:
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
 
-	void SetupClientContent();
 	void SetupEnhancedInput() const;
 	void CreateCombatMapManager();
 	
 	void UpdateTileHovering();
 	void UpdateUnitGhostPosition() const;
 
-	void HandleEvents();
 	void MoveCameraToUnit(uint32 InUnitID) const;
 	//GET//
 	ADefaultGameMode* GetGameMode() const;
@@ -121,16 +119,12 @@ protected:
 	class UInputAction* CameraZoomAction = nullptr;
 
 	UFUNCTION()
-	void HandleCombatStarted();
-	UFUNCTION()
 	void HandleActiveUnitChanged(uint32 InActiveUnitID);
-	UFUNCTION()
-	void HandleUnitsReadyLocal();
 	
 	UFUNCTION(Server, Reliable)
 	void ServerSetContentReady();
 
-	void CheckValidState();
+	void CheckClientValidState();
 
 
 	UPROPERTY()

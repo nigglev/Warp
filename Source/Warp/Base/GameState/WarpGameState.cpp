@@ -9,6 +9,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
+#include "Warp/Base/MatchStates.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
@@ -26,24 +27,19 @@ AWarpGameState::AWarpGameState()
 void AWarpGameState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+	
 	if (HasAuthority())
 	{
-		PreLoginInit();
+		MG_COND_ERROR(AWarpGameStateLog, !IsValid(StaticCombatMap),	TEXT("StaticCombatMap is INVALID)"));
+		MG_COND_ERROR(AWarpGameStateLog, !IsValid(TurnManager), TEXT("TurnManager is INVALID)"));
+
+		if (StaticCombatMap)
+			AddReplicatedSubObject(StaticCombatMap);
+		if (TurnManager)
+			AddReplicatedSubObject(TurnManager);
+		MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
+			TEXT("AddReplicatedSubObject: StaticCombatMap and TurnManager On Server %s;"), *StaticCombatMap->GetName());
 	}
-}
-
-void AWarpGameState::PreLoginInit()
-{
-	MG_COND_ERROR(AWarpGameStateLog, !IsValid(StaticCombatMap) && MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-			TEXT("StaticCombatMap is INVALID %d)"), HasAuthority());
-	
-	MG_COND_ERROR(AWarpGameStateLog, !IsValid(TurnManager) && MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-			TEXT("TurnManager is INVALID %d)"), HasAuthority());
-
-	AddReplicatedSubObject(StaticCombatMap);
-	AddReplicatedSubObject(TurnManager);
-	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),  TEXT("Creating Player Static Combat Map and Turn Manager On Server %s; HasAuthority = %d"),
-		*StaticCombatMap->GetName(), HasAuthority());
 }
 
 void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -54,24 +50,32 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, StaticCombatMap, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, TurnManager, RepParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, ActiveUnits, RepParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, bCombatStarted, RepParams);
 }
 
-void AWarpGameState::SetCombatStarted(bool bStarted)
+void AWarpGameState::OnRep_MatchState()
 {
-	if (!HasAuthority())
-	{
-		return;
-	}
-
-	if (bCombatStarted == bStarted)
-	{
-		return;
-	}
-
-	bCombatStarted = bStarted;
+	MG_LOG(AWarpGameStateLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
-	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, bCombatStarted, this);
+	Super::OnRep_MatchState();
+	if (MatchState == MatchState::Loading)
+	{
+		HandleMatchHasLoading();
+	}
+}
+
+void AWarpGameState::HandleMatchHasLoading()
+{
+	//NOTHING AWHILE
+}
+
+void AWarpGameState::HandleMatchHasStarted()
+{
+	Super::HandleMatchHasStarted();
+
+	if (HasAuthority())
+	{
+		TurnManager->StartCombat();
+	}
 }
 
 void AWarpGameState::CreateUnitAtRandomPosition(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation)
@@ -243,14 +247,3 @@ void AWarpGameState::OnRep_ActiveUnits()
 	}
 	OnUnitsReplicated.Broadcast(ActiveUnits);
 }
-
-void AWarpGameState::OnRep_CombatStarted()
-{
-	if (bCombatStarted)
-	{
-		MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState),
-		TEXT("Battle Started"));
-		OnCombatStarted.Broadcast();
-	}
-}
-

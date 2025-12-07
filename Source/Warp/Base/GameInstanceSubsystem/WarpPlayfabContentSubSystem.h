@@ -23,7 +23,7 @@ struct FUnitDefinition
 	int32 UnitMaxAP = 0;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitsLoaded);
+DECLARE_MULTICAST_DELEGATE(FOnUnitsLoaded);
 
 UCLASS()
 class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
@@ -31,6 +31,8 @@ class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
+
+	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	

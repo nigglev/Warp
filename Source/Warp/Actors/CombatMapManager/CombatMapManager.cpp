@@ -377,6 +377,8 @@ FVector ACombatMapManager::GridToLevelPosition(const FIntVector2& TileGridCoords
 
 FVector ACombatMapManager::GetUnitWorldPositionByID(const uint32 InUnitID) const
 {
+	RETURN_ON_FAIL_DEFAULT(ACombatMapManagerLog, UnitActorsByID.Contains(InUnitID), FVector::ZeroVector)
+	
 	ABaseUnitActor* A = UnitActorsByID[InUnitID];
 	if (!A)
 	{

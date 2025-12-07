@@ -6,6 +6,7 @@
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
+#include "Warp/Base/MatchStates.h"
 #include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
@@ -13,7 +14,6 @@
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 #include "Warp/Units/UnitBase.h"
-
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultGameModeLog, Log, All);
@@ -29,66 +29,74 @@ ADefaultGameMode::ADefaultGameMode()
 	bDelayedStart = true;
 }
 
-
-void ADefaultGameMode::BeginPlay()
+void ADefaultGameMode::StartPlay()
 {
-	Super::BeginPlay();
+	if (MatchState == MatchState::EnteringMap)
+	{
+		SetMatchState(MatchState::Loading);
+	}
+}
 
-	SetupServerContent();
+void ADefaultGameMode::OnMatchStateSet()
+{
+	MG_LOG(ADefaultGameModeLog, TEXT("MatchState: %s"), *MatchState.ToString());
+	
+	Super::OnMatchStateSet();
+	if (MatchState == MatchState::Loading)
+	{
+		HandleMatchHasLoading();
+	}
+}
+
+void ADefaultGameMode::HandleMatchHasLoading()
+{
+	HandleUnitsReadyServer();
 }
 
 void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	
-	// if (bMainPlayerSpawned && bAISpawned) return;
-	//
-	// UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-	//
-	// if (Sys->IsUnitCatalogReady())
-	// {
-	// 	SpawnPlayerMainShip();
-	// 	SpawnAIShips(AINumber);
-	// }
-	// else
-	// 	Sys->OnUnitCatalogReady.AddUniqueDynamic(this, &ADefaultGameMode::HandleUnitCatalogReady);
 }
-
-
-void ADefaultGameMode::SetupServerContent()
-{
-	UGameInstance* GI = GetGameInstance();
-	RETURN_ON_FAIL(ADefaultGameModeLog, GI);
-
-	Content_ =	GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
-
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content_);
-
-	if (Content_->AreUnitsLoaded())
-	{
-		HandleUnitsReadyServer();
-	}
-	else
-	{
-		Content_->OnUnitsLoaded.AddDynamic(this, &ADefaultGameMode::HandleUnitsReadyServer);
-	}
-}
-
 
 void ADefaultGameMode::HandleUnitsReadyServer()
 {
-	bServerContentReady_ = true;
-	CheckStartConditions();
+	if (bServerContentReady_)
+		return;
+
+	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
+	
+	bServerContentReady_ = Content->AreUnitsLoaded();
+	if (!bServerContentReady_)
+	{
+		Content->OnUnitsLoaded.AddWeakLambda(this, [this]()
+		{
+			this->HandleUnitsReadyServer();
+		});
+	}
+	MG_LOG(ADefaultGameModeLog, TEXT("bServerContentReady_: %s"), bServerContentReady_ ? TEXT("true") : TEXT("false"));
 }
 
-void ADefaultGameMode::CheckStartConditions()
+void ADefaultGameMode::Tick(float DeltaSeconds)
 {
-	if (HasMatchStarted())
-	{
-		return;
-	}
+	Super::Tick(DeltaSeconds);
 
-	//StartMatch();
+	if (GetMatchState() == MatchState::Loading)
+	{
+		// Check to see if we should start the match
+		if (CheckLoading())
+		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
+			SetMatchState(MatchState::WaitingToStart);
+		}
+	}
+}
+
+bool ADefaultGameMode::StartBattle()
+{
+	RETURN_ON_FAIL_BOOL(LogGameMode, GetMatchState() == MatchState::WaitingToStart)
+	StartMatch();
+	return true;
 }
 
 namespace ReadyToStartMatchErrors
@@ -98,7 +106,7 @@ namespace ReadyToStartMatchErrors
 	const FName PlayerIsNotReady = FName("PlayerIsNotReady");
 }
 
-TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::ReadyToStartMatchValue() const
+TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::PlayersAndServerLoadValue() const
 {
 	if (!bServerContentReady_)
 		return MakeError(ReadyToStartMatchErrors::NoServerContentReady);
@@ -118,45 +126,34 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	return MakeValue();
 }
 
-bool ADefaultGameMode::ReadyToStartMatch_Implementation()
+bool ADefaultGameMode::CheckLoading()
 {
-	TValueOrError<void, FReadyToStartMatchError> ReadyValue = ADefaultGameMode::ReadyToStartMatchValue();
+	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerLoadValue();
 	if (ReadyValue.HasValue())
 		return true;
 
-	if (LastReadyToStartMatchError_ != ReadyValue.GetError())
+	if (LastPlayersAndServerLoadError_ != ReadyValue.GetError())
 	{
-		LastReadyToStartMatchError_ = ReadyValue.GetError();
-		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastReadyToStartMatchError_.ToString());
+		LastPlayersAndServerLoadError_ = ReadyValue.GetError();
+		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastPlayersAndServerLoadError_.ToString());
 	}
 
-	return false;	
+	return false;
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
-	MG_COND_LOG(ADefaultGameModeLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("Match has started: building map and spawning starting units."));
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content_);
-	SpawnPlayerMainShip();
 	
+	SpawnPlayerMainShip();	
 }
-
-void ADefaultGameMode::HandleUnitCatalogReady(bool bSuccess)
-{
-	if (!HasAuthority() || (bMainPlayerSpawned && bAISpawned)) return;
-	if (!bSuccess) return;
-
-	SpawnPlayerMainShip();
-	SpawnAIShips(AINumber);
-}
-
 
 void ADefaultGameMode::SpawnPlayerMainShip()
 {
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content_);
-	const FUnitDefinition* CorvetteUnitDef = Content_->GetUnitDefinition(FName(TEXT("Corvette")));
+	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
+
+	const FUnitDefinition* CorvetteUnitDef = Content->GetUnitDefinition(FName(TEXT("Corvette")));
 	RETURN_ON_FAIL_T(ADefaultGameModeLog, CorvetteUnitDef, TEXT("No 'corvette' unit definition in content"));
 
 	GetWarpGameState()->CreateUnitAtRandomPosition(CorvetteUnitDef, EUnitAffiliation::Player);
