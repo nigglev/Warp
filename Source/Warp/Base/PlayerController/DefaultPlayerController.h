@@ -46,7 +46,7 @@ public:
 	//SETUP//
 	virtual void PostInitializeComponents() override;
 
-	bool IsClientValidState() const;
+	bool IsClientLoaded() const;
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 
@@ -122,9 +122,9 @@ protected:
 	void HandleActiveUnitChanged(uint32 InActiveUnitID);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerSetContentReady();
+	void MsgToServerClientLoaded();
 
-	void CheckClientValidState();
+	void CheckClientLoading();
 
 
 	UPROPERTY()
@@ -144,8 +144,6 @@ protected:
 	
 	bool bPlacingUnit_ = false;
 	bool bMovingUnit_ = false;
-
-	bool bClientValidState_ = false; 
 };
 
 

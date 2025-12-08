@@ -61,11 +61,19 @@ void AWarpGameState::OnRep_MatchState()
 	{
 		HandleMatchHasLoading();
 	}
+	else if (MatchState == MatchState::UnitCreating)
+	{
+		HandleMatchHasUnitCreating();
+	}
 }
 
 void AWarpGameState::HandleMatchHasLoading()
 {
 	//NOTHING AWHILE
+}
+
+void AWarpGameState::HandleMatchHasUnitCreating()
+{
 }
 
 void AWarpGameState::HandleMatchHasStarted()

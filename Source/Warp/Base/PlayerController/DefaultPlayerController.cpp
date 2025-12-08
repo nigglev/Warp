@@ -43,38 +43,34 @@ void ADefaultPlayerController::PostInitializeComponents()
 
 	if (!Content->AreUnitsLoaded())
 	{
-		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientValidState);
+		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
 	}
 
-	AWarpGameState* GS = GetWorld()->GetGameState<AWarpGameState>();
-	if (GS == nullptr)
-	{
-		GetWorld()->GameStateSetEvent.AddWeakLambda(this, [this](AGameStateBase* InGameState)
-	   {
-		   AWarpGameState* GS = Cast<AWarpGameState>(InGameState);
-		   RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS);
-
-		   this->CreateCombatMapManager();
-	   });
-	}
-	else
-	{
-		CreateCombatMapManager();
-	}
+	CreateCombatMapManager();	
 }
 
 void ADefaultPlayerController::CreateCombatMapManager()
 {
+	if (!IsLocalController())
+		return;
+	
 	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
 	
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManagerClass != nullptr);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
 	
-	if (!IsLocalController())
-		return;
+	AWarpGameState* GS = GetWorld()->GetGameState<AWarpGameState>();
+	if (GS == nullptr)
+	{
+		GetWorld()->GameStateSetEvent.AddWeakLambda(this, [this](AGameStateBase* InGameState)
+		{
+		   AWarpGameState* GS = Cast<AWarpGameState>(InGameState);
+		   RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS);
 
-	AWarpGameState* GS = GetGameState();
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS != nullptr);
+		   this->CreateCombatMapManager();
+		});
+		return;
+	}
 
 	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(this, &ADefaultPlayerController::HandleActiveUnitChanged);
 
@@ -106,7 +102,7 @@ void ADefaultPlayerController::CreateCombatMapManager()
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 		TEXT("CombatMapManager [%s] initialized from GameState (Grid=%d, Tile=%d)"), *GetNameSafe(CombatMapManager), Grid, Tile);
 
-	CheckClientValidState();
+	CheckClientLoading();
 }
 
 void ADefaultPlayerController::BeginPlay()
@@ -121,32 +117,27 @@ void ADefaultPlayerController::BeginPlay()
 void ADefaultPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
-	if (!IsClientValidState())
+	if (!IsClientLoaded())
 		return;
 	
 	UpdateTileHovering();
 	UpdateUnitGhostPosition();
 }
 
-void ADefaultPlayerController::CheckClientValidState()
+void ADefaultPlayerController::CheckClientLoading()
 {
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, IsLocalController());
 	
-	if (bClientValidState_)
+	if (!IsClientLoaded())
 		return;
 
-	if (!IsClientValidState())
-		return;
-
-	bClientValidState_ = true;
-
-	ServerSetContentReady();
+	MsgToServerClientLoaded();
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
 	OnDefaultPlayerControllerValid.Broadcast(this);
 }
 
-bool ADefaultPlayerController::IsClientValidState() const
+bool ADefaultPlayerController::IsClientLoaded() const
 {
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, IsLocalController());
 	
@@ -161,14 +152,14 @@ bool ADefaultPlayerController::IsClientValidState() const
 	return Content->AreUnitsLoaded();
 }
 
-void ADefaultPlayerController::ServerSetContentReady_Implementation()
+void ADefaultPlayerController::MsgToServerClientLoaded_Implementation()
 {
+	MG_LOG(ADefaultPlayerControllerLog, TEXT("%s"), *GetName());
+	
 	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Setting client content ready to true"));
-	PS->bClientContentReady = true;
+	
+	PS->SetClientLoaded(true);
 }
 
 void ADefaultPlayerController::ServerStartCombat_Implementation()

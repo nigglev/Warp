@@ -57,6 +57,7 @@ protected:
 	virtual void OnRep_MatchState() override;
 
 	void HandleMatchHasLoading();
+	void HandleMatchHasUnitCreating();
 	virtual void HandleMatchHasStarted() override;
 	
 	void ProcessNewUnit(UUnitBase* InNewUnit);

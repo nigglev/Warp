@@ -37,6 +37,35 @@ void ADefaultGameMode::StartPlay()
 	}
 }
 
+void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
+}
+
+void ADefaultGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GetMatchState() == MatchState::Loading)
+	{
+		// Check to see if we should start the match
+		if (CheckLoading())
+		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
+			SetMatchState(MatchState::UnitCreating);
+		}
+	}
+	else if (GetMatchState() == MatchState::UnitCreating)
+	{
+		// Check to see if we should start the match
+		if (CheckUnitCreating())
+		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
+			SetMatchState(MatchState::WaitingToStart);
+		}
+	}
+}
+
 void ADefaultGameMode::OnMatchStateSet()
 {
 	MG_LOG(ADefaultGameModeLog, TEXT("MatchState: %s"), *MatchState.ToString());
@@ -50,15 +79,12 @@ void ADefaultGameMode::OnMatchStateSet()
 
 void ADefaultGameMode::HandleMatchHasLoading()
 {
-	HandleUnitsReadyServer();
+	CheckServerContentLoading();
 }
 
-void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
-{
-	Super::PostLogin(NewPlayer);
-}
+#pragma region GameLoading
 
-void ADefaultGameMode::HandleUnitsReadyServer()
+void ADefaultGameMode::CheckServerContentLoading()
 {
 	if (bServerContentReady_)
 		return;
@@ -71,32 +97,25 @@ void ADefaultGameMode::HandleUnitsReadyServer()
 	{
 		Content->OnUnitsLoaded.AddWeakLambda(this, [this]()
 		{
-			this->HandleUnitsReadyServer();
+			this->CheckServerContentLoading();
 		});
 	}
 	MG_LOG(ADefaultGameModeLog, TEXT("bServerContentReady_: %s"), bServerContentReady_ ? TEXT("true") : TEXT("false"));
 }
 
-void ADefaultGameMode::Tick(float DeltaSeconds)
+bool ADefaultGameMode::CheckLoading()
 {
-	Super::Tick(DeltaSeconds);
+	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerLoadValue();
+	if (ReadyValue.HasValue())
+		return true;
 
-	if (GetMatchState() == MatchState::Loading)
+	if (LastPlayersAndServerLoadError_ != ReadyValue.GetError())
 	{
-		// Check to see if we should start the match
-		if (CheckLoading())
-		{
-			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
-			SetMatchState(MatchState::WaitingToStart);
-		}
+		LastPlayersAndServerLoadError_ = ReadyValue.GetError();
+		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastPlayersAndServerLoadError_.ToString());
 	}
-}
 
-bool ADefaultGameMode::StartBattle()
-{
-	RETURN_ON_FAIL_BOOL(LogGameMode, GetMatchState() == MatchState::WaitingToStart)
-	StartMatch();
-	return true;
+	return false;
 }
 
 namespace ReadyToStartMatchErrors
@@ -117,7 +136,7 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	{	
 		if (AWarpPlayerState* WPS = Cast<AWarpPlayerState>(PS))
 		{
-			if (!WPS->bClientContentReady)
+			if (!WPS->IsClientLoaded())
 			{
 				return MakeError(ReadyToStartMatchErrors::PlayerIsNotReady, WPS->GetName());
 			}
@@ -125,20 +144,24 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	}
 	return MakeValue();
 }
+#pragma endregion
 
-bool ADefaultGameMode::CheckLoading()
+#pragma region UnitCreating
+void ADefaultGameMode::HandleMatchHasUnitCreating()
 {
-	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerLoadValue();
-	if (ReadyValue.HasValue())
-		return true;
+}
 
-	if (LastPlayersAndServerLoadError_ != ReadyValue.GetError())
-	{
-		LastPlayersAndServerLoadError_ = ReadyValue.GetError();
-		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastPlayersAndServerLoadError_.ToString());
-	}
-
+bool ADefaultGameMode::CheckUnitCreating()
+{
 	return false;
+}
+#pragma endregion
+
+bool ADefaultGameMode::StartBattle()
+{
+	RETURN_ON_FAIL_BOOL(LogGameMode, GetMatchState() == MatchState::WaitingToStart)
+	StartMatch();
+	return true;
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()

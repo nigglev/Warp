@@ -33,9 +33,12 @@ public:
 protected:
 
 	virtual void OnMatchStateSet() override;
+	
 	virtual void HandleMatchHasLoading();
-
 	virtual bool CheckLoading();
+
+	virtual void HandleMatchHasUnitCreating();
+	virtual bool CheckUnitCreating();
 
 	virtual void HandleMatchHasStarted() override;
 
@@ -68,7 +71,7 @@ protected:
 	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerLoadValue() const;
 	
 	UFUNCTION()
-	void HandleUnitsReadyServer();
+	void CheckServerContentLoading();
 	
 	void SpawnPlayerMainShip();
 	void SpawnAIShips(int InAINumber);

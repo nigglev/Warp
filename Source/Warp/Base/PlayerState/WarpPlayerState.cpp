@@ -6,5 +6,5 @@
 void AWarpPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AWarpPlayerState, bClientContentReady);
+	DOREPLIFETIME(AWarpPlayerState, bClientLoaded);
 }
