@@ -18,11 +18,14 @@ class WARP_API AWarpPlayerState : public APlayerState
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void SetClientLoaded(bool InLoaded) { bClientLoaded = InLoaded;}
+	void SetClientLoaded();
+	
 	bool IsClientLoaded() const { return bClientLoaded; }
-
+	
 protected:	
-
-	UPROPERTY(Replicated)
+	
+	UFUNCTION(Server, Reliable)
+	void MsgToServerClientLoaded();
+	
 	bool bClientLoaded = false;	
 };

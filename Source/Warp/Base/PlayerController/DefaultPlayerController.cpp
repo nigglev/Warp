@@ -105,6 +105,12 @@ void ADefaultPlayerController::CreateCombatMapManager()
 	CheckClientLoading();
 }
 
+void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
+{
+	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+		TEXT("InMatchState: %s"), *InMatchState.ToString());
+}
+
 void ADefaultPlayerController::BeginPlay()
 {
 	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
@@ -124,6 +130,15 @@ void ADefaultPlayerController::PlayerTick(float DeltaTime)
 	UpdateUnitGhostPosition();
 }
 
+void ADefaultPlayerController::OnRep_PlayerState()
+{
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
+	
+	Super::OnRep_PlayerState();
+	
+	CheckClientLoading();
+}
+
 void ADefaultPlayerController::CheckClientLoading()
 {
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, IsLocalController());
@@ -131,7 +146,9 @@ void ADefaultPlayerController::CheckClientLoading()
 	if (!IsClientLoaded())
 		return;
 
-	MsgToServerClientLoaded();
+	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
+	PS->SetClientLoaded();
 
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
 	OnDefaultPlayerControllerValid.Broadcast(this);
@@ -145,21 +162,17 @@ bool ADefaultPlayerController::IsClientLoaded() const
 	{
 		return false;
 	}
+	
+	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
+	if (PS == nullptr)
+	{
+		return false;
+	}
 
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);
 
 	return Content->AreUnitsLoaded();
-}
-
-void ADefaultPlayerController::MsgToServerClientLoaded_Implementation()
-{
-	MG_LOG(ADefaultPlayerControllerLog, TEXT("%s"), *GetName());
-	
-	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
-	
-	PS->SetClientLoaded(true);
 }
 
 void ADefaultPlayerController::ServerStartCombat_Implementation()

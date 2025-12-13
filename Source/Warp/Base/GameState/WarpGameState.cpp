@@ -6,11 +6,13 @@
 #include "EngineUtils.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
+#include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
+#include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
 #include "Warp/Units/UnitBase.h"
@@ -64,6 +66,18 @@ void AWarpGameState::OnRep_MatchState()
 	else if (MatchState == MatchState::UnitCreating)
 	{
 		HandleMatchHasUnitCreating();
+	}
+	
+	//Player Controller Iteration
+	for (APlayerState* PS : PlayerArray)
+	{
+		if (PS)
+		{
+			if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(PS->GetPlayerController()))
+			{
+				PC->OnMatchStateChanged(MatchState);
+			}
+		}
 	}
 }
 

@@ -3,8 +3,24 @@
 
 #include "WarpPlayerState.h"
 
+#include "MGLogs.h"
+
+DEFINE_LOG_CATEGORY_STATIC(WarpPlayerStateLog, Log, All);
+
 void AWarpPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AWarpPlayerState, bClientLoaded);
+}
+
+void AWarpPlayerState::SetClientLoaded()
+{
+	bClientLoaded = true;
+	
+	MsgToServerClientLoaded();
+}
+
+void AWarpPlayerState::MsgToServerClientLoaded_Implementation()
+{
+	MG_LOG(WarpPlayerStateLog, TEXT("%s"), *GetName());
+	bClientLoaded = true;	
 }

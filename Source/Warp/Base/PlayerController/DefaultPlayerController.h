@@ -49,11 +49,15 @@ public:
 	bool IsClientLoaded() const;
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
+	
+	void OnMatchStateChanged(const FName& InMatchState);
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
+	
+	virtual void OnRep_PlayerState() override;
 
 	void SetupEnhancedInput() const;
 	void CreateCombatMapManager();
@@ -121,9 +125,6 @@ protected:
 	UFUNCTION()
 	void HandleActiveUnitChanged(uint32 InActiveUnitID);
 	
-	UFUNCTION(Server, Reliable)
-	void MsgToServerClientLoaded();
-
 	void CheckClientLoading();
 
 
