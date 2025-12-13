@@ -41,7 +41,7 @@ void ADefaultPlayerController::PostInitializeComponents()
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content != nullptr);
 
-	if (!Content->AreUnitsLoaded())
+	if (!Content->IsClientDataLoaded())
 	{
 		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
 	}
@@ -172,7 +172,7 @@ bool ADefaultPlayerController::IsClientLoaded() const
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);
 
-	return Content->AreUnitsLoaded();
+	return Content->IsClientDataLoaded();
 }
 
 void ADefaultPlayerController::ServerStartCombat_Implementation()

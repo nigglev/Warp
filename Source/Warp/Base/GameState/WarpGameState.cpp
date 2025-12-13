@@ -88,6 +88,20 @@ void AWarpGameState::HandleMatchHasLoading()
 
 void AWarpGameState::HandleMatchHasUnitCreating()
 {
+	if (HasAuthority())
+	{
+		FVector SpawnLoc(200, 200, 50);
+
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		
+		ABaseUnitActor* NewUnit =
+				GetWorld()->SpawnActor<ABaseUnitActor>(
+					UnitActorClass,
+					SpawnLoc,
+					FRotator::ZeroRotator,
+					Params);
+	}
 }
 
 void AWarpGameState::HandleMatchHasStarted()

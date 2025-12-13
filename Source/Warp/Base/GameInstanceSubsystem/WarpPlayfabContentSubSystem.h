@@ -36,22 +36,37 @@ public:
 	
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	
+	void SetPlayFabId(const FString& InPlayFabId) { PlayFabId_ = InPlayFabId; }
+	void SetEntityToken(const FString& InEntityToken, const FDateTime& InExpiration) { EntityToken_ = InEntityToken; EntityTokenExpiration_ = InExpiration; }
+	void SetSessionTicket(const FString& InSessionTicket) { SessionTicket_ = InSessionTicket; }
+	
+	FString GetPlayFabId() const { return PlayFabId_; }
+	FString GetEntityToken() const { return EntityToken_; }
+	FDateTime GetEntityTokenExpiration() const { return EntityTokenExpiration_; }
+	FString GetSessionTicket() const { return SessionTicket_; }
+	
 	void DownloadUnits();
 	const FUnitDefinition* GetUnitDefinition(const FName& Id) const;
 	
 	UFUNCTION()
-	bool AreUnitsLoaded() const { return bUnitsLoaded_; }
+	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
 	
 	FOnUnitsLoaded OnUnitsLoaded;
 
 protected:
-		
+	
 	void OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	
 	PlayFabClientPtr ClientAPI_ = nullptr;
+	PlayFabServerPtr ServerAPI_ = nullptr;
+	
 	TMap<FName, FUnitDefinition> Units_;
 
 	bool bUnitsLoaded_ = false;
-
+	
+	FString PlayFabId_;
+	FString EntityToken_;
+	FDateTime EntityTokenExpiration_;
+	FString SessionTicket_;
 };

@@ -6,6 +6,7 @@
 #include "MGLogTypes.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/GameStateBase.h"
+#include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "WarpGameState.generated.h"
 
@@ -55,10 +56,13 @@ public:
 	
 protected:
 	virtual void OnRep_MatchState() override;
-
+	
 	void HandleMatchHasLoading();
 	void HandleMatchHasUnitCreating();
 	virtual void HandleMatchHasStarted() override;
+	
+	UPROPERTY(EditAnywhere, Category="Unit")
+	TSubclassOf<ABaseUnitActor> UnitActorClass;
 	
 	void ProcessNewUnit(UUnitBase* InNewUnit);
 	UUnitBase* CreateUnit(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation);

@@ -92,7 +92,7 @@ void ADefaultGameMode::CheckServerContentLoading()
 	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
 	
-	bServerContentReady_ = Content->AreUnitsLoaded();
+	bServerContentReady_ = Content->IsClientDataLoaded();
 	if (!bServerContentReady_)
 	{
 		Content->OnUnitsLoaded.AddWeakLambda(this, [this]()
