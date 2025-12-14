@@ -81,7 +81,7 @@ protected:
 	bool bInitialUnitsSpawned = false;
 	bool bMainPlayerSpawned = false;
 	bool bAISpawned = false;
-	int AINumber = 5;
+	int AINumber = 11;
 };
 
 

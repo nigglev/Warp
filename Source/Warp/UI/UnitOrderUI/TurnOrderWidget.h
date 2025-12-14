@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderWidget.generated.h"
 
+class UScrollBox;
 class UCombatUIWidget;
 class UVerticalBox;
 class UTurnOrderEntryWidget;
@@ -28,7 +29,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UTurnOrderEntryWidget> EntryWidgetClass_;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> EntriesBox_;
+	TObjectPtr<UScrollBox> EntriesBox_;
 	
 	UPROPERTY()
 	UCombatUIWidget* CombatWidgetOwner_;

@@ -5,6 +5,7 @@
 
 #include "TurnOrderUnitInfo.h"
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 
 void UTurnOrderEntryWidget::Init(uint32 InUnitCombatID, const FTurnOrderUnitInfo& Info, bool bIsCurrent)
@@ -28,5 +29,8 @@ void UTurnOrderEntryWidget::Init(uint32 InUnitCombatID, const FTurnOrderUnitInfo
 
 void UTurnOrderEntryWidget::SetIsCurrent(bool bInCurrent)
 {
-
+	if (bInCurrent)
+		CurrenTurnImage->SetVisibility(ESlateVisibility::Visible);
+	else
+		CurrenTurnImage->SetVisibility(ESlateVisibility::Hidden);
 }

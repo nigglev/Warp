@@ -6,6 +6,7 @@
 #include "MGLogs.h"
 #include "TurnOrderEntryWidget.h"
 #include "TurnOrderUnitInfo.h"
+#include "Components/ScrollBox.h"
 #include "Components/VerticalBox.h"
 #include "Warp/UI/CombatUI/CombatUIWidget.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"

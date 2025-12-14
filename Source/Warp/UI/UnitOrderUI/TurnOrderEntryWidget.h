@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderEntryWidget.generated.h"
 
+class UImage;
 struct FTurnOrderUnitInfo;
 class UTextBlock;
 class UBorder;
@@ -27,6 +28,8 @@ protected:
 	UTextBlock* UnitNameText;
 	UPROPERTY(meta = (BindWidget))
 	UBorder* BackgroundBorder;
+	UPROPERTY(meta = (BindWidget))
+	UImage* CurrenTurnImage;
 	
 	FLinearColor AllyColor = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
 	FLinearColor EnemyColor = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
