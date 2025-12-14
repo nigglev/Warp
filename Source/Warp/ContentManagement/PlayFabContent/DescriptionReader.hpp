@@ -66,7 +66,7 @@ public:
 		Request.Value = JsonString;
 
 		PlayFab::UPlayFabServerAPI::FSetTitleDataDelegate SuccessDelegate;
-		SuccessDelegate.BindWeakLambda(InUserObject, [InUserObject](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
+		SuccessDelegate.BindWeakLambda(InUserObject, [](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
 		{
 			MG_LOG(DescriptionReaderLog, TEXT("PlayFab login success!"));
 		});

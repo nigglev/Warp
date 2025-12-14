@@ -152,7 +152,6 @@ void UWarpPlayfabContentSubSystem::OnLogin()
 
 void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
 {
-    ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
     RETURN_ON_FAIL(ContentLog, ServerAPI_ != nullptr);
     
     for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
