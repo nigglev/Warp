@@ -22,6 +22,11 @@ public:
 		FString StructName = TUStruct::StaticStruct()->GetName();
 		return StructName;
 	}
+	
+	virtual int32 GetVersion() const override
+	{
+		return Descriptions_.Version;
+	}
 
 	virtual bool ReadGameplaySource() override
 	{

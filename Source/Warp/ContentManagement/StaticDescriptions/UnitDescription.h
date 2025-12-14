@@ -6,6 +6,30 @@
 #include "UnitDescription.generated.h"
 
 USTRUCT(BlueprintType)
+struct FDescriptionVersion
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString DescrName = TEXT("UnitDescription");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Version = 1;
+};
+
+USTRUCT(BlueprintType)
+struct FDescriptionVersions
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Version = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FDescriptionVersion> Items;	
+};
+
+USTRUCT(BlueprintType)
 struct FUnitDescription
 {
 	GENERATED_BODY()
@@ -27,6 +51,9 @@ USTRUCT(BlueprintType)
 struct FUnitDescriptions
 {
 	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Version = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FUnitDescription> Items;	

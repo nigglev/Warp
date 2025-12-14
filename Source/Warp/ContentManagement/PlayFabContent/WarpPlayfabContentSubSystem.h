@@ -75,5 +75,6 @@ protected:
 	FDateTime EntityTokenExpiration_;
 	FString SessionTicket_;
 	
+	TUniquePtr<FDescriptionReaderBase> Versions_;
 	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders_;
 };

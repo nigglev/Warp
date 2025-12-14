@@ -134,11 +134,13 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
         WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, this, TEXT("DevClient"));
     }
     
+    Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
     DescriptionReaders_.Add(MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>());
 }
 
 void UWarpPlayfabContentSubSystem::OnLogin()
 {
+    
 #if WITH_EDITOR
 
     for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
@@ -158,7 +160,11 @@ void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDes
     {
         if (InDescriptionName.IsEmpty() || DescriptionReader->GetName().StartsWith(InDescriptionName))
         {
-            DescriptionReader->SaveToPlayFab(ServerAPI_, this);
+            
+            if (DescriptionReader->SaveToPlayFab(ServerAPI_, this))
+            {
+                //FDescriptionVersion refresh Versions_
+            }
         }
     }
 }
