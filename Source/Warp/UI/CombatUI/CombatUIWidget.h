@@ -29,14 +29,9 @@ public:
 	void GetTurnOrderUnitInfo(uint32 InUnitCombatId, FTurnOrderUnitInfo& OutInfo) const;
 	
 	void ShowCombatUI(bool InShowCombatUI);
-	
-	void SetActionPoints(int32 CurrentPoints, int32 MaxPoints);
 
 private:
 	void SubscribeToTurnBasedEvents();
-	
-	void RebuildActionPoints(int32 MaxPoints);
-	void UpdateActionPointFill(int32 CurrentPoints);
 
 	UFUNCTION()
 	void HandleStartClicked();
@@ -53,17 +48,6 @@ private:
 	UButton* StartButton = nullptr;
 	UPROPERTY(meta=(BindWidget))
 	UButton* NextTurnButton = nullptr;
-
-	UPROPERTY()
-	TArray<UBorder*> ActionPointWidgets;
-	UPROPERTY(meta=(BindWidget))
-	UHorizontalBox* ActionPointsBox = nullptr;
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	FLinearColor FilledColor = FLinearColor::Green;
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	FLinearColor EmptyColor = FLinearColor(0.f, 0.f, 0.f, 0.4f);
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	int32 DefaultMaxPoints = 10;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;

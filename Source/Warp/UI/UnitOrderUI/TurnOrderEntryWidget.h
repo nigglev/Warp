@@ -31,7 +31,10 @@ protected:
 	FLinearColor AllyColor = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
 	FLinearColor EnemyColor = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
 
-private:
+	float NormalScale = 1.f;
+	UPROPERTY(EditAnywhere, Category="Style|Scale")
+	float CurrentScale = 2.f;
+	
 	int32 UnitCombatId_ = INDEX_NONE;
 	bool bIsAlly_ = false;
 };

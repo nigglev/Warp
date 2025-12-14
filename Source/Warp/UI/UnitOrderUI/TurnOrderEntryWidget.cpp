@@ -20,11 +20,7 @@ void UTurnOrderEntryWidget::Init(uint32 InUnitCombatID, const FTurnOrderUnitInfo
 			UnitCombatId_
 		);
 		UnitNameText->SetText(FText::FromString(NameStr));
-	}
-
-	if (BackgroundBorder)
-	{
-		BackgroundBorder->SetBrushColor(bIsAlly_ ? AllyColor : EnemyColor);
+		UnitNameText->SetColorAndOpacity(FSlateColor(bIsAlly_ ? AllyColor : EnemyColor));
 	}
 
 	SetIsCurrent(bIsCurrent);
@@ -32,17 +28,5 @@ void UTurnOrderEntryWidget::Init(uint32 InUnitCombatID, const FTurnOrderUnitInfo
 
 void UTurnOrderEntryWidget::SetIsCurrent(bool bInCurrent)
 {
-	if (!BackgroundBorder)
-		return;
 
-	const FLinearColor BaseColor = bIsAlly_ ? AllyColor : EnemyColor;
-	FLinearColor FinalColor = BaseColor;
-
-	if (bInCurrent)
-	{
-		FinalColor.A = 1.0f;
-		FinalColor = FLinearColor::Yellow;
-	}
-
-	BackgroundBorder->SetBrushColor(FinalColor);
 }

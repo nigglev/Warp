@@ -370,7 +370,7 @@ FIntVector2 ACombatMapManager::CalculateDistanceToForUnitID(const uint32 InUnitI
 
 FVector ACombatMapManager::GridToLevelPosition(const FIntVector2& TileGridCoords) const
 {
-	const float Half = TileSize * 0.5f;
+	const float Half = 0;
 	FVector Res = GridOrigin + FVector(TileGridCoords.X * TileSize + Half, TileGridCoords.Y * TileSize + Half,0.f);
 	return Res;
 }

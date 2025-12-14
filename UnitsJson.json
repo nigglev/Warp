@@ -1,0 +1,16 @@
+{
+  "units": [
+    {
+      "UnitTypeName": "Battleship",
+      "UnitSize": "Big",
+	  "UnitSpeed": 10,
+	  "UnitMaxAP": 10
+    },
+    {
+      "UnitTypeName": "Corvette",
+      "UnitSize": "Small",
+	  "UnitSpeed": 10,
+	  "UnitMaxAP": 10
+    }
+  ]
+}
