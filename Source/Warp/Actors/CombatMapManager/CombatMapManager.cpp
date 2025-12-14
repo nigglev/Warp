@@ -10,7 +10,7 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/Units/UnitBase.h"
-#include "Warp/UnitStaticData/UnitMeshRow.h"
+#include "Warp/ContentManagement//UnitStaticData/UnitMeshRow.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ACombatMapManagerLog, Log, All);
 

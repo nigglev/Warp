@@ -7,7 +7,7 @@
 #include "MGLogTypes.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Base/MatchStates.h"
-#include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"

@@ -11,7 +11,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
-#include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"

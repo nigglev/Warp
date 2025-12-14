@@ -7,7 +7,7 @@
 #include "MGLogTypes.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
-#include "Warp/Base/GameInstanceSubsystem/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 DEFINE_LOG_CATEGORY_STATIC(UUnitBaseLog, Log, All);
 
 void UUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
