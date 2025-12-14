@@ -3,12 +3,10 @@
 
 #include "DefaultPlayerController.h"
 
-#include "IContentBrowserSingleton.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
+#include "WarpCheatManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Components/LineBatchComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
@@ -27,6 +25,8 @@ ADefaultPlayerController::ADefaultPlayerController()
 {
 	bReplicates = true;
 	bShowMouseCursor = true;
+	
+	CheatClass = UWarpCheatManager::StaticClass();
 }
 
 void ADefaultPlayerController::PostInitializeComponents()
@@ -37,6 +37,10 @@ void ADefaultPlayerController::PostInitializeComponents()
 		return;
 
 	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
+	
+#if !UE_BUILD_SHIPPING	
+	EnableCheats();
+#endif	
 	
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content != nullptr);

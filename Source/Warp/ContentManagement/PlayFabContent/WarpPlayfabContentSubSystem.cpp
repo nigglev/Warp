@@ -3,17 +3,16 @@
 
 #include "WarpPlayfabContentSubSystem.h"
 
-#include "HttpModule.h"
+#include "DescriptionReader.hpp"
 #include "MGLogs.h"
-#include "PlayFabAuthenticationAPI.h"
 #include "PlayFabServerAPI.h"
-#include "PlayFabUtilities.h"
 #include "Core/PlayFabClientAPI.h"
 #include "Core/PlayFabServerAPI.h"
 
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
+#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
 
@@ -79,6 +78,8 @@ namespace WarpPlayfabContent
             MG_LOG(ContentLog, TEXT("PlayFab login successful. PlayFabId_: %s; EntityToken_: %s; TokenExpiration_: %s; SessionTicket_: %s"), 
                 *InUserObject->GetPlayFabId(), *InUserObject->GetEntityToken().Left(5), *InUserObject->GetEntityTokenExpiration().ToString(), 
                 *InUserObject->GetSessionTicket().Left(5));
+            
+            InUserObject->OnLogin();
         });
 
         PlayFab::FPlayFabErrorDelegate ErrorDelegate;
@@ -89,59 +90,7 @@ namespace WarpPlayfabContent
     
         bool bLoginRes = InPlayFabAPI->LoginWithCustomID(Request, SuccessDelegate, ErrorDelegate);
         MG_COND_ERROR(ContentLog, !bLoginRes, TEXT("Login failed"));
-    }
-    
-    // TValueOrError<FString, FString> StartAuthAndLoadUnits()
-    // {
-    //     TOptional<FString> Secret = ReadSecret();
-    //     if (!Secret.IsSet())
-    //     {
-    //         return MakeError(TEXT("PlayFab secret missing."));
-    //     }
-	   //  
-    //     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-    //     Req->SetURL(PFUrl(PlayFabTitleId, TEXT("Authentication/GetEntityToken")));
-    //     Req->SetVerb(TEXT("POST"));
-    //     Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    //     Req->SetHeader(TEXT("X-SecretKey"), Secret);
-    //     Req->SetContentAsString(TEXT("{}"));
-    //     Req->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr, FHttpResponsePtr Resp, bool bOk)
-    //     {
-    //         if (!bOk || !Resp.IsValid())
-    //         {
-    //             MG_COND_ERROR(AUnitDataSubsystemLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitDataSubsystem),
-    //             TEXT("GetEntityToken: no response"));
-    //             return;
-    //         }
-    //         if (!EHttpResponseCodes::IsOk(Resp->GetResponseCode()))
-    //         {
-    //             MG_COND_ERROR(AUnitDataSubsystemLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitDataSubsystem),
-    //             TEXT("GetEntityToken: HTTP %d - %s"), Resp->GetResponseCode(), *Resp->GetContentAsString());
-    //             return;
-    //         }
-    //
-    //         FString EntityToken;
-    //         {
-    //             TSharedPtr<FJsonObject> J;
-    //             FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Resp->GetContentAsString()), J);
-    //             const TSharedPtr<FJsonObject>* Data = nullptr;
-    //             if (J.IsValid() && J->TryGetObjectField(TEXT("data"), Data))
-    //             {
-    //                 (*Data)->TryGetStringField(TEXT("EntityToken"), EntityToken);
-    //             }
-    //         }
-    //
-    //         if (EntityToken.IsEmpty())
-    //         {
-    //             MG_COND_ERROR(AUnitDataSubsystemLog, MGLogTypes::IsLogAccessed(EMGLogTypes::UnitDataSubsystem),
-    //             TEXT("GetEntityToken: missing token in response"));
-    //             return;
-    //         }
-    //
-    //         FetchUnitsFromCatalog(EntityToken);
-    //     });
-    //     Req->ProcessRequest();
-    //}
+    }   
 }
 
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
@@ -183,6 +132,35 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
         MG_COND_ERROR(ContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
     
         WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, this, TEXT("DevClient"));
+    }
+    
+    DescriptionReaders_.Add(MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>());
+}
+
+void UWarpPlayfabContentSubSystem::OnLogin()
+{
+#if WITH_EDITOR
+
+    for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
+    {
+        DescriptionReader->ReadGameplaySource();
+    }
+    
+#else
+#endif
+}
+
+void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
+{
+    ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
+    RETURN_ON_FAIL(ContentLog, ServerAPI_ != nullptr);
+    
+    for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
+    {
+        if (InDescriptionName.IsEmpty() || DescriptionReader->GetName().StartsWith(InDescriptionName))
+        {
+            DescriptionReader->SaveToPlayFab(ServerAPI_, this);
+        }
     }
 }
 

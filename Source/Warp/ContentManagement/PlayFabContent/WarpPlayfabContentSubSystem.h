@@ -7,6 +7,7 @@
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
+#include "DescriptionReaderBase.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
 
 /**
@@ -45,6 +46,10 @@ public:
 	FDateTime GetEntityTokenExpiration() const { return EntityTokenExpiration_; }
 	FString GetSessionTicket() const { return SessionTicket_; }
 	
+	void OnLogin();
+	
+	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
+	
 	void DownloadUnits();
 	const FUnitDefinition* GetUnitDefinition(const FName& Id) const;
 	
@@ -69,4 +74,6 @@ protected:
 	FString EntityToken_;
 	FDateTime EntityTokenExpiration_;
 	FString SessionTicket_;
+	
+	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders_;
 };

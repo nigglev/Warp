@@ -1,0 +1,10 @@
+{
+	"items": [
+		{
+			"unitTypeName": "TestUnit",
+			"unitSize": "Medium",
+			"unitSpeed": 1,
+			"unitMaxAP": 2
+		}
+	]
+}
