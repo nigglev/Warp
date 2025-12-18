@@ -11,6 +11,18 @@
 
 DEFINE_LOG_CATEGORY_STATIC(DescriptionReaderLog, Log, All);
 
+template <typename T, typename = void>
+struct THasVersionField : std::false_type {};
+
+template <typename T>
+struct THasVersionField<T, std::void_t<decltype(std::declval<T&>().Version)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct THasItemsField : std::false_type {};
+
+template <typename T>
+struct THasItemsField<T, std::void_t<decltype(std::declval<T&>().Items)>> : std::true_type {};
+
 template<typename TUStruct>
 class FUStructDescriptionReader: public FDescriptionReaderBase
 {
@@ -25,7 +37,10 @@ public:
 	
 	virtual int32 GetVersion() const override
 	{
-		return Descriptions_.Version;
+		if constexpr (THasVersionField<TUStruct>::value)
+			return Descriptions_.Version;
+		else
+			return 0;
 	}
 
 	virtual bool ReadGameplaySource() override
@@ -85,6 +100,30 @@ public:
 		bOk = InPlayFabAPI->SetTitleData(Request, SuccessDelegate, ErrorDelegate);
 		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("InPlayFabAPI->SetTitleData was failed!"));
 		return bOk; 
+	};
+
+	virtual void UpdateVersion() override
+	{
+
+		if constexpr (THasVersionField<TUStruct>::value)
+		{
+			++Descriptions_.Version;
+		}
+
+		if constexpr (THasItemsField<TUStruct>::value)
+		{
+			if (Descriptions_.Items.IsEmpty())
+			{
+				Descriptions_.Items.Emplace();
+			}
+			for (auto& Item : Descriptions_.Items)
+			{
+				if constexpr (THasVersionField<std::decay_t<decltype(Item)>>::value)
+				{
+					++Item.Version;
+				}
+			}
+		}
 	};
 	
 	TUStruct Descriptions_;

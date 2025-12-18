@@ -59,7 +59,7 @@ namespace WarpPlayfabContent
     {
         RETURN_ON_FAIL(ContentLog, InPlayFabAPI != nullptr);
         RETURN_ON_FAIL(ContentLog, InUserObject != nullptr);
-
+        
         typename TTag::TLoginWithCustomIDRequest Request;
         Request.CustomId = InCustomId;
         Request.CreateAccount = true;
@@ -135,7 +135,7 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     }
     
     Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
-    DescriptionReaders_.Add(MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>());
+    DescriptionReaders_.Add(MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>()); //??????
 }
 
 void UWarpPlayfabContentSubSystem::OnLogin()
@@ -160,10 +160,10 @@ void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDes
     {
         if (InDescriptionName.IsEmpty() || DescriptionReader->GetName().StartsWith(InDescriptionName))
         {
-            
             if (DescriptionReader->SaveToPlayFab(ServerAPI_, this))
             {
-                //FDescriptionVersion refresh Versions_
+                Versions_->UpdateVersion();
+                Versions_->SaveToPlayFab(ServerAPI_, this);
             }
         }
     }

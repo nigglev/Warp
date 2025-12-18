@@ -14,7 +14,7 @@ struct FDescriptionVersion
 	FString DescrName = TEXT("UnitDescription");
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Version = 1;
+	int32 Version = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -51,9 +51,6 @@ USTRUCT(BlueprintType)
 struct FUnitDescriptions
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Version = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FUnitDescription> Items;	
