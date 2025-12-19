@@ -14,5 +14,7 @@ public:
 	virtual int32 GetVersion() const { return 0; }
 	virtual bool ReadGameplaySource() { return false; }
 	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject) { return false; };
-	virtual void UpdateVersion() = 0;
+	virtual bool ReadFromPlayFab(const PlayFabServerPtr& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject) { return false; };
+	virtual void UpdateDescriptionVersion() = 0;
+	virtual void UpdateVersions(const FString& InDescriptionName, int32 InVersion) = 0;
 };

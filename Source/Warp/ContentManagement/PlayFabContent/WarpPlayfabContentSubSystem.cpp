@@ -140,6 +140,7 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
 
 void UWarpPlayfabContentSubSystem::OnLogin()
 {
+    Versions_->ReadFromPlayFab(ServerAPI_, this);
     
 #if WITH_EDITOR
 
@@ -162,11 +163,18 @@ void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDes
         {
             if (DescriptionReader->SaveToPlayFab(ServerAPI_, this))
             {
-                Versions_->UpdateVersion();
+                DescriptionReader->UpdateDescriptionVersion();
+                Versions_->UpdateVersions(DescriptionReader->GetName(), DescriptionReader->GetVersion());
                 Versions_->SaveToPlayFab(ServerAPI_, this);
             }
         }
     }
+}
+
+
+void UWarpPlayfabContentSubSystem::RequestDescriptionVersions()
+{
+    
 }
 
 void UWarpPlayfabContentSubSystem::DownloadUnits()

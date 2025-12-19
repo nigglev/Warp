@@ -8,27 +8,15 @@
 #include "JsonObjectConverter.h"
 #include "MGLogs.h"
 #include "Core/PlayFabServerAPI.h"
+#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
 
 DEFINE_LOG_CATEGORY_STATIC(DescriptionReaderLog, Log, All);
-
-template <typename T, typename = void>
-struct THasVersionField : std::false_type {};
-
-template <typename T>
-struct THasVersionField<T, std::void_t<decltype(std::declval<T&>().Version)>> : std::true_type {};
-
-template <typename T, typename = void>
-struct THasItemsField : std::false_type {};
-
-template <typename T>
-struct THasItemsField<T, std::void_t<decltype(std::declval<T&>().Items)>> : std::true_type {};
 
 template<typename TUStruct>
 class FUStructDescriptionReader: public FDescriptionReaderBase
 {
 public:
-	//using TUStruct = FUnitDescription;
-	
+
 	virtual FString GetName() const override
 	{
 		FString StructName = TUStruct::StaticStruct()->GetName();
@@ -37,10 +25,7 @@ public:
 	
 	virtual int32 GetVersion() const override
 	{
-		if constexpr (THasVersionField<TUStruct>::value)
-			return Descriptions_.Version;
-		else
-			return 0;
+		return Descriptions_.Version;
 	}
 
 	virtual bool ReadGameplaySource() override
@@ -102,29 +87,68 @@ public:
 		return bOk; 
 	};
 
-	virtual void UpdateVersion() override
+	virtual bool ReadFromPlayFab(const PlayFabServerPtr& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject) override
 	{
+		PlayFab::ServerModels::FGetTitleDataRequest Request;
+		
+		Request.Keys = { GetName() };
 
-		if constexpr (THasVersionField<TUStruct>::value)
-		{
-			++Descriptions_.Version;
-		}
+		PlayFab::UPlayFabServerAPI::FGetTitleDataDelegate SuccessDelegate;
 
-		if constexpr (THasItemsField<TUStruct>::value)
+		SuccessDelegate.BindWeakLambda(InUserObject, [this](const PlayFab::ServerModels::FGetTitleDataResult& InResult)
 		{
-			if (Descriptions_.Items.IsEmpty())
+			const FString Key = GetName();
+			const FString* JsonPtr = InResult.Data.Find(Key);
+
+			if (!JsonPtr || JsonPtr->IsEmpty())
 			{
-				Descriptions_.Items.Emplace();
+				MG_ERROR(DescriptionReaderLog, TEXT("TitleData key '%s' not found or empty."), *Key);
+				return;
 			}
-			for (auto& Item : Descriptions_.Items)
-			{
-				if constexpr (THasVersionField<std::decay_t<decltype(Item)>>::value)
-				{
-					++Item.Version;
-				}
-			}
-		}
+				
+		});
+		
+		PlayFab::FPlayFabErrorDelegate ErrorDelegate;
+		ErrorDelegate.BindWeakLambda(InUserObject, [](const PlayFab::FPlayFabCppError& InError)
+		{
+			MG_ERROR(DescriptionReaderLog, TEXT("GetTitleData failed: %s"), *InError.GenerateErrorReport());
+		});
+		
+		return true;
 	};
+
+	virtual void UpdateDescriptionVersion() override
+	{
+		++Descriptions_.Version;
+	};
+
+	virtual void UpdateVersions(const FString& /*InDescriptionName*/, int32 /*InVersion*/) override
+	{
+		ensureMsgf(false, TEXT("UpdateVersions called for non-version struct %s"), *GetName());
+	}
+
+	
 	
 	TUStruct Descriptions_;
 };
+
+
+template<>
+inline void FUStructDescriptionReader<FDescriptionVersions>::UpdateVersions(
+	const FString& InDescriptionName,
+	int32 InVersion)
+{
+	++Descriptions_.Version;
+
+	if (FDescriptionVersion* Existing = Descriptions_.Items.FindByPredicate(
+		[&](const FDescriptionVersion& It) { return It.DescriptionName == InDescriptionName; }))
+	{
+		Existing->Version = InVersion;
+	}
+	else
+	{
+		FDescriptionVersion& NewItem = Descriptions_.Items.AddDefaulted_GetRef();
+		NewItem.DescriptionName = InDescriptionName;
+		NewItem.Version   = InVersion;
+	}
+}

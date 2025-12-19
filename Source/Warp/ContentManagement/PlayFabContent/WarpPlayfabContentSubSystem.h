@@ -59,7 +59,7 @@ public:
 	FOnUnitsLoaded OnUnitsLoaded;
 
 protected:
-	
+	void RequestDescriptionVersions();
 	void OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	
