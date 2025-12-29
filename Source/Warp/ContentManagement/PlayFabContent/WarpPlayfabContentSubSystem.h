@@ -3,13 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DescriptionReaderBase.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
-#include "DescriptionReaderBase.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
 
+
+class UPlayFabStateManager;
+enum class EPlayFabContentStates : uint8;
 /**
  * 
  */
@@ -32,25 +35,18 @@ class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-
+	UWarpPlayfabContentSubSystem();
+	
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	
-	void SetPlayFabId(const FString& InPlayFabId) { PlayFabId_ = InPlayFabId; }
-	void SetEntityToken(const FString& InEntityToken, const FDateTime& InExpiration) { EntityToken_ = InEntityToken; EntityTokenExpiration_ = InExpiration; }
-	void SetSessionTicket(const FString& InSessionTicket) { SessionTicket_ = InSessionTicket; }
-	
-	FString GetPlayFabId() const { return PlayFabId_; }
-	FString GetEntityToken() const { return EntityToken_; }
-	FDateTime GetEntityTokenExpiration() const { return EntityTokenExpiration_; }
-	FString GetSessionTicket() const { return SessionTicket_; }
-	
-	void OnLogin();
-	
 	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
+	void UpdateContent();
+	bool IsClient() const;
 	
 	void DownloadUnits();
+	
 	const FUnitDefinition* GetUnitDefinition(const FName& Id) const;
 	
 	UFUNCTION()
@@ -59,22 +55,14 @@ public:
 	FOnUnitsLoaded OnUnitsLoaded;
 
 protected:
-	void RequestDescriptionVersions();
 	void OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
-	
-	PlayFabClientPtr ClientAPI_ = nullptr;
-	PlayFabServerPtr ServerAPI_ = nullptr;
 	
 	TMap<FName, FUnitDefinition> Units_;
 
 	bool bUnitsLoaded_ = false;
-	
-	FString PlayFabId_;
-	FString EntityToken_;
-	FDateTime EntityTokenExpiration_;
-	FString SessionTicket_;
-	
-	TUniquePtr<FDescriptionReaderBase> Versions_;
-	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders_;
+
+	UPROPERTY()
+	UPlayFabStateManager* StateManager_ = nullptr;
+
 };

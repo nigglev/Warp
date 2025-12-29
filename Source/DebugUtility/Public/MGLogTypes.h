@@ -17,6 +17,7 @@ enum class EMGLogTypes : uint32
 	UnitSpawnWidget			= 9,
 	TurnBasedSystemManager	= 10,
 	UnitDataSubsystem		= 11,
+	PlayfabFSM				= 12,
 };
 ENUM_CLASS_FLAGS(EMGLogTypes)
 

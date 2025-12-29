@@ -8,7 +8,7 @@
 #include "JsonObjectConverter.h"
 #include "MGLogs.h"
 #include "Core/PlayFabServerAPI.h"
-#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayFabContentExtension.h"
 
 DEFINE_LOG_CATEGORY_STATIC(DescriptionReaderLog, Log, All);
 
@@ -54,8 +54,26 @@ public:
 		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("Failed to JSON convert"));
 		return bOk;
 	}
+
+	virtual bool WriteGameplaySource() override
+	{
+		FString RelativeContentDirectory = FPaths::ProjectContentDir();
+		FString FileName = FString::Printf(TEXT("%s.json"), *GetName());
+		FString Filepath = FPaths::Combine(RelativeContentDirectory, TEXT("../GameDataSource"), FileName);
+		
+		FString JsonString;
+		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(Descriptions_, JsonString, 0, 0, 0, nullptr, false);
+		RETURN_ON_FAIL_BOOL_T(DescriptionReaderLog, bOk, TEXT("Failed to JSON convert"));
+		
+		if (!FFileHelper::SaveStringToFile(JsonString, *Filepath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+		{
+			MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("Failed to write to file: %s"), *Filepath);
+		}
+
+		return bOk;
+	}
 	
-	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject) override
+	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) override
 	{
 		RETURN_ON_FAIL_BOOL(DescriptionReaderLog, InPlayFabAPI != nullptr);
 		RETURN_ON_FAIL_BOOL(DescriptionReaderLog, InUserObject != nullptr);
@@ -71,14 +89,16 @@ public:
 		Request.Value = JsonString;
 
 		PlayFab::UPlayFabServerAPI::FSetTitleDataDelegate SuccessDelegate;
-		SuccessDelegate.BindWeakLambda(InUserObject, [](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
+		SuccessDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
 		{
+			InUserObject->OnDescriptionSavingResult(this, true);
 			MG_LOG(DescriptionReaderLog, TEXT("PlayFab login success!"));
 		});
 
 		PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-		ErrorDelegate.BindWeakLambda(InUserObject, [](const PlayFab::FPlayFabCppError& InError)
+		ErrorDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::FPlayFabCppError& InError)
 		{
+			InUserObject->OnDescriptionSavingResult(this, false);
 			MG_ERROR(DescriptionReaderLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
 		});
 				
@@ -86,33 +106,38 @@ public:
 		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("InPlayFabAPI->SetTitleData was failed!"));
 		return bOk; 
 	};
-
-	virtual bool ReadFromPlayFab(const PlayFabServerPtr& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject) override
+	
+	virtual bool ReadFromPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) override
 	{
 		PlayFab::ServerModels::FGetTitleDataRequest Request;
-		
 		Request.Keys = { GetName() };
-
 		PlayFab::UPlayFabServerAPI::FGetTitleDataDelegate SuccessDelegate;
-
-		SuccessDelegate.BindWeakLambda(InUserObject, [this](const PlayFab::ServerModels::FGetTitleDataResult& InResult)
+		
+		SuccessDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::ServerModels::FGetTitleDataResult& InResult)
 		{
 			const FString Key = GetName();
-			const FString* JsonPtr = InResult.Data.Find(Key);
-
-			if (!JsonPtr || JsonPtr->IsEmpty())
+			const FString* Data = InResult.Data.Find(Key);
+			if (Data == nullptr)
 			{
-				MG_ERROR(DescriptionReaderLog, TEXT("TitleData key '%s' not found or empty."), *Key);
+				MG_ERROR(DescriptionReaderLog, TEXT("Failed to Get Data convert"));
 				return;
 			}
-				
+			if (FJsonObjectConverter::JsonObjectStringToUStruct(*Data, &Descriptions_))
+				InUserObject->OnDescriptionReadingResult(this, true);
+			else
+				MG_ERROR(DescriptionReaderLog, TEXT("Failed to JSON convert"));
+			
 		});
 		
 		PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-		ErrorDelegate.BindWeakLambda(InUserObject, [](const PlayFab::FPlayFabCppError& InError)
+		ErrorDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::FPlayFabCppError& InError)
 		{
 			MG_ERROR(DescriptionReaderLog, TEXT("GetTitleData failed: %s"), *InError.GenerateErrorReport());
+			InUserObject->OnDescriptionReadingResult(this, false);
 		});
+
+		const bool bOk = InPlayFabAPI->GetTitleData(Request, SuccessDelegate, ErrorDelegate);
+		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("InPlayFabAPI->GetTitleData was failed!"));
 		
 		return true;
 	};
@@ -122,33 +147,15 @@ public:
 		++Descriptions_.Version;
 	};
 
-	virtual void UpdateVersions(const FString& /*InDescriptionName*/, int32 /*InVersion*/) override
+	virtual TUStruct& GetDescriptions()
 	{
-		ensureMsgf(false, TEXT("UpdateVersions called for non-version struct %s"), *GetName());
+		return Descriptions_;
 	}
 
-	
+	virtual const TUStruct& GetDescriptions() const
+	{
+		return Descriptions_;
+	}
 	
 	TUStruct Descriptions_;
 };
-
-
-template<>
-inline void FUStructDescriptionReader<FDescriptionVersions>::UpdateVersions(
-	const FString& InDescriptionName,
-	int32 InVersion)
-{
-	++Descriptions_.Version;
-
-	if (FDescriptionVersion* Existing = Descriptions_.Items.FindByPredicate(
-		[&](const FDescriptionVersion& It) { return It.DescriptionName == InDescriptionName; }))
-	{
-		Existing->Version = InVersion;
-	}
-	else
-	{
-		FDescriptionVersion& NewItem = Descriptions_.Items.AddDefaulted_GetRef();
-		NewItem.DescriptionName = InDescriptionName;
-		NewItem.Version   = InVersion;
-	}
-}

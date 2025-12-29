@@ -21,6 +21,14 @@ USTRUCT(BlueprintType)
 struct FDescriptionVersions
 {
 	GENERATED_BODY()
+
+	void UpdateVersions(const FString& InDescriptionName, int32 InVersion)
+	{
+		++Version;
+		FDescriptionVersion* Item = Items.FindByPredicate([InDescriptionName](const FDescriptionVersion& It){return It.DescriptionName == InDescriptionName;});
+		RETURN_ON_FAIL(DescriptionReaderLog, Item);
+		Item->Version = InVersion;
+	};
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version = 0;

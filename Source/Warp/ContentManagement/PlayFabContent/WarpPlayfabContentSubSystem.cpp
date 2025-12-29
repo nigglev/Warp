@@ -2,95 +2,19 @@
 
 
 #include "WarpPlayfabContentSubSystem.h"
-
-#include "DescriptionReader.hpp"
 #include "MGLogs.h"
-#include "PlayFabServerAPI.h"
 #include "Core/PlayFabClientAPI.h"
-#include "Core/PlayFabServerAPI.h"
-
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
-#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
 
-namespace WarpPlayfabContent
+UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 {
-    TOptional<FString> ReadSecret()
-    {
-        const FString PlayfabKeysPath(TEXT("PlayfabKeys"));
-        const FString PathValue = FPlatformMisc::GetEnvironmentVariable(*PlayfabKeysPath);
-
-        FString Secret;
-        // Считать значение
-        if (GConfig->GetString(TEXT("PlayFab"), TEXT("SecretKey"), Secret, PathValue))
-        {
-            Secret.TrimStartAndEndInline();
-            Secret.ReplaceInline(TEXT("\""), TEXT(""));
-            if (!Secret.IsEmpty())
-            {
-                return TOptional(std::move(Secret));
-            }
-        }
-        
-        return {};
-    }
-    
-    struct FServerTag
-    {
-        using TPlayFabAPI = PlayFab::UPlayFabServerAPI;
-        using TLoginWithCustomIDRequest = PlayFab::ServerModels::FLoginWithCustomIDRequest;
-        using TLoginWithCustomIDResult = PlayFab::ServerModels::FServerLoginResult;
-        using TLoginWithCustomIDDelegate = PlayFab::UPlayFabServerAPI::FLoginWithCustomIDDelegate;
-    };
-
-    struct FClientTag
-    {
-        using TPlayFabAPI = PlayFab::UPlayFabClientAPI;
-        using TLoginWithCustomIDRequest = PlayFab::ClientModels::FLoginWithCustomIDRequest;
-        using TLoginWithCustomIDResult = PlayFab::ClientModels::FLoginResult;
-        using TLoginWithCustomIDDelegate = PlayFab::UPlayFabClientAPI::FLoginWithCustomIDDelegate;
-    };
-
-    template<typename TTag>
-    void LoginWithCustomId(const TSharedPtr<typename TTag::TPlayFabAPI>& InPlayFabAPI, UWarpPlayfabContentSubSystem* InUserObject, const FString& InCustomId)
-    {
-        RETURN_ON_FAIL(ContentLog, InPlayFabAPI != nullptr);
-        RETURN_ON_FAIL(ContentLog, InUserObject != nullptr);
-        
-        typename TTag::TLoginWithCustomIDRequest Request;
-        Request.CustomId = InCustomId;
-        Request.CreateAccount = true;
-
-        typename TTag::TLoginWithCustomIDDelegate SuccessDelegate;
-        SuccessDelegate.BindWeakLambda(InUserObject, [InUserObject](const typename TTag::TLoginWithCustomIDResult& InResult)
-        {
-            InUserObject->SetPlayFabId(InResult.PlayFabId);
-            if (InResult.EntityToken.IsValid())
-            {
-                InUserObject->SetEntityToken(InResult.EntityToken->EntityToken, InResult.EntityToken->TokenExpiration.mValue);
-            }
-
-            InUserObject->SetSessionTicket(InResult.SessionTicket);
-        
-            MG_LOG(ContentLog, TEXT("PlayFab login successful. PlayFabId_: %s; EntityToken_: %s; TokenExpiration_: %s; SessionTicket_: %s"), 
-                *InUserObject->GetPlayFabId(), *InUserObject->GetEntityToken().Left(5), *InUserObject->GetEntityTokenExpiration().ToString(), 
-                *InUserObject->GetSessionTicket().Left(5));
-            
-            InUserObject->OnLogin();
-        });
-
-        PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-        ErrorDelegate.BindWeakLambda(InUserObject, [](const PlayFab::FPlayFabCppError& InError)
-        {
-            MG_ERROR(ContentLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
-        });
-    
-        bool bLoginRes = InPlayFabAPI->LoginWithCustomID(Request, SuccessDelegate, ErrorDelegate);
-        MG_COND_ERROR(ContentLog, !bLoginRes, TEXT("Login failed"));
-    }   
+    StateManager_ = CreateDefaultSubobject<UPlayFabStateManager>(TEXT("PFStateManager"));
 }
 
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
@@ -110,88 +34,55 @@ UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* W
 void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);
-    
-    ENetMode NetMode = GetWorld()->GetNetMode();
-    
-    TOptional<FString> SecretKey = WarpPlayfabContent::ReadSecret();
-    if (SecretKey.IsSet() && NetMode != NM_Client)
-    {
-        UPlayFabRuntimeSettings* Settings = GetMutableDefault<UPlayFabRuntimeSettings>();
-        RETURN_ON_FAIL(ContentLog, Settings != nullptr);
-        Settings->DeveloperSecretKey = SecretKey.GetValue();
-        MG_LOG(ContentLog, TEXT("PlayFab secret set"));
-        
-        ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
-        MG_COND_ERROR(ContentLog, ServerAPI_ == nullptr, TEXT("Server API missing"));
-        
-        WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FServerTag>(ServerAPI_, this, TEXT("DedicatedServer"));
-    }
-    else
-    {
-        ClientAPI_ = IPlayFabModuleInterface::Get().GetClientAPI();
-        MG_COND_ERROR(ContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
-    
-        WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, this, TEXT("DevClient"));
-    }
-    
-    Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
-    DescriptionReaders_.Add(MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>()); //??????
+    StateManager_->SetOwner(this);
+    StateManager_->SetState(EPlayFabContentStates::Login);
 }
 
-void UWarpPlayfabContentSubSystem::OnLogin()
+void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
 {
-    Versions_->ReadFromPlayFab(ServerAPI_, this);
-    
+    if (!IsClient())
+    {
+        if (StateManager_->GetState() == EPlayFabContentStates::UpdatePending)
+        {
+            MG_ERROR(ContentLog, TEXT("Please update to latest version before saving to PlayFab"));
+            return;
+        }
+        FPlayFabStateManagerData StateData;
+        StateData.DescriptionName = InDescriptionName;
+        StateManager_->SetState(EPlayFabContentStates::SaveDescriptions, &StateData);
+    }
+}
+
+void UWarpPlayfabContentSubSystem::UpdateContent()
+{
 #if WITH_EDITOR
 
-    for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
+    if (StateManager_->GetState() != EPlayFabContentStates::UpdatePending)
     {
-        DescriptionReader->ReadGameplaySource();
+        MG_WARNING(ContentLog, TEXT("Nothing to update; You have latest version"));
     }
+    StateManager_->SetState(EPlayFabContentStates::UpdatingContent);
     
 #else
 #endif
 }
 
-void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
-{
-    RETURN_ON_FAIL(ContentLog, ServerAPI_ != nullptr);
-    
-    for (TUniquePtr<FDescriptionReaderBase>& DescriptionReader : DescriptionReaders_)
-    {
-        if (InDescriptionName.IsEmpty() || DescriptionReader->GetName().StartsWith(InDescriptionName))
-        {
-            if (DescriptionReader->SaveToPlayFab(ServerAPI_, this))
-            {
-                DescriptionReader->UpdateDescriptionVersion();
-                Versions_->UpdateVersions(DescriptionReader->GetName(), DescriptionReader->GetVersion());
-                Versions_->SaveToPlayFab(ServerAPI_, this);
-            }
-        }
-    }
-}
-
-
-void UWarpPlayfabContentSubSystem::RequestDescriptionVersions()
-{
-    
-}
 
 void UWarpPlayfabContentSubSystem::DownloadUnits()
 {
-    using namespace PlayFab::ClientModels;
-    RETURN_ON_FAIL(ContentLog, ClientAPI_.IsValid())
-    
-    FGetTitleDataRequest Request;
-    Request.Keys.Add(TEXT("Units"));
+    // using namespace PlayFab::ClientModels;
+    // RETURN_ON_FAIL(ContentLog, ClientAPI_.IsValid())
+    //
+    // FGetTitleDataRequest Request;
+    // Request.Keys.Add(TEXT("Units"));
 
 //    ServerAPI_->GetTitleData()
-    ClientAPI_->GetTitleData(
-        Request,
-        PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateUObject(
-            this, &UWarpPlayfabContentSubSystem::OnGetTitleDataSuccess),
-        PlayFab::FPlayFabErrorDelegate::CreateUObject(
-            this, &UWarpPlayfabContentSubSystem::OnPlayFabError));
+    // ClientAPI_->GetTitleData(
+    //     Request,
+    //     PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateUObject(
+    //         this, &UWarpPlayfabContentSubSystem::OnGetTitleDataSuccess),
+    //     PlayFab::FPlayFabErrorDelegate::CreateUObject(
+    //         this, &UWarpPlayfabContentSubSystem::OnPlayFabError));
 }
 
 void UWarpPlayfabContentSubSystem::OnGetTitleDataSuccess(
@@ -244,4 +135,10 @@ void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppErro
 const FUnitDefinition* UWarpPlayfabContentSubSystem::GetUnitDefinition(const FName& Id) const
 {
     return Units_.Find(Id);
+}
+
+bool UWarpPlayfabContentSubSystem::IsClient() const
+{
+    ENetMode NetMode = GetWorld()->GetNetMode();
+    return  (NetMode != NM_Client);
 }
