@@ -14,11 +14,12 @@ enum class EPlayFabContentStates : uint8
 	
 	DownloadVersions = 6 UMETA(DisplayName="DownloadingVersions"),
 	CompareVersions = 7 UMETA(DisplayName="CheckingVersions"),
-	UpdatingContent = 8 UMETA(DisplayName="UpdatingContent"),
+	GettingOutdatedContent = 8 UMETA(DisplayName="GettingOutdatedContent"),
+	UpdatingContent = 9 UMETA(DisplayName="UpdatingContent"),
 	
-	UpdateDone = 9 UMETA(DisplayName="UpdatingDone"),
-	UpdatePending= 10 UMETA(DisplayName="UpdateFailed"),
+	UpdateDone = 10 UMETA(DisplayName="UpdatingDone"),
+	UpdatePending= 11 UMETA(DisplayName="UpdateFailed"),
 
-	Failure = 11 UMETA(DisplayName="Failure"),
-	Finished = 12 UMETA(DisplayName="Finished"),
+	Failure = 12 UMETA(DisplayName="Failure"),
+	Finished = 13 UMETA(DisplayName="Finished"),
 };
