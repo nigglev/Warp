@@ -54,59 +54,6 @@ void UPlayFabStateManager::SetState(const EPlayFabContentStates InNewState, cons
 	OnStateSet(InData);
 }
 
-void UPlayFabStateManager::OnDescriptionReadingResult(FDescriptionReaderBase* InDescription, bool InSuccess)
-{
-	if (Versions_.Get() == InDescription)
-	{
-		if (InSuccess)
-			SetState(EPlayFabContentStates::CompareVersions);
-		else
-		{
-			SetState(EPlayFabContentStates::Failure);
-		}
-	}
-
-	if (CurrentDescriptionReader_.Get() == InDescription && InSuccess)
-	{
-		#if WITH_EDITOR
-		
-			bool bOk = CurrentDescriptionReader_->WriteGameplaySource();
-			MG_COND_ERROR(PFStateLog, !bOk, TEXT("Failed to Write to GameplaySource"))
-		
-		#else
-		#endif
-
-		if (OutDatedDescriptionReaders_.Num() > 0)
-			SetState(EPlayFabContentStates::UpdatingContent);
-		if (OutDatedDescriptionReaders_.Num() == 0)
-			SetState(EPlayFabContentStates::UpdateDone);
-	}
-}
-
-
-void UPlayFabStateManager::OnDescriptionSavingResult(FDescriptionReaderBase* InDescription, bool InSuccess)
-{
-#if WITH_EDITOR
-	if (CurrentDescriptionReader_.Get() == InDescription && InSuccess)
-	{
-		MG_LOG(PFStateLog, TEXT("Description Save Successful"));
-		bDescriptionSaveSuccessful_ = true;
-		
-		FDescriptionVersions& V = Versions_->GetDescriptions();
-		V.UpdateVersions(CurrentDescriptionReader_->GetName(), CurrentDescriptionReader_->GetVersion());
-		Versions_->SaveToPlayFab(ServerAPI_, this);
-	}
-
-	if (Versions_.Get() == InDescription && InSuccess && bDescriptionSaveSuccessful_)
-	{
-		SetState(EPlayFabContentStates::UpdateDone);
-	}
-		
-#else
-#endif
-}
-
-
 void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 {
 	if (CurrentState_ == EPlayFabContentStates::Login)
@@ -138,9 +85,9 @@ void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 	{
 		HandleUpdatingContent();
 	}
-	else if (CurrentState_ == EPlayFabContentStates::UpdatePending)
+	else if (CurrentState_ == EPlayFabContentStates::GettingOutdatedContent)
 	{
-		HandleUpdatePending();
+		HandleGettingOutdatedContent();
 	}
 	else if (CurrentState_ == EPlayFabContentStates::UpdateDone)
 	{
@@ -153,6 +100,72 @@ void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 	else if (CurrentState_ == EPlayFabContentStates::Finished)
 	{
 		HandleFinished();
+	}
+}
+
+
+void UPlayFabStateManager::OnDescriptionReadingResult(FDescriptionReaderBase* InDescription, bool InSuccess)
+{
+	if (Versions_.Get() == InDescription)
+	{
+		if (InSuccess)
+			SetState(EPlayFabContentStates::CompareVersions);
+		else
+			SetState(EPlayFabContentStates::Failure);
+	}
+
+	if (CurrentDescriptionReader_.Get() == InDescription)
+	{
+		if (InSuccess)
+		{
+			if (ServerAPI_ != nullptr)
+			{
+				bool bOk = CurrentDescriptionReader_->WriteGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+				MG_COND_ERROR(PFStateLog, !bOk, TEXT("Failed to Write to GameplaySource"))	
+			}
+			if (ClientAPI_ != nullptr)
+			{
+				bool bOk = CurrentDescriptionReader_->WriteGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>()));
+				MG_COND_ERROR(PFStateLog, !bOk, TEXT("Failed to Write to GameplaySource"))	
+			}
+			
+			if (OutDatedDescriptionReaders_.Num() > 0)
+				SetState(EPlayFabContentStates::UpdatingContent);
+			if (OutDatedDescriptionReaders_.Num() == 0)
+				SetState(EPlayFabContentStates::UpdateDone);
+		}
+		else
+		{
+			SetState(EPlayFabContentStates::Failure);
+		}
+	}
+}
+
+
+void UPlayFabStateManager::OnDescriptionSavingResult(FDescriptionReaderBase* InDescription, bool InSuccess)
+{
+	if (ServerAPI_ != nullptr)
+	{
+		if (CurrentDescriptionReader_.Get() == InDescription && InSuccess)
+		{
+			MG_LOG(PFStateLog, TEXT("Description Save Successful"));
+			bDescriptionSaveSuccessful_ = true;
+
+			if (Versions_ == nullptr)
+			{
+				MG_ERROR(PFStateLog, TEXT("Versions_ invalid"))
+				SetState(EPlayFabContentStates::Failure);
+			}
+			
+			FDescriptionVersions& V = Versions_->GetDescriptions();
+			V.UpdateVersions(CurrentDescriptionReader_->GetName(), CurrentDescriptionReader_->GetVersion());
+			Versions_->SaveToPlayFab(ServerAPI_, this);
+		}
+
+		if (Versions_.Get() == InDescription && InSuccess && bDescriptionSaveSuccessful_)
+		{
+			SetState(EPlayFabContentStates::UpdateDone);
+		}	
 	}
 }
 
@@ -191,9 +204,9 @@ void UPlayFabStateManager::HandleSavingDescriptions(const FString& InDescription
 	}
 	
 	
-	bool bOk = CurrentDescriptionReader_->ReadGameplaySource();
+	bool bOk = CurrentDescriptionReader_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
 	RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to DescriptionReader from source"));
-	bOk = Versions_->ReadGameplaySource();
+	bOk = Versions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
 	RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to VersionsReader from source"));
 	
 	CurrentDescriptionReader_->SaveToPlayFab(ServerAPI_, this);
@@ -202,50 +215,64 @@ void UPlayFabStateManager::HandleSavingDescriptions(const FString& InDescription
 void UPlayFabStateManager::HandleDownloadingVersions()
 {
 	MG_FUNC_LABEL(PFStateLog);
-	Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
+	if (!Versions_)
+	{
+		Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
+	}
+	
+	FAnyPlayFabPtr AnyApi;
 	if (ServerAPI_ != nullptr)
 	{
-		Versions_->ReadFromPlayFab(ServerAPI_, this);
+		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>(), ServerAPI_);
 	}
+	if (ClientAPI_ != nullptr)
+	{
+		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
+	}
+	Versions_->ReadFromPlayFab(AnyApi, this);
 }
 
 void UPlayFabStateManager::HandleComparingVersions()
 {
 	MG_FUNC_LABEL(PFStateLog);
-	if (ServerAPI_ != nullptr)
+	if (!CurrentVersions_)
 	{
 		CurrentVersions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
-		bool bSuccess = CurrentVersions_->ReadGameplaySource();
-		if (!bSuccess)
-		{
-			SetState(EPlayFabContentStates::Failure);
-			MG_ERROR(PFStateLog, TEXT("Failed to read versions from source"));
-			return;
-		}
-		if (Versions_->GetVersion() != CurrentVersions_->GetVersion())
-		{
-			MG_WARNING(PFStateLog, TEXT("Old version, please update"));
+	}
+	
+	bool bSuccess = false;
+	if (ServerAPI_ != nullptr)
+	{
+		bSuccess = CurrentVersions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+	}
+	if (ClientAPI_ != nullptr)
+	{
+		bSuccess = CurrentVersions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>()));
+	}
+	
+	if (!bSuccess)
+	{
+		SetState(EPlayFabContentStates::Failure);
+		MG_ERROR(PFStateLog, TEXT("Failed to read versions from source"));
+		return;
+	}
+	if (Versions_->GetVersion() == CurrentVersions_->GetVersion())
+	{
+		SetState(EPlayFabContentStates::Finished);
+		return;
+	}
+	
+	if (Versions_->GetVersion() != CurrentVersions_->GetVersion())
+	{
+		MG_WARNING(PFStateLog, TEXT("Old version, please update"));
+		if (ServerAPI_ != nullptr)
 			SetState(EPlayFabContentStates::UpdatePending);
-			return;
-		}
-		if (Versions_->GetVersion() == CurrentVersions_->GetVersion())
+		else
 		{
-			SetState(EPlayFabContentStates::Finished);
+			SetState(EPlayFabContentStates::GettingOutdatedContent);
 		}
 	}
 	
-
-	
-	// if (Versions_->GetVersion() == CurrentVersions.GetVersion())
-	// 	SetState(EPlayFabContentStates::UpdateDone);
-	// 	
-	// 		
-	// GetOutdatedDescriptions(Versions_->GetDescriptions(), CurrentVersions.GetDescriptions(), OutDatedDescriptionReaders_);
-	//
-	// if (OutDatedDescriptionReaders_.Num() == 0)
-	// 	SetState(EPlayFabContentStates::UpdateDone);
-	//
-	// SetState(EPlayFabContentStates::UpdatingContent);
 }
 
 void UPlayFabStateManager::HandleUpdatingContent()
@@ -255,47 +282,60 @@ void UPlayFabStateManager::HandleUpdatingContent()
 		CurrentDescriptionReader_ = MoveTemp(OutDatedDescriptionReaders_[OutDatedDescriptionReaders_.Num() - 1]);
 		OutDatedDescriptionReaders_.RemoveAt(OutDatedDescriptionReaders_.Num() - 1);	
 	}
-	CurrentDescriptionReader_->ReadFromPlayFab(ServerAPI_, this);
+	
+	FAnyPlayFabPtr AnyApi;
+	if (ServerAPI_ != nullptr)
+	{
+		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>(), ServerAPI_);
+	}
+	if (ClientAPI_ != nullptr)
+	{
+		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
+	}
+	CurrentDescriptionReader_->ReadFromPlayFab(AnyApi, this);
 }
 
-void UPlayFabStateManager::HandleUpdatePending()
+void UPlayFabStateManager::HandleGettingOutdatedContent()
 {
+	MG_FUNC_LABEL(PFStateLog);
 	GetOutdatedDescriptions(Versions_->GetDescriptions(), CurrentVersions_->GetDescriptions(), OutDatedDescriptionReaders_);
+	if (OutDatedDescriptionReaders_.Num() <= 0)
+	{
+		MG_WARNING(PFStateLog, TEXT("There was an update attempt, however there is no outdated content"));
+		SetState(EPlayFabContentStates::UpdateDone);
+	}
+	SetState(EPlayFabContentStates::UpdatingContent);
 }
 
 void UPlayFabStateManager::HandleUpdateDone()
 {
 	MG_LOG(PFStateLog, TEXT("Versions Save Successful"));
-	bVersionSaveSuccessful_ = Versions_->WriteGameplaySource();
+	if (ServerAPI_ != nullptr)
+	{
+		bVersionSaveSuccessful_ = Versions_->WriteGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+	}
+	if (ClientAPI_ != nullptr)
+	{
+		bVersionSaveSuccessful_ = Versions_->WriteGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>()));
+	}
+	if (!bVersionSaveSuccessful_)
+	{
+		MG_ERROR(PFStateLog, TEXT("Failed to Write Versions to GameplaySource"));
+		SetState(EPlayFabContentStates::Failure);
+	}
+		
 	SetState(EPlayFabContentStates::Finished);
 }
 
 void UPlayFabStateManager::HandleFailure()
 {
-	Versions_ = nullptr;
-	CurrentVersions_ = nullptr;
-	
-	DescriptionReaders_.Empty();
-	OutDatedDescriptionReaders_.Empty();
-	CurrentDescriptionReader_ = nullptr;
-
-	bDescriptionSaveSuccessful_ = false;
-	bVersionSaveSuccessful_ = false;
+	Reset();
 }
 
 void UPlayFabStateManager::HandleFinished()
 {
-	Versions_ = nullptr;
-	CurrentVersions_ = nullptr;
-	
-	DescriptionReaders_.Empty();
-	OutDatedDescriptionReaders_.Empty();
-	CurrentDescriptionReader_ = nullptr;
-
-	bDescriptionSaveSuccessful_ = false;
-	bVersionSaveSuccessful_ = false;
+	Reset();
 }
-
 
 void UPlayFabStateManager::GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions,
                                                    const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated)
@@ -326,6 +366,7 @@ void UPlayFabStateManager::GetOutdatedDescriptions(const FDescriptionVersions& L
 
 bool UPlayFabStateManager::LoginToPlayFab()
 {
+	MG_COND_ERROR(PFStateLog, LoginInfo_ != nullptr, TEXT("LoginInfo_ already exist"));
 	LoginInfo_ = NewObject<UPlayFabLoginInfo>();
 	ENetMode NetMode = GetWorld()->GetNetMode();
     bool bSuccess;
@@ -348,6 +389,20 @@ bool UPlayFabStateManager::LoginToPlayFab()
 	}
 
 	return bSuccess;
+}
+
+
+void UPlayFabStateManager::Reset()
+{
+	Versions_ = nullptr;
+	CurrentVersions_ = nullptr;
+	
+	DescriptionReaders_.Empty();
+	OutDatedDescriptionReaders_.Empty();
+	CurrentDescriptionReader_ = nullptr;
+
+	bDescriptionSaveSuccessful_ = false;
+	bVersionSaveSuccessful_ = false;
 }
 
 void UPlayFabStateManager::StateChangedLog(EPlayFabContentStates InOldState, EPlayFabContentStates InNewState)

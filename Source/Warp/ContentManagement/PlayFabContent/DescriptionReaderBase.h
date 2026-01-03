@@ -2,12 +2,16 @@
 
 #include "CoreMinimal.h"
 #include "PlayFab.h"
+#include "WarpPlayFabContentExtension.h"
 #include "DescriptionReaderBase.generated.h"
+
 
 class UPlayFabStateManager;
 class UWarpPlayfabContentSubSystem;
 
 class FDescriptionReaderBase;
+
+using FAnyPlayFabPtr = TVariant<PlayFabServerPtr, PlayFabClientPtr>;
 
 UCLASS()
 class UReaderObserver : public UObject
@@ -26,9 +30,10 @@ public:
 
 	virtual FString GetName() const { return FString(); }
 	virtual int32 GetVersion() const { return 0; }
-	virtual bool ReadGameplaySource() { return false; }
-	virtual bool WriteGameplaySource() { return false; }
+	virtual bool ReadGameplaySource(const FAnyPlayFabPtr& InApi) { return false; }
+	virtual bool WriteGameplaySource(const FAnyPlayFabPtr& InApi) { return false; }
 	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
-	virtual bool ReadFromPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
+	virtual bool ReadFromPlayFab(const FAnyPlayFabPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
 	virtual void UpdateDescriptionVersion() = 0;
+
 };

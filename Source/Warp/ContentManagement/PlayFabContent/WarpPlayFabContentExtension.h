@@ -4,6 +4,9 @@
 
 #include "PlayFabClientDataModels.h"
 #include "Core/PlayFabClientAPI.h"
+#include "PlayFabServerDataModels.h"
+#include "Core/PlayFabServerAPI.h"
+#include "MGLogs.h"
 #include "WarpPlayFabContentExtension.generated.h"
 
 class UPlayFabStateManager;
@@ -41,6 +44,10 @@ namespace WarpPlayfabContent
         using TLoginWithCustomIDRequest = PlayFab::ServerModels::FLoginWithCustomIDRequest;
         using TLoginWithCustomIDResult = PlayFab::ServerModels::FServerLoginResult;
         using TLoginWithCustomIDDelegate = PlayFab::UPlayFabServerAPI::FLoginWithCustomIDDelegate;
+
+        using TGetTitleDataRequest  = PlayFab::ServerModels::FGetTitleDataRequest;
+        using TGetTitleDataResult   = PlayFab::ServerModels::FGetTitleDataResult;
+        using TGetTitleDataDelegate = PlayFab::UPlayFabServerAPI::FGetTitleDataDelegate;
     };
 
     struct FClientTag
@@ -49,6 +56,10 @@ namespace WarpPlayfabContent
         using TLoginWithCustomIDRequest = PlayFab::ClientModels::FLoginWithCustomIDRequest;
         using TLoginWithCustomIDResult = PlayFab::ClientModels::FLoginResult;
         using TLoginWithCustomIDDelegate = PlayFab::UPlayFabClientAPI::FLoginWithCustomIDDelegate;
+
+        using TGetTitleDataRequest  = PlayFab::ClientModels::FGetTitleDataRequest;
+        using TGetTitleDataResult   = PlayFab::ClientModels::FGetTitleDataResult;
+        using TGetTitleDataDelegate = PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate;
     };
 
     template<typename TTag>

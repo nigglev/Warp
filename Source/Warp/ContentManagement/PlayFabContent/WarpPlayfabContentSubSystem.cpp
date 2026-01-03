@@ -55,16 +55,14 @@ void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDes
 
 void UWarpPlayfabContentSubSystem::UpdateContent()
 {
-#if WITH_EDITOR
-
-    if (StateManager_->GetState() != EPlayFabContentStates::UpdatePending)
+    if (!IsClient())
     {
-        MG_WARNING(ContentLog, TEXT("Nothing to update; You have latest version"));
+        if (StateManager_->GetState() != EPlayFabContentStates::UpdatePending)
+        {
+            MG_WARNING(ContentLog, TEXT("Nothing to update; You have latest version"));
+        }
+        StateManager_->SetState(EPlayFabContentStates::GettingOutdatedContent);    
     }
-    StateManager_->SetState(EPlayFabContentStates::UpdatingContent);
-    
-#else
-#endif
 }
 
 
@@ -140,5 +138,5 @@ const FUnitDefinition* UWarpPlayfabContentSubSystem::GetUnitDefinition(const FNa
 bool UWarpPlayfabContentSubSystem::IsClient() const
 {
     ENetMode NetMode = GetWorld()->GetNetMode();
-    return  (NetMode != NM_Client);
+    return  (NetMode == NM_Client);
 }

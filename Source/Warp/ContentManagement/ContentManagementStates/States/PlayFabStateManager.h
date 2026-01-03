@@ -45,8 +45,9 @@ protected:
 	void HandleSavingDescriptions(const FString& InDescriptionName);
 	void HandleDownloadingVersions();
 	void HandleComparingVersions();
+	void HandleGettingOutdatedContent();
 	void HandleUpdatingContent();
-	void HandleUpdatePending();
+	
 
 	void HandleUpdateDone();
 
@@ -55,6 +56,7 @@ protected:
 
 	bool LoginToPlayFab();
 	void GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions, const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated);
+	void Reset();
 	
 	static void StateChangedLog(EPlayFabContentStates InOldState, EPlayFabContentStates InNewState);
 
