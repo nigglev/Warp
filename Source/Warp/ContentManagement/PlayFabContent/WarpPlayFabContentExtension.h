@@ -11,22 +11,31 @@
 
 class UPlayFabStateManager;
 DEFINE_LOG_CATEGORY_STATIC(WarpPlayfabContentLog, Log, All);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginResult, bool /*bLoginRes*/)
 
 UCLASS()
 class UPlayFabLoginInfo : public UObject
 {
     GENERATED_BODY()
 public:
+    void SetLoginSuccess(const bool InLoginSuccess) { bLoginSuccess_ = InLoginSuccess; }
+    void SetWaitingToLogin(const bool InWaiting) { bLoginSuccess_ = InWaiting; }
     void SetPlayFabId(const FString& InPlayFabId) { PlayFabId_ = InPlayFabId; }
     void SetEntityToken(const FString& InEntityToken, const FDateTime& InExpiration) { EntityToken_ = InEntityToken; EntityTokenExpiration_ = InExpiration; }
     void SetSessionTicket(const FString& InSessionTicket) { SessionTicket_ = InSessionTicket; }
-	
+
+    bool IsWaitingToLogin() const { return bWaitingToLogin_; }
+    bool GetLoginSuccess() const { return bLoginSuccess_; }
     FString GetPlayFabId() const { return PlayFabId_; }
     FString GetEntityToken() const { return EntityToken_; }
     FDateTime GetEntityTokenExpiration() const { return EntityTokenExpiration_; }
     FString GetSessionTicket() const { return SessionTicket_; }
 
+    FOnLoginResult OnLoginResult;
+
 protected:
+    bool bWaitingToLogin_ = true;
+    bool bLoginSuccess_ = false;
     FString PlayFabId_;
     FString EntityToken_;
     FDateTime EntityTokenExpiration_;
@@ -86,6 +95,8 @@ namespace WarpPlayfabContent
             }
 
             InUserObject->SetSessionTicket(InResult.SessionTicket);
+            
+            InUserObject->OnLoginResult.Broadcast(true);
 
             MG_LOG(WarpPlayfabContentLog, TEXT("PlayFab login successful. PlayFabId_: %s; EntityToken_: %s; TokenExpiration_: %s; SessionTicket_: %s"),
                 *InUserObject->GetPlayFabId(),
@@ -95,8 +106,9 @@ namespace WarpPlayfabContent
         });
 
         PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-        ErrorDelegate.BindWeakLambda(InUserObject, [](const PlayFab::FPlayFabCppError& InError)
+        ErrorDelegate.BindWeakLambda(InUserObject, [InUserObject](const PlayFab::FPlayFabCppError& InError)
         {
+            InUserObject->OnLoginResult.Broadcast(false);
             MG_ERROR(WarpPlayfabContentLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
         });
 

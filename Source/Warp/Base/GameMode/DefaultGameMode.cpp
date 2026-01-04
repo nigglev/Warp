@@ -5,7 +5,6 @@
 
 #include "MGLogs.h"
 #include "MGLogTypes.h"
-#include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
@@ -167,39 +166,6 @@ bool ADefaultGameMode::StartBattle()
 void ADefaultGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
-	
-	SpawnPlayerMainShip();	
-}
-
-void ADefaultGameMode::SpawnPlayerMainShip()
-{
-	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
-
-	const FUnitDefinition* CorvetteUnitDef = Content->GetUnitDefinition(FName(TEXT("Corvette")));
-	RETURN_ON_FAIL_T(ADefaultGameModeLog, CorvetteUnitDef, TEXT("No 'corvette' unit definition in content"));
-
-	GetWarpGameState()->CreateUnitAtRandomPosition(CorvetteUnitDef, EUnitAffiliation::Player);
-	// if (bMainPlayerSpawned) return;
-	//
-	// UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-	// FUnitRecord Record = Sys->GetPlayerMainShipRecord();
-	// GetWarpGameState()->CreateUnitAtRandomPosition(Record, EUnitAffiliation::Player);
-	//
-	// bMainPlayerSpawned = true;
-}
-
-void ADefaultGameMode::SpawnAIShips(int InAINumber)
-{
-// 	if (bAISpawned) return;
-// 	
-// 	UUnitDataSubsystem* Sys = GetUnitDataSubsystem(this);
-// 	FUnitRecord Record = Sys->GetCorvetteRecord();
-//
-// 	for (int i = 0; i < InAINumber; i++)
-// 		GetWarpGameState()->CreateUnitAtRandomPosition(Record, EUnitAffiliation::Enemy);
-// 	
-// 	bAISpawned = true;
 }
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const

@@ -9,7 +9,6 @@
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
-#include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
@@ -88,20 +87,20 @@ void AWarpGameState::HandleMatchHasLoading()
 
 void AWarpGameState::HandleMatchHasUnitCreating()
 {
-	if (HasAuthority())
-	{
-		FVector SpawnLoc(200, 200, 50);
-
-		FActorSpawnParameters Params;
-		Params.Owner = this;
-		
-		ABaseUnitActor* NewUnit =
-				GetWorld()->SpawnActor<ABaseUnitActor>(
-					UnitActorClass,
-					SpawnLoc,
-					FRotator::ZeroRotator,
-					Params);
-	}
+	// if (HasAuthority())
+	// {
+	// 	FVector SpawnLoc(200, 200, 50);
+	//
+	// 	FActorSpawnParameters Params;
+	// 	Params.Owner = this;
+	// 	
+	// 	ABaseUnitActor* NewUnit =
+	// 			GetWorld()->SpawnActor<ABaseUnitActor>(
+	// 				UnitActorClass,
+	// 				SpawnLoc,
+	// 				FRotator::ZeroRotator,
+	// 				Params);
+	// }
 }
 
 void AWarpGameState::HandleMatchHasStarted()

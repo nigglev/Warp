@@ -38,7 +38,7 @@ void UCombatUIWidget::HandleStartClicked()
 	{
 		if (auto* MyPC = Cast<ADefaultPlayerController>(PC))
 		{
-			MyPC->ServerStartCombat();
+			//MyPC->ServerStartCombat();
 		}
 	}
 	ShowCombatUI(true);
@@ -50,7 +50,7 @@ void UCombatUIWidget::HandleNextTurnClicked()
 	{
 		if (auto* MyPC = Cast<ADefaultPlayerController>(PC))
 		{
-			MyPC->ServerEndTurn();
+			//MyPC->ServerEndTurn();
 		}
 	}
 }

@@ -6,9 +6,10 @@ UENUM()
 enum class EPlayFabContentStates : uint8
 {
 	None = 0	UMETA(DisplayName="None"),
-	Login = 1 UMETA(DisplayName="Login"),
-	LoginFailure = 2 UMETA(DisplayName="LoginFailure"),
-	LoginSuccess = 3 UMETA(DisplayName="LoginSuccess"),
+	StartLogin = 1 UMETA(DisplayName="StartLogin"),
+	ProcessingLogin = 2 UMETA(DisplayName="ProcessingLogin"),
+	LoginFailure = 3 UMETA(DisplayName="LoginFailure"),
+	LoginSuccess = 4 UMETA(DisplayName="LoginSuccess"),
 	
 	SaveDescriptions = 5 UMETA(DisplayName="SaveDescriptions"),
 	

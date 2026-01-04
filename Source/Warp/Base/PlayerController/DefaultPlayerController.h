@@ -38,11 +38,6 @@ class WARP_API ADefaultPlayerController : public APlayerController
 
 public:
 	ADefaultPlayerController();
-	
-	UFUNCTION(Server, Reliable)
-	void ServerStartCombat();
-	UFUNCTION(Server, Reliable)
-	void ServerEndTurn();
 	//SETUP//
 	virtual void PostInitializeComponents() override;
 
@@ -60,34 +55,13 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 	void SetupEnhancedInput() const;
-	void CreateCombatMapManager();
-	
-	void UpdateTileHovering();
-	void UpdateUnitGhostPosition() const;
-
-	void MoveCameraToUnit(uint32 InUnitID) const;
 	//GET//
 	ADefaultGameMode* GetGameMode() const;
 	AWarpGameState* GetGameState() const;
 	ADefaultWarpHUD* GetWarpHUD() const;
 	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
-	bool GetHoveredTileIndexAndCoordinates(int32& OutInstanceIndex, FIntVector2& OutCoord) const;
-	bool GetHoveredTileIndex(int32& OutInstanceIndex) const;
-	uint32 GetMouseoverUnitID() const;
-
-	//PLACEMENT//
-	UFUNCTION()
-	bool MoveUnitServerAuthoritative(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
-	UFUNCTION(Server, Reliable)
-	void ServerRequestMoveUnit(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition);
-	UFUNCTION(Client, Reliable)
-	void ClientPlacementResult(bool bSuccess);
-
+	
 	//INPUT ACTIONS//
-	UFUNCTION()
-	void OnRotateUnitGhostAction(const FInputActionValue& Value);
-	UFUNCTION()
-	void OnMoveUnitAction();
 	UFUNCTION()
 	void OnCameraMove(const FInputActionValue& Value);
 	UFUNCTION()
@@ -98,21 +72,9 @@ protected:
 	void OnRotateCameraPressed(const FInputActionValue& Value);
 	UFUNCTION()
 	void OnRotateCameraReleased(const FInputActionValue& Value);
-	
-	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<ACombatMapManager> CombatMapManagerClass;
-	UPROPERTY()
-	ACombatMapManager* CombatMapManager = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* DefaultMappingContext;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	UInputAction* RotateUnitGhostAction;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	UInputAction* PlaceUnitAction;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	UInputAction* MoveUnitAction;
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraMoveAction = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
@@ -121,12 +83,8 @@ protected:
 	class UInputAction* StartCameraRotateAction = nullptr; 
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraZoomAction = nullptr;
-
-	UFUNCTION()
-	void HandleActiveUnitChanged(uint32 InActiveUnitID);
 	
 	void CheckClientLoading();
-
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;
@@ -134,17 +92,8 @@ protected:
 	ABaseUnitActor* GhostActor_ = nullptr;
 
 	uint32 SelectedUnitID = 0;
-
-	FIntVector2 HoveredTile = FIntVector2(-2, -2);
-	FIntVector2 PrevHoveredTile = FIntVector2(-1, -1);
-	uint32 LastFocusedTurnUnitId = 0;
 	float MouseYawScaleDegPerUnit = 1.0f;
-
 	bool bRotateCamera = false;
-	bool bCameraLockedToTurnUnit = false;
-	
-	bool bPlacingUnit_ = false;
-	bool bMovingUnit_ = false;
 };
 
 

@@ -40,15 +40,16 @@ public:
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
-	
+
+	void LoginToPlayFab();
 	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
 	void UpdateContent();
+	
 	bool IsClient() const;
+	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
 	
 	void DownloadUnits();
-	
 	const FUnitDefinition* GetUnitDefinition(const FName& Id) const;
-	
 	UFUNCTION()
 	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
 	

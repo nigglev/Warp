@@ -56,9 +56,13 @@ void UPlayFabStateManager::SetState(const EPlayFabContentStates InNewState, cons
 
 void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 {
-	if (CurrentState_ == EPlayFabContentStates::Login)
+	if (CurrentState_ == EPlayFabContentStates::StartLogin)
 	{
-		HandleLogin();
+		HandleStartLogin();
+	}
+	else if (CurrentState_ == EPlayFabContentStates::ProcessingLogin)
+	{
+		HandleProcessingLogin();
 	}
 	else if (CurrentState_ == EPlayFabContentStates::LoginFailure)
 	{
@@ -169,20 +173,35 @@ void UPlayFabStateManager::OnDescriptionSavingResult(FDescriptionReaderBase* InD
 	}
 }
 
-void UPlayFabStateManager::HandleLogin()
+void UPlayFabStateManager::HandleStartLogin()
 {
 	MG_FUNC_LABEL(PFStateLog);
+	LoginToPlayFab();
+	SetState(EPlayFabContentStates::ProcessingLogin);
+}
+
+
+void UPlayFabStateManager::OnLoginResult(const bool InLoginRes)
+{
+	MG_FUNC_LABEL(PFStateLog);
+	RETURN_ON_FAIL_T(PFStateLog, LoginInfo_, TEXT("Failed to create LoginInfo"));
 	
-	if (LoginToPlayFab())
+	if (InLoginRes)
 		SetState(EPlayFabContentStates::LoginSuccess);
 	else
+	{
 		SetState(EPlayFabContentStates::LoginFailure);
+	}
+}
+
+void UPlayFabStateManager::HandleProcessingLogin()
+{
+	MG_FUNC_LABEL(PFStateLog);
 }
 
 void UPlayFabStateManager::HandleLoginFailure()
 {
 	MG_FUNC_LABEL(PFStateLog);
-	SetState(EPlayFabContentStates::Login);
 }
 
 void UPlayFabStateManager::HandleLoginSuccess()
@@ -219,13 +238,15 @@ void UPlayFabStateManager::HandleDownloadingVersions()
 	{
 		Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
 	}
+
+	MG_COND_ERROR_SHORT(PFStateLog, ServerAPI_ == nullptr && ClientAPI_ == nullptr);
 	
 	FAnyPlayFabPtr AnyApi;
 	if (ServerAPI_ != nullptr)
 	{
 		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>(), ServerAPI_);
 	}
-	if (ClientAPI_ != nullptr)
+	else if (ClientAPI_ != nullptr)
 	{
 		AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
 	}
@@ -265,12 +286,7 @@ void UPlayFabStateManager::HandleComparingVersions()
 	if (Versions_->GetVersion() != CurrentVersions_->GetVersion())
 	{
 		MG_WARNING(PFStateLog, TEXT("Old version, please update"));
-		if (ServerAPI_ != nullptr)
-			SetState(EPlayFabContentStates::UpdatePending);
-		else
-		{
-			SetState(EPlayFabContentStates::GettingOutdatedContent);
-		}
+		SetState(EPlayFabContentStates::GettingOutdatedContent);
 	}
 	
 }
@@ -335,7 +351,9 @@ void UPlayFabStateManager::HandleFailure()
 void UPlayFabStateManager::HandleFinished()
 {
 	Reset();
+	Owner_->BroadcastContentIsLoaded(true);
 }
+
 
 void UPlayFabStateManager::GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions,
                                                    const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated)
@@ -368,6 +386,7 @@ bool UPlayFabStateManager::LoginToPlayFab()
 {
 	MG_COND_ERROR(PFStateLog, LoginInfo_ != nullptr, TEXT("LoginInfo_ already exist"));
 	LoginInfo_ = NewObject<UPlayFabLoginInfo>();
+	LoginInfo_->OnLoginResult.AddUObject(this, &UPlayFabStateManager::OnLoginResult);
 	ENetMode NetMode = GetWorld()->GetNetMode();
     bool bSuccess;
 	TOptional<FString> SecretKey = WarpPlayfabContent::ReadSecret();

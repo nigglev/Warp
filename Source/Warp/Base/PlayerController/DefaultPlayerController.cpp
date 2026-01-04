@@ -7,7 +7,6 @@
 #include "MGLogTypes.h"
 #include "WarpCheatManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Warp/Actors/CombatMapManager/CombatMapManager.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
@@ -49,64 +48,6 @@ void ADefaultPlayerController::PostInitializeComponents()
 	{
 		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
 	}
-
-	CreateCombatMapManager();	
-}
-
-void ADefaultPlayerController::CreateCombatMapManager()
-{
-	if (!IsLocalController())
-		return;
-	
-	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
-	
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManagerClass != nullptr);
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager == nullptr);
-	
-	AWarpGameState* GS = GetWorld()->GetGameState<AWarpGameState>();
-	if (GS == nullptr)
-	{
-		GetWorld()->GameStateSetEvent.AddWeakLambda(this, [this](AGameStateBase* InGameState)
-		{
-		   AWarpGameState* GS = Cast<AWarpGameState>(InGameState);
-		   RETURN_ON_FAIL(ADefaultPlayerControllerLog, GS);
-
-		   this->CreateCombatMapManager();
-		});
-		return;
-	}
-
-	GetTurnBasedSystemManager()->OnActiveUnitChanged.AddUObject(this, &ADefaultPlayerController::HandleActiveUnitChanged);
-
-	if (!GS->IsClientValidState())
-	{
-		GS->OnWarpGameStateValid.AddWeakLambda(this, [this](AWarpGameState* InWarpGameState)
-		{
-			this->CreateCombatMapManager();
-		});
-		return;
-	}
-
-	const uint32 Grid = GS->GetMapGridSize();
-	const uint32 Tile = GS->GetMapTileSize();
-
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Grid > 0);
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Tile > 0);
-
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	CombatMapManager = GetWorld()->SpawnActor<ACombatMapManager>(
-		CombatMapManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
-	
-	CombatMapManager->Init(Grid, Tile);
-	CombatMapManager->GenerateGrid();
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("CombatMapManager [%s] initialized from GameState (Grid=%d, Tile=%d)"), *GetNameSafe(CombatMapManager), Grid, Tile);
-
-	CheckClientLoading();
 }
 
 void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
@@ -129,9 +70,6 @@ void ADefaultPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 	if (!IsClientLoaded())
 		return;
-	
-	UpdateTileHovering();
-	UpdateUnitGhostPosition();
 }
 
 void ADefaultPlayerController::OnRep_PlayerState()
@@ -162,11 +100,6 @@ bool ADefaultPlayerController::IsClientLoaded() const
 {
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, IsLocalController());
 	
-	if (CombatMapManager == nullptr)
-	{
-		return false;
-	}
-	
 	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
 	if (PS == nullptr)
 	{
@@ -179,15 +112,6 @@ bool ADefaultPlayerController::IsClientLoaded() const
 	return Content->IsClientDataLoaded();
 }
 
-void ADefaultPlayerController::ServerStartCombat_Implementation()
-{
-	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
-	
-	ADefaultGameMode* DGM = Cast<ADefaultGameMode>(GetWorld()->GetAuthGameMode());
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, DGM);
-
-	DGM->StartBattle();
-}
 
 void ADefaultPlayerController::SetupEnhancedInput() const
 {
@@ -206,8 +130,6 @@ void ADefaultPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		EIC->BindAction(RotateUnitGhostAction, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnRotateUnitGhostAction);
-
 		EIC->BindAction(CameraMoveAction, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCameraMove);
 		EIC->BindAction(CameraZoomAction, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCameraZoom);
 		
@@ -216,51 +138,7 @@ void ADefaultPlayerController::SetupInputComponent()
 		
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRotateCameraReleased);
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRotateCameraReleased);
-
-		EIC->BindAction(MoveUnitAction, ETriggerEvent::Started,   this, &ADefaultPlayerController::OnMoveUnitAction);
 	}
-}
-
-void ADefaultPlayerController::HandleActiveUnitChanged(uint32 InActiveUnitID)
-{
-	MoveCameraToUnit(InActiveUnitID);
-	UUnitBase* U = GetGameState()->GetUnitByID(InActiveUnitID);
-	GetWarpHUD()->GetCombatUI()->SetActionPoints(U->GetMaxAP(), U->GetMaxAP());
-}
-
-void ADefaultPlayerController::OnRotateUnitGhostAction(const FInputActionValue& Value)
-{
-	if (!IsValid(GhostActor_))
-		return;
-	const float Delta = Value.Get<float>();
-	if (Delta > 0)
-		GhostActor_->Rotate(true);
-	if (Delta < 0)
-		GhostActor_->Rotate(false);
-}
-
-void ADefaultPlayerController::OnMoveUnitAction()
-{
-	if (bPlacingUnit_)
-		return;
-	
-	bMovingUnit_ = !bMovingUnit_;
-	if (bMovingUnit_)
-	{
-		SelectedUnitID = GetMouseoverUnitID();
-		if (SelectedUnitID == 0)
-			return;
-		GhostActor_ = CombatMapManager->SpawnUnitActorGhost(SelectedUnitID);
-	}
-	else
-	{
-		if (SelectedUnitID == 0)
-			return;
-		MoveUnitServerAuthoritative(SelectedUnitID, HoveredTile);
-		CombatMapManager->DestroyGhostActor(GhostActor_);
-		SelectedUnitID = 0;
-	}
-	
 }
 
 void ADefaultPlayerController::OnCameraMove(const FInputActionValue& Value)
@@ -302,178 +180,6 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 		Cam->AddZoom(Axis);
 	}
 }
-
-void ADefaultPlayerController::ServerEndTurn_Implementation()
-{
-	GetTurnBasedSystemManager()->AdvanceToNextUnit();
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Ending turn"));
-}
-
-bool ADefaultPlayerController::MoveUnitServerAuthoritative(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)
-{
-	if (!CombatMapManager) return false;
-	TArray<FIntPoint> Blockers;
-	
-	if (!CombatMapManager->IsPositionForUnitAvailable(InUnitToMoveID, InGridPosition, Blockers))
-		return false;
-
-	FIntVector2 D = CombatMapManager->CalculateDistanceToForUnitID(InUnitToMoveID, InGridPosition);
-	
-	if (!GetTurnBasedSystemManager()->IsEnoughActionForMovement(D))
-	{
-		return false;
-	}
-		
-
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Requesting to place unit %d at a pos %s"), InUnitToMoveID, *InGridPosition.ToString());
-
-	CombatMapManager->MoveUnitTo(InUnitToMoveID, InGridPosition);
-	
-	ServerRequestMoveUnit(InUnitToMoveID, InGridPosition);
-	
-	return true;
-}
-
-void ADefaultPlayerController::ServerRequestMoveUnit_Implementation(const uint32 InUnitToMoveID, const FIntVector2& InGridPosition)
-{
-	AWarpGameState* GS = GetGameState();
-	if (!IsValid(GS))
-	{
-		ClientPlacementResult(false);
-		return;
-	}
-	
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("Requesting to move unit ID = %d at a pos %s"), InUnitToMoveID, *InGridPosition.ToString());
-	
-	bool bSuccess = GS->MoveUnitTo(InUnitToMoveID, InGridPosition);
-	ClientPlacementResult(bSuccess);
-}
-
-void ADefaultPlayerController::ClientPlacementResult_Implementation(bool bSuccess)
-{
-	if (bSuccess)
-	{
-		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("Unit placed successfully"));
-	}
-	else
-	{
-		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("Failed to place unit"));
-	}
-}
-
-void ADefaultPlayerController::UpdateTileHovering()
-{
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, CombatMapManager != nullptr);
-
-	int32 TileIndex;
-	PrevHoveredTile = HoveredTile;
-	if (!GetHoveredTileIndexAndCoordinates(TileIndex, HoveredTile))
-		return;
-	if (TileIndex < 0 || HoveredTile.X < 0 || HoveredTile.Y < 0)
-		return;
-	if (HoveredTile == PrevHoveredTile)
-		return;
-	CombatMapManager->UpdateHoveredTile(TileIndex);
-}
-
-void ADefaultPlayerController::UpdateUnitGhostPosition() const
-{
-	if ((!bPlacingUnit_ && !bMovingUnit_) || !IsValid(GhostActor_))
-		return;
-	if (HoveredTile == PrevHoveredTile)
-		return;
-	
-	const FVector WorldCenter = CombatMapManager->GridToLevelPosition(HoveredTile);
-	TArray<FIntPoint> OutBlockers;
-	if (CombatMapManager->IsPositionAvailable(GhostActor_->GetUnitActorSize(), GhostActor_->GetUnitActorRotation(), HoveredTile, OutBlockers))
-	{
-		MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("GOOD POSITION"));
-	}
-	CombatMapManager->UpdateVisualForBlockers(OutBlockers);
-	GhostActor_->UpdatePosition(WorldCenter);
-}
-
-void ADefaultPlayerController::MoveCameraToUnit(uint32 InUnitID) const
-{
-	if (ATacticalCameraPawn* Cam = Cast<ATacticalCameraPawn>(GetPawn()))
-	{
-		FVector P = CombatMapManager->GetUnitWorldPositionByID(InUnitID);
-		Cam->FocusOn(P);
-	}
-}
-
-uint32 ADefaultPlayerController::GetMouseoverUnitID() const
-{
-	FHitResult Hit;
-	if (GetHitResultUnderCursorByChannel(TraceTypeQuery1, true, Hit))
-	{
-		ABaseUnitActor* A = Cast<ABaseUnitActor>(Hit.GetActor());
-		if (!A)
-		{
-			MG_COND_WARNING(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("Failed to get actor on mouseover"));
-
-			return 0;
-		}
-
-		uint32 AId = A->GetID();
-
-		if (AId == 0)
-		{
-			MG_COND_WARNING(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-			TEXT("Failed to get actor ID on mouseover"));
-		}
-		
-		return AId;
-	}
-	return 0;
-}
-
-
-bool ADefaultPlayerController::GetHoveredTileIndexAndCoordinates(int32& OutInstanceIndex, FIntVector2& OutCoord) const
-{
-	int32 HitIdx;
-	if (GetHoveredTileIndex(HitIdx))
-	{
-		OutInstanceIndex = HitIdx;
-		OutCoord = CombatMapManager->TileInstanceToGridPosition(HitIdx);
-		return true;
-	}
-	return false;
-}
-
-bool ADefaultPlayerController::GetHoveredTileIndex(int32& OutInstanceIndex) const
-{
-	OutInstanceIndex = INDEX_NONE;
-
-	FHitResult Hit;
-	if (!GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, true, Hit))
-	{
-		return false;
-	}
-	
-	if (CombatMapManager && Hit.Component == CombatMapManager->GetTilesISMC())
-	{
-		int32 TileIndex;
-		if (Hit.Item >= CombatMapManager->GetGridSquare())
-			TileIndex = Hit.Item - CombatMapManager->GetGridSquare();
-		else
-		{
-			TileIndex = Hit.Item;
-		}
-		OutInstanceIndex = TileIndex;
-		return true;
-	}
-
-	return false;
-}
-
 
 ADefaultGameMode* ADefaultPlayerController::GetGameMode() const
 {

@@ -35,7 +35,17 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
 {
     Super::Initialize(InCollection);
     StateManager_->SetOwner(this);
-    StateManager_->SetState(EPlayFabContentStates::Login);
+    StateManager_->SetState(EPlayFabContentStates::StartLogin);
+}
+
+void UWarpPlayfabContentSubSystem::LoginToPlayFab()
+{
+    if (StateManager_->GetState() == EPlayFabContentStates::None || StateManager_->GetState() == EPlayFabContentStates::LoginFailure)
+        StateManager_->SetState(EPlayFabContentStates::StartLogin);
+    else
+    {
+        MG_WARNING(ContentLog, TEXT("Already logged in"));
+    }
 }
 
 void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
@@ -139,4 +149,10 @@ bool UWarpPlayfabContentSubSystem::IsClient() const
 {
     ENetMode NetMode = GetWorld()->GetNetMode();
     return  (NetMode == NM_Client);
+}
+
+void UWarpPlayfabContentSubSystem::BroadcastContentIsLoaded(bool InbIsContentLoaded)
+{
+    bUnitsLoaded_ = InbIsContentLoaded;
+    OnUnitsLoaded.Broadcast();
 }

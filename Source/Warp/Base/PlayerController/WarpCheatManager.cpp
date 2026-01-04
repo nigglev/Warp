@@ -23,3 +23,11 @@ void UWarpCheatManager::UpdateContent()
 	
 	CS->UpdateContent();	
 }
+
+void UWarpCheatManager::LoginToPlayFab()
+{
+	auto CS = UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
+	
+	CS->LoginToPlayFab();	
+}

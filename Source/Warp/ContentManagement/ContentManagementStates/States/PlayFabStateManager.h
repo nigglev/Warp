@@ -38,7 +38,8 @@ public:
 protected:
 	void OnStateSet(const FPlayFabStateManagerData* InData = nullptr);
 
-	void HandleLogin();
+	void HandleStartLogin();
+	void HandleProcessingLogin();
 	void HandleLoginFailure();
 	void HandleLoginSuccess();
 	
@@ -54,9 +55,12 @@ protected:
 	void HandleFailure();
 	void HandleFinished();
 
+	UFUNCTION()
+	void OnLoginResult(const bool InLoginRes);
 	bool LoginToPlayFab();
 	void GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions, const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated);
 	void Reset();
+	
 	
 	static void StateChangedLog(EPlayFabContentStates InOldState, EPlayFabContentStates InNewState);
 
