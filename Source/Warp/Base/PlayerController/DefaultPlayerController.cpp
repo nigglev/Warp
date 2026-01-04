@@ -192,6 +192,7 @@ void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
 	{
 		if (UWorld* World = GetWorld())
 		{
+			MG_LOG(ADefaultPlayerControllerLog,  TEXT("Coordinates: %s"), *P.ToString());
 			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
 			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
 		}
