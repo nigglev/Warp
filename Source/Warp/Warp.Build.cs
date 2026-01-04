@@ -8,10 +8,31 @@ public class Warp : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "Slate", "SlateCore", 
-			"EnhancedInput", "NetCore", "GameplayTags", "HTTP", "Json", "JsonUtilities" });
+		PublicDependencyModuleNames.AddRange(new string[] 
+		{ 
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore", 
+			"UMG", 
+			"Slate", 
+			"SlateCore", 
+			"EnhancedInput", 
+			"NetCore", 
+			"GameplayTags", 
+			"HTTP", 
+			"Json", 
+			"JsonUtilities",
+			"HexagonGrid"
+		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput", "NetCore", "DebugUtility", "Slate", "SlateCore", "UMG", "PlayFab", "PlayFabCpp", "PlayFabCommon" });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"DebugUtility", 
+			"PlayFab", 
+			"PlayFabCpp", 
+			"PlayFabCommon"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

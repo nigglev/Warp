@@ -26,6 +26,8 @@ public:
 	void SetFollowTarget(const FVector& TargetWorld);
 	
 protected:
+	bool SetActorLocationInt(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
 	USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")

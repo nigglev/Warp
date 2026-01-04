@@ -3,6 +3,7 @@
 
 #include "TacticalCameraPawn.h"
 
+#include "HexGridWorldSubsystem.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
@@ -43,7 +44,7 @@ void ATacticalCameraPawn::Tick(float DeltaSeconds)
 		const float Alpha = FMath::Clamp(PanElapsed / PanTime, 0.f, 1.f);
 		const float Smooth = FMath::InterpEaseInOut(0.f, 1.f, Alpha, 2.0f);
 		const FVector NewLoc = FMath::Lerp(PanStart, PanTarget, Smooth);
-		SetActorLocation(NewLoc);
+		SetActorLocationInt(NewLoc);
 
 		if (Alpha >= 1.f) bIsPanning = false;
 	}
@@ -53,7 +54,7 @@ void ATacticalCameraPawn::Tick(float DeltaSeconds)
 		const FVector Curr = GetActorLocation();
 		const FVector Goal = FVector(FollowTarget.X, FollowTarget.Y, Curr.Z);
 		const FVector NewLoc = FMath::VInterpTo(Curr, Goal, DeltaSeconds, FollowLerpSpeed);
-		SetActorLocation(NewLoc);
+		SetActorLocationInt(NewLoc);
 	}
 }
 
@@ -92,7 +93,7 @@ void ATacticalCameraPawn::MoveXY(const FVector2D& Axis, float DeltaSeconds)
 	Right.Z = 0.f; Right.Normalize();
 
 	const FVector Delta = (Fwd * Axis.Y + Right * Axis.X) * MoveSpeedUU * DeltaSeconds;
-	SetActorLocation(GetActorLocation() + Delta);
+	SetActorLocationInt(GetActorLocation() + Delta);
 }
 
 void ATacticalCameraPawn::AddRotation(float Degrees)
@@ -114,5 +115,17 @@ void ATacticalCameraPawn::SetLockedToTarget(bool bLock, const FVector& InitialTa
 void ATacticalCameraPawn::SetFollowTarget(const FVector& TargetWorld)
 {
 	FollowTarget = FVector(TargetWorld.X, TargetWorld.Y, GetActorLocation().Z);
+}
+
+bool ATacticalCameraPawn::SetActorLocationInt(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult,
+	ETeleportType Teleport)
+{
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	if (GridWorldSubsystem != nullptr)
+	{
+		GridWorldSubsystem->OnChangeObserverPosition(NewLocation);
+	}
+	
+	return SetActorLocation(NewLocation, bSweep, OutSweepHitResult, Teleport);
 }
 

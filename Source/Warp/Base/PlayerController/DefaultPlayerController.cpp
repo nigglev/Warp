@@ -3,6 +3,7 @@
 
 #include "DefaultPlayerController.h"
 
+#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "WarpCheatManager.h"
