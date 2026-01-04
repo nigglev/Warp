@@ -83,8 +83,13 @@ protected:
 	class UInputAction* StartCameraRotateAction = nullptr; 
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraZoomAction = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* LMBAction;
 	
 	void CheckClientLoading();
+	
+	void OnLMBStarted(const FInputActionValue& Value);
+	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;

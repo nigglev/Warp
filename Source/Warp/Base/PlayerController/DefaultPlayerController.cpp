@@ -138,6 +138,8 @@ void ADefaultPlayerController::SetupInputComponent()
 		
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRotateCameraReleased);
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRotateCameraReleased);
+
+		EIC->BindAction(LMBAction, ETriggerEvent::Started, this, &ADefaultPlayerController::OnLMBStarted);
 	}
 }
 
@@ -179,6 +181,44 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	{
 		Cam->AddZoom(Axis);
 	}
+}
+
+
+
+void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
+{
+	FVector P;
+	if (GetMouseRayPlaneZIntersection(0.0f, P))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
+			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
+		}
+	}
+}
+
+bool ADefaultPlayerController::GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const
+{
+	FVector RayOrigin, RayDir;
+	if (!DeprojectMousePositionToWorld(RayOrigin, RayDir))
+	{
+		return false;
+	}
+
+	if (FMath::Abs(RayDir.Z) < KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	const float T = (PlaneZ - RayOrigin.Z) / RayDir.Z;
+	if (T < 0.0f)
+	{
+		return false;
+	}
+
+	OutPoint = RayOrigin + T * RayDir;
+	return true;
 }
 
 ADefaultGameMode* ADefaultPlayerController::GetGameMode() const
