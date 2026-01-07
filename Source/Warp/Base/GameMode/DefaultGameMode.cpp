@@ -152,7 +152,7 @@ void ADefaultGameMode::HandleMatchHasUnitCreating()
 
 bool ADefaultGameMode::CheckUnitCreating()
 {
-	return false;
+	return true;
 }
 #pragma endregion
 
@@ -166,6 +166,12 @@ bool ADefaultGameMode::StartBattle()
 void ADefaultGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
+}
+
+void ADefaultGameMode::HandleMatchIsWaitingToStart()
+{
+	Super::HandleMatchIsWaitingToStart();
+	StartBattle();
 }
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const

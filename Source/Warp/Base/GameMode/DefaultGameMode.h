@@ -41,6 +41,7 @@ protected:
 	virtual bool CheckUnitCreating();
 
 	virtual void HandleMatchHasStarted() override;
+	virtual void HandleMatchIsWaitingToStart() override;
 
 	struct FReadyToStartMatchError
 	{
