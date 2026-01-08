@@ -32,7 +32,7 @@ void ADefaultGameMode::StartPlay()
 {
 	if (MatchState == MatchState::EnteringMap)
 	{
-		SetMatchState(MatchState::Loading);
+		SetMatchState(MatchState::WaitingToStart);
 	}
 }
 
@@ -44,23 +44,15 @@ void ADefaultGameMode::PostLogin(APlayerController* NewPlayer)
 void ADefaultGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	FName MS = GetMatchState();
 
-	if (GetMatchState() == MatchState::Loading)
+	if (MS == MatchState::WaitingToStart)
 	{
 		// Check to see if we should start the match
 		if (CheckLoading())
 		{
 			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
-			SetMatchState(MatchState::UnitCreating);
-		}
-	}
-	else if (GetMatchState() == MatchState::UnitCreating)
-	{
-		// Check to see if we should start the match
-		if (CheckUnitCreating())
-		{
-			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
-			SetMatchState(MatchState::WaitingToStart);
+			StartBattle();
 		}
 	}
 }
@@ -70,7 +62,7 @@ void ADefaultGameMode::OnMatchStateSet()
 	MG_LOG(ADefaultGameModeLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
 	Super::OnMatchStateSet();
-	if (MatchState == MatchState::Loading)
+	if (MatchState == MatchState::WaitingToStart)
 	{
 		HandleMatchHasLoading();
 	}
@@ -79,6 +71,23 @@ void ADefaultGameMode::OnMatchStateSet()
 void ADefaultGameMode::HandleMatchHasLoading()
 {
 	CheckServerContentLoading();
+}
+
+void ADefaultGameMode::HandleMatchHasStarted()
+{
+	Super::HandleMatchHasStarted();
+}
+
+void ADefaultGameMode::HandleMatchIsWaitingToStart()
+{
+	Super::HandleMatchIsWaitingToStart();
+}
+
+bool ADefaultGameMode::StartBattle()
+{
+	RETURN_ON_FAIL_BOOL(LogGameMode, GetMatchState() == MatchState::WaitingToStart)
+	StartMatch();
+	return true;
 }
 
 #pragma region GameLoading
@@ -144,35 +153,6 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	return MakeValue();
 }
 #pragma endregion
-
-#pragma region UnitCreating
-void ADefaultGameMode::HandleMatchHasUnitCreating()
-{
-}
-
-bool ADefaultGameMode::CheckUnitCreating()
-{
-	return true;
-}
-#pragma endregion
-
-bool ADefaultGameMode::StartBattle()
-{
-	RETURN_ON_FAIL_BOOL(LogGameMode, GetMatchState() == MatchState::WaitingToStart)
-	StartMatch();
-	return true;
-}
-
-void ADefaultGameMode::HandleMatchHasStarted()
-{
-	Super::HandleMatchHasStarted();
-}
-
-void ADefaultGameMode::HandleMatchIsWaitingToStart()
-{
-	Super::HandleMatchIsWaitingToStart();
-	StartBattle();
-}
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const
 {

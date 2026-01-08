@@ -36,10 +36,7 @@ protected:
 	
 	virtual void HandleMatchHasLoading();
 	virtual bool CheckLoading();
-
-	virtual void HandleMatchHasUnitCreating();
-	virtual bool CheckUnitCreating();
-
+	
 	virtual void HandleMatchHasStarted() override;
 	virtual void HandleMatchIsWaitingToStart() override;
 
@@ -73,9 +70,6 @@ protected:
 	
 	UFUNCTION()
 	void CheckServerContentLoading();
-	
-	void SpawnPlayerMainShip();
-	void SpawnAIShips(int InAINumber);
 
 	AWarpGameState* GetWarpGameState() const;
 

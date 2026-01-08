@@ -58,7 +58,7 @@ protected:
 	virtual void OnRep_MatchState() override;
 	
 	void HandleMatchHasLoading();
-	void HandleMatchHasUnitCreating();
+	virtual void HandleMatchIsWaitingToStart() override;
 	virtual void HandleMatchHasStarted() override;
 	
 	UPROPERTY(EditAnywhere, Category="Unit")

@@ -6,11 +6,11 @@
 #include "EngineUtils.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Base/MatchStates.h"
-#include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/CombatMap/CombatMap.h"
 #include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
@@ -58,13 +58,10 @@ void AWarpGameState::OnRep_MatchState()
 	MG_LOG(AWarpGameStateLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
 	Super::OnRep_MatchState();
+	
 	if (MatchState == MatchState::Loading)
 	{
 		HandleMatchHasLoading();
-	}
-	else if (MatchState == MatchState::UnitCreating)
-	{
-		HandleMatchHasUnitCreating();
 	}
 	
 	//Player Controller Iteration
@@ -85,32 +82,20 @@ void AWarpGameState::HandleMatchHasLoading()
 	//NOTHING AWHILE
 }
 
-void AWarpGameState::HandleMatchHasUnitCreating()
+void AWarpGameState::HandleMatchIsWaitingToStart()
 {
-	// if (HasAuthority())
-	// {
-	// 	FVector SpawnLoc(200, 200, 50);
-	//
-	// 	FActorSpawnParameters Params;
-	// 	Params.Owner = this;
-	// 	
-	// 	ABaseUnitActor* NewUnit =
-	// 			GetWorld()->SpawnActor<ABaseUnitActor>(
-	// 				UnitActorClass,
-	// 				SpawnLoc,
-	// 				FRotator::ZeroRotator,
-	// 				Params);
-	// }
+	Super::HandleMatchIsWaitingToStart();
+	
 }
 
 void AWarpGameState::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
-	if (HasAuthority())
-	{
-		TurnManager->StartCombat();
-	}
+	// if (HasAuthority())
+	// {
+	// 	TurnManager->StartCombat();
+	// }
 }
 
 void AWarpGameState::CreateUnitAtRandomPosition(const FUnitDefinition* InUnitDefinition, const EUnitAffiliation InAffiliation)
