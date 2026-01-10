@@ -29,6 +29,8 @@ public:
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
 	void SelectCell(const FVector& InPosition);
+	
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord);
 
 protected:
 	virtual void BeginPlay() override;

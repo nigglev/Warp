@@ -170,3 +170,17 @@ void AHexGridISMActor::SelectCell(const FVector& InPosition)
 	int32 Index = GridSize_ * OCoord.Up + OCoord.Right;
 	SetColor(Index, SelectedColor_);
 }
+
+void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord)
+{
+	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
+	
+	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
+		return;
+	
+	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
+		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
+	
+	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
+	SetColor(Index, SelectedColor_);
+}

@@ -51,10 +51,22 @@ public:
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
+	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
+	
+	struct FHexGridActorCDODataCache
+	{
+		float HexSize = 0;
+		uint32 NumColsRows = 0;
+		uint32 BuildChunkAround = 0;
+		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
+	};
+	static TOptional<FHexGridActorCDODataCache> GetHexGridActorCDODataCache();
 	
 	void CreateNewChunks(const FVector& InNewPosition);
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
+	
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	

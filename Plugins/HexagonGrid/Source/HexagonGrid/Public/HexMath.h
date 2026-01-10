@@ -37,6 +37,14 @@ namespace HexMath
 		FString ToString() const { return FString::Printf(TEXT("(%lld, %lld)"), Right, Up); }
 	};
 	
+	inline FOffsetCoord operator+(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Right + RHS.Right, LHS.Up + RHS.Up); }
+	inline FOffsetCoord operator-(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Right - RHS.Right, LHS.Up - RHS.Up); }
+	
+	template<typename T>
+	FOffsetCoord operator*(T LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS * RHS.Right, LHS * RHS.Up); }
+	template<typename T>
+	FOffsetCoord operator*(const FOffsetCoord& LHS, T RHS) { return FOffsetCoord(LHS.Right * RHS, LHS.Up * RHS); }
+	
 	struct FOffsetRealCoord
 	{
 		double Up = 0;
@@ -78,6 +86,9 @@ namespace HexMath
 		
 		FString ToString() const { return FString::Printf(TEXT("(%lld, %lld)"), Q, R); }
 	};
+	
+	inline FAxialCoord operator+(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q + RHS.Q, LHS.R + RHS.R); }
+	inline FAxialCoord operator-(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q - RHS.Q, LHS.R - RHS.R); }
 
 	namespace HexMathAxial
 	{
@@ -123,6 +134,14 @@ namespace HexMath
 		}
 		
 		template<EHexOffsetLayout OffsetType>
+		FAxialCoord OffsetToAxial(const FOffsetRealCoord& InOffsetCoord, float InHexSize)
+		{
+			FAxialRealCoord A = OffsetToRealAxial<OffsetType>(InOffsetCoord, InHexSize);
+			const FAxialCoord Axial = CubeRoundAxial(A);  // (q,r) int
+			return Axial;
+		}
+		
+		template<EHexOffsetLayout OffsetType>
 		FOffsetCoord AxialToOffset(const FAxialCoord& InACoord)
 		{
 			const int64 Q1 = InACoord.Q & 1;
@@ -157,7 +176,8 @@ namespace HexMath
 			return AxialToOffset<OffsetType>(Axial);      // (col,row) int
 		}
 	
-		static const FIntPoint Dir[6] = {
+		static constexpr uint8 AxialNeighbourCount = 6;
+		static const FAxialCoord AxialNeighboursShifts[AxialNeighbourCount] = {
 			{+1,  0},
 			{+1, -1},
 			{ 0, -1},
@@ -338,6 +358,20 @@ namespace HexMath
 				// Y step per row = 1.5R
 				return FOffsetRealCoord(GetW(R) * NumCols, 1.5 * R * NumRows);
 			}
+		}
+		
+		inline FOffsetCoord OffsetCellToChunk(const FOffsetCoord& InCellCoord, uint32 NumCols, uint32 NumRows)
+		{
+			int64 Rc = InCellCoord.Right / NumCols;
+			int64 Ri = InCellCoord.Right % NumCols;
+			if (Ri < 0) Rc--;
+	
+			int64 Upc = InCellCoord.Up / NumRows;
+			int64 Upi = InCellCoord.Up % NumRows;
+			if (Upi < 0) Upc--;
+	
+			FOffsetCoord ChunkCoord(Rc,Upc);
+			return ChunkCoord;
 		}
 
 		inline FVector OffsetHexToWorld(const FOffsetRealCoord& P, float Z = 0)

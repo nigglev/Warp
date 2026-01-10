@@ -14,6 +14,25 @@ void UHexagonChunkGrid::OnChangeObserverPosition(const FVector& InNewPosition)
 	CreateNewChunks(InNewPosition);	
 }
 
+TOptional<UHexagonChunkGrid::FHexGridActorCDODataCache> UHexagonChunkGrid::GetHexGridActorCDODataCache()
+{
+	UHexagonGridSettings* Settings = UHexagonGridSettings::Get();
+	if (!ensure(Settings->HexGridActorClass_ != nullptr))
+		return {};
+	
+	AHexGridISMActor* CDO = Cast<AHexGridISMActor>(Settings->HexGridActorClass_->ClassDefaultObject);
+	if (!ensure(CDO != nullptr))
+		return {};
+
+	FHexGridActorCDODataCache Cache;
+	Cache.HexSize = CDO->GetHexSize();
+	Cache.NumColsRows = CDO->GetGridSize();
+	Cache.BuildChunkAround = Settings->BuildChunkAround;
+	Cache.HexGridActorClass_ = Settings->HexGridActorClass_;
+	
+	return Cache;
+}
+
 void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 {
 	using namespace HexMath;
@@ -23,16 +42,12 @@ void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 	if (!ObserverChunkCoordOp.IsSet())
 		return;
 	
-	UHexagonGridSettings* Settings = UHexagonGridSettings::Get();
-	if (!ensure(Settings->HexGridActorClass_ != nullptr))
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
 		return;
 	
-	AHexGridISMActor* CDO = Cast<AHexGridISMActor>(Settings->HexGridActorClass_->ClassDefaultObject);
-	if (!ensure(CDO != nullptr))
-		return;
-
-	float HexSize = CDO->GetHexSize();
-	uint32 NumColsRows = CDO->GetGridSize();
+	float HexSize = CacheOpt->HexSize;
+	uint32 NumColsRows = CacheOpt->NumColsRows;
 
 	FOffsetRealCoord ChunkPitch = GetChunkPitchNoGap<HEX_LAYOUT>(NumColsRows, NumColsRows, HexSize);
 	
@@ -42,7 +57,7 @@ void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 	{
 		CurrentChunkCoord_ = ObserverChunkCoord;
 		
-		int32 iT = Settings->BuildChunkAround;
+		uint32 iT = CacheOpt->BuildChunkAround;
 		
 		for (int64 Idx = CurrentChunkCoord_.Up - iT; Idx <= CurrentChunkCoord_.Up + iT; ++Idx)
 			for (int64 Jdx = CurrentChunkCoord_.Right - iT; Jdx <= CurrentChunkCoord_.Right + iT; ++Jdx)
@@ -57,7 +72,7 @@ void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 				
 					FVector ChunkPos = OffsetHexToWorld(NewChunkPos);
 
-					AHexGridISMActor* HexActor = Cast<AHexGridISMActor>(GetWorld()->SpawnActor(Settings->HexGridActorClass_, &ChunkPos));
+					AHexGridISMActor* HexActor = Cast<AHexGridISMActor>(GetWorld()->SpawnActor(CacheOpt->HexGridActorClass_, &ChunkPos));
 					if (!ensure(HexActor != nullptr))
 						return;
 					
@@ -93,78 +108,76 @@ int32 UHexagonChunkGrid::FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoor
 
 void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
 {
-	// TOptional<HexMath::FOffsetCoord> ChunkCoordOp = WorldToChunkCoord(InPosition);
-	// if (!ChunkCoordOp.IsSet())
-	// 	return;
-	//
-	// int32 ChunkIndex = FindChunkIndex(ChunkCoordOp.GetValue());
-	// if (ChunkIndex == INDEX_NONE)
-	// 	return;
-	//
-	// FChunkData& ChunkData = ChunksList_[ChunkIndex];
-	//
-	// if (!ensure(ChunkData.ChunkActor != nullptr))
-	// 	return;
-	
-	//ChunkData.ChunkActor->SelectCell(InPosition);
-	
-	UHexagonGridSettings* Settings = UHexagonGridSettings::Get();
-	if (!ensure(Settings->HexGridActorClass_ != nullptr))
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
 		return;
 	
-	AHexGridISMActor* CDO = Cast<AHexGridISMActor>(Settings->HexGridActorClass_->ClassDefaultObject);
-	if (!ensure(CDO != nullptr))
+	TOptional<HexMath::FAxialCoord> AxialCell = WorldToAxialCellCoord(InPosition);
+	if (!AxialCell.IsSet())
 		return;
-	
-	float HexSize = CDO->GetHexSize();
-	uint32 NumColsRows = CDO->GetGridSize();
-	
-	FVector LocalPosition = InPosition;
-	HexMath::FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(LocalPosition, HexSize);
-	
-	HexMath::FOffsetCoord OCoord = HexMath::HexMathAxial::WorldToOffset<HEX_LAYOUT>(Coord, HexSize);
 
-	int64 Rc = OCoord.Right / NumColsRows;
-	int64 Ri = OCoord.Right % NumColsRows;
-	if (Ri < 0) Rc--;
+	HexMath::FOffsetCoord  OffsetCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(AxialCell.GetValue());
 	
-	int64 Upc = OCoord.Up / NumColsRows;
-	int64 Upi = OCoord.Up % NumColsRows;
-	if (Upi < 0) Upc--;
+	SelectCell(OffsetCell, CacheOpt->NumColsRows);
 	
-	HexMath::FOffsetCoord ChunkCoord(Rc,Upc);
+	for (uint8 i = 0; i < HexMath::HexMathAxial::AxialNeighbourCount; ++i)
+	{
+		HexMath::FAxialCoord NAxialCell = AxialCell.GetValue() + HexMath::HexMathAxial::AxialNeighboursShifts[i];
+		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(NAxialCell);
+		
+		SelectCell(NCell, CacheOpt->NumColsRows);
+	}
+}
+
+void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows)
+{
+	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, InNumColsRows, InNumColsRows);
 	
-	UE_LOG(HexGridLog, Warning, TEXT("ChunkCoord: %s; GlobalORCoord: %s; GlobalOCoord: %s"), 
-		*ChunkCoord.ToString(), *Coord.ToString(), *OCoord.ToString());
+	UE_LOG(HexGridLog, Warning, TEXT("ChunkCoord: %s"), *ChunkCoord.ToString());
 	
 	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
 	if (ChunkIndex != INDEX_NONE)
 	{
-		ChunksList_[ChunkIndex].ChunkActor->SelectCell(InPosition);
+		ChunksList_[ChunkIndex].ChunkActor->SelectCell(InOffsetCoord);
 	}
 }
 
 TOptional<HexMath::FOffsetCoord> UHexagonChunkGrid::WorldToChunkCoord(const FVector& InWorldPoint)
 {
-	UHexagonGridSettings* Settings = UHexagonGridSettings::Get();
-	if (!ensure(Settings->HexGridActorClass_ != nullptr))
-		return TOptional<HexMath::FOffsetCoord>();
-	
-	AHexGridISMActor* CDO = Cast<AHexGridISMActor>(Settings->HexGridActorClass_->ClassDefaultObject);
-	if (!ensure(CDO != nullptr))
-		return TOptional<HexMath::FOffsetCoord>();
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return {};
 	
 	using namespace HexMath;
 	using namespace HexMath::HexMathOffset;
 	
-	float HexSize = CDO->GetHexSize();
-	uint32 NumColsRows = CDO->GetGridSize();
-
-	FOffsetRealCoord FC = WorldToOffsetHex(InWorldPoint);
-		
-	FOffsetRealCoord ChunkPitch = GetChunkPitchNoGap<HEX_LAYOUT>(NumColsRows, NumColsRows, HexSize);
+	float HexSize = CacheOpt->HexSize;
+	uint32 NumColsRows = CacheOpt->NumColsRows;
 	
-	FOffsetCoord ObserverChunkCoord(FMath::FloorToInt(FC.Right / ChunkPitch.Right), FMath::FloorToInt(FC.Up / ChunkPitch.Up));
+	FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(InWorldPoint, HexSize);
 	
-	return ObserverChunkCoord;
+	FOffsetCoord OCoord = HexMath::HexMathAxial::WorldToOffset<HEX_LAYOUT>(Coord, HexSize);
+	
+	FOffsetCoord ChunkCoord = OffsetCellToChunk(OCoord, NumColsRows, NumColsRows);
+	
+	return ChunkCoord;
 }
+
+TOptional<HexMath::FAxialCoord> UHexagonChunkGrid::WorldToAxialCellCoord(const FVector& InWorldPoint)
+{
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return {};
+	
+	using namespace HexMath;
+	using namespace HexMath::HexMathOffset;
+	
+	float HexSize = CacheOpt->HexSize;
+	
+	FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(InWorldPoint, HexSize);
+	
+	FAxialCoord CellCoord = HexMathAxial::OffsetToAxial<HEX_LAYOUT>(Coord, HexSize);
+	
+	return CellCoord;
+}
+
