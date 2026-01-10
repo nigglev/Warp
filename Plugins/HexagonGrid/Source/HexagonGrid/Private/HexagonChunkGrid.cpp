@@ -119,14 +119,14 @@ void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
 	HexMath::FOffsetCoord  OffsetCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(AxialCell.GetValue());
 	
 	SelectCell(OffsetCell, CacheOpt->NumColsRows);
-	
-	for (uint8 i = 0; i < HexMath::HexMathAxial::AxialNeighbourCount; ++i)
+
+	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), 1, [this, NumColsRows = CacheOpt->NumColsRows] 
+			(const HexMath::FAxialCoord& InCell)
 	{
-		HexMath::FAxialCoord NAxialCell = AxialCell.GetValue() + HexMath::HexMathAxial::AxialNeighboursShifts[i];
-		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(NAxialCell);
+		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InCell);
 		
-		SelectCell(NCell, CacheOpt->NumColsRows);
-	}
+		SelectCell(NCell, NumColsRows);
+	});
 }
 
 void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows)

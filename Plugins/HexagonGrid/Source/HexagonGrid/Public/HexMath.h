@@ -185,6 +185,22 @@ namespace HexMath
 			{-1, +1},
 			{ 0, +1},
 		};
+		
+		inline void IterateAxialNeighbours(const FAxialCoord& InAxialCenter, int32 InHexRadius, 
+			const TFunctionRef<void(const FAxialCoord&)>& InHandler)
+		{
+			for (int32 q = -InHexRadius; q <= InHexRadius; ++q)
+			{
+				const int32 r1 = FMath::Max(-InHexRadius, -q - InHexRadius);
+				const int32 r2 = FMath::Min( InHexRadius, -q + InHexRadius);
+	
+				for (int32 r = r1; r <= r2; ++r)
+				{
+					FAxialCoord Cell = InAxialCenter + FAxialCoord(q, r);
+					InHandler(Cell);
+				}
+			}
+		}
 	
 		inline double GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }
 	
@@ -247,7 +263,6 @@ namespace HexMath
 			const TFunctionRef<void(int32, int32, const FVector&)>& InHandler, 
 			float InZOffset = 0, bool InPointyTop = false)
 		{
-			// Классический перебор axial координат для "гексагона" радиуса Radius
 			for (int32 q = -InHexRadius; q <= InHexRadius; ++q)
 			{
 				const int32 r1 = FMath::Max(-InHexRadius, -q - InHexRadius);
