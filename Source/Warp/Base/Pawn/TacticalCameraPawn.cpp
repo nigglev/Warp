@@ -117,8 +117,19 @@ void ATacticalCameraPawn::SetFollowTarget(const FVector& TargetWorld)
 	FollowTarget = FVector(TargetWorld.X, TargetWorld.Y, GetActorLocation().Z);
 }
 
+void ATacticalCameraPawn::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	if (GridWorldSubsystem != nullptr)
+	{
+		GridWorldSubsystem->OnChangeObserverPosition(GetActorLocation());
+	}
+}
+
 bool ATacticalCameraPawn::SetActorLocationInt(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult,
-	ETeleportType Teleport)
+                                              ETeleportType Teleport)
 {
 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 	if (GridWorldSubsystem != nullptr)

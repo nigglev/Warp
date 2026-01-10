@@ -196,6 +196,12 @@ void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
 			MG_LOG(ADefaultPlayerControllerLog,  TEXT("Coordinates: %s"), *P.ToString());
 			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
 			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
+			
+			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+			if (GridWorldSubsystem != nullptr)
+			{
+				GridWorldSubsystem->SelectCell(P);
+			}
 		}
 	}
 }

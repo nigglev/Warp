@@ -24,7 +24,9 @@ public:
 	void AddRotation(float Degrees);
 	void SetLockedToTarget(bool bLock, const FVector& InitialTarget = FVector::ZeroVector);
 	void SetFollowTarget(const FVector& TargetWorld);
-	
+
+	virtual void BeginPlay() override;
+
 protected:
 	bool SetActorLocationInt(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 	
