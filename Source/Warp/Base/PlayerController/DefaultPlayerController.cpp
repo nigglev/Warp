@@ -14,9 +14,8 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
-#include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
+#include "Warp/TurnBasedSystem(Deprecated)/Manager/TurnBasedSystemManager.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
-#include "Warp/UI/CombatUI/CombatUIWidget.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultPlayerControllerLog, Log, All);
@@ -258,17 +257,6 @@ ADefaultWarpHUD* ADefaultPlayerController::GetWarpHUD() const
 	}
 	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
 	TEXT("WarpHUD is Invalid"));
-	return nullptr;
-}
-
-UTurnBasedSystemManager* ADefaultPlayerController::GetTurnBasedSystemManager() const
-{
-	if (UTurnBasedSystemManager* TBSM = GetGameState()->GetTurnBasedSystemManager())
-	{
-		return TBSM;
-	}
-	MG_COND_ERROR(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-	TEXT("TurnBasedSystemManager is Invalid"));
 	return nullptr;
 }
 

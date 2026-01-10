@@ -8,7 +8,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Warp/Units/UnitBase.h"
+#include "Warp/Units(Deprecated)/UnitBase.h"
 #include "DefaultPlayerController.generated.h"
 
 class ADefaultGameMode;
@@ -52,6 +52,7 @@ protected:
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
 	
+	void CheckClientLoading();
 	virtual void OnRep_PlayerState() override;
 
 	void SetupEnhancedInput() const;
@@ -86,17 +87,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* LMBAction;
 	
-	void CheckClientLoading();
+	
 	
 	void OnLMBStarted(const FInputActionValue& Value);
 	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
-
-	UPROPERTY()
-	ABaseUnitActor* SelectedUnit = nullptr;
-	UPROPERTY()
-	ABaseUnitActor* GhostActor_ = nullptr;
-
-	uint32 SelectedUnitID = 0;
+	
 	float MouseYawScaleDegPerUnit = 1.0f;
 	bool bRotateCamera = false;
 };

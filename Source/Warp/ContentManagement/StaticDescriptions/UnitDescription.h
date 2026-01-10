@@ -24,14 +24,27 @@ struct FDescriptionVersions
 
 	void UpdateVersions(const FString& InDescriptionName, int32 InVersion)
 	{
-		++Version;
 		FDescriptionVersion* Item = Items.FindByPredicate([InDescriptionName](const FDescriptionVersion& It){return It.DescriptionName == InDescriptionName;});
 		RETURN_ON_FAIL(DescriptionReaderLog, Item);
 		Item->Version = InVersion;
+
+		int32 Sum = 0;
+		for (const FDescriptionVersion& It : Items)
+		{
+			Sum += FMath::Max(0, It.Version);
+		}
+
+		Version += Sum;
+		VersionDate = FDateTime::UtcNow();
 	};
+
+	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FDateTime VersionDate = FDateTime::UtcNow();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FDescriptionVersion> Items;	

@@ -212,6 +212,7 @@ void UPlayFabStateManager::HandleLoginSuccess()
 
 void UPlayFabStateManager::HandleSavingDescriptions(const FString& InDescriptionName)
 {
+	RETURN_ON_FAIL(PFStateLog, ServerAPI_);
 	if (!Versions_)
 	{
 		Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();

@@ -31,10 +31,4 @@ protected:
 	APlayerController* Init() const;
 	
 	AWarpGameState* GetGameState() const;
-	UTurnBasedSystemManager* GetTurnBasedSystemManager() const;
-
-	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UCombatUIWidget> CombatUIWidgetClass;
-	UPROPERTY()
-	UCombatUIWidget* CombatUIWidget = nullptr;
 };

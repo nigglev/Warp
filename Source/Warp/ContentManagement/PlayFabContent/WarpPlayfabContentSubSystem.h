@@ -48,18 +48,13 @@ public:
 	bool IsClient() const;
 	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
 	
-	void DownloadUnits();
-	const FUnitDefinition* GetUnitDefinition(const FName& Id) const;
 	UFUNCTION()
 	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
 	
 	FOnUnitsLoaded OnUnitsLoaded;
 
 protected:
-	void OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
-	
-	TMap<FName, FUnitDefinition> Units_;
 
 	bool bUnitsLoaded_ = false;
 

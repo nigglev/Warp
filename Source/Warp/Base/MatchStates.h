@@ -5,5 +5,5 @@
 namespace MatchState
 {
 	const FName Loading = FName(TEXT("Loading"));
-	const FName UnitCreating = FName(TEXT("CreateUnits"));
+	const FName UnitCreation = FName(TEXT("CreateUnits"));
 }

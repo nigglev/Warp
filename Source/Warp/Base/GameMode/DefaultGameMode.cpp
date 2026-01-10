@@ -12,7 +12,7 @@
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
-#include "Warp/Units/UnitBase.h"
+#include "Warp/Units(Deprecated)/UnitBase.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultGameModeLog, Log, All);

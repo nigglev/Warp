@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Warp/Units/UnitBase.h"
+#include "UnitCharacteristics/UnitSize.h"
 #include "BaseUnitActor.generated.h"
 
 UENUM()
@@ -26,15 +26,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	void SetHighlighted(bool bOn) const;
-	void ResizeMeshToSize(uint32 TargetLength, uint32 TargetWidth) const;
-	void ResizeMeshToSize(const FVector& InScale) const;
-
 	uint32 GetID() const {return UnitID;}
 	void SetID(const uint32 InID) {UnitID = InID;}
-
-	FIntVector2 GetUnitGridPosition() const {return UnitGridPosition;}
-	void SetUnitGridPosition(const FIntVector2 InUnitGridPosition) {UnitGridPosition = InUnitGridPosition;}
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
@@ -42,36 +35,10 @@ public:
 	FUnitSize GetUnitActorSize() const {return UnitActorSize;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
 	
-	FUnitRotation GetUnitActorRotation() const {return UnitActorRotation;}
-	void SetUnitActorRotation(const FUnitRotation InRotation) {UnitActorRotation = InRotation;}
-
-	EUnitActorState GetUnitActorState() const {	return UnitActorState;	}
-	void SetUnitActorState(const EUnitActorState InState) {UnitActorState = InState;}
-
-	UStaticMesh* GetUnitStaticMesh() const {return MeshComponent->GetStaticMesh();}
-	void SetUnitMesh(UStaticMesh* InMesh) const;
-
-	void UpdatePosition(const FVector& InPosition);
-	void Rotate(bool InClockwise);
-	
 protected:
-	
-	
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* MeshComponent;
-	UPROPERTY(EditAnywhere, Category="Highlight")
-	UMaterialInterface* HighlightMaterial;
-	UPROPERTY(VisibleAnywhere, Category="Highlight")
-	UMaterialInterface* DefaultMaterial;
 
 	UPROPERTY(Replicated)
 	uint32 UnitID = 0;
 	UPROPERTY(Replicated)
-	FIntVector2 UnitGridPosition = FIntVector2::ZeroValue;
-	UPROPERTY(Replicated)
 	FUnitSize UnitActorSize = FUnitSize::None();
-	UPROPERTY(Replicated)
-	FUnitRotation UnitActorRotation = FUnitRotation::Rot0();
-	UPROPERTY(Replicated)
-	EUnitActorState UnitActorState = EUnitActorState::None;
 };

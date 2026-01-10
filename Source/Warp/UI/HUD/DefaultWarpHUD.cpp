@@ -8,9 +8,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
-#include "Warp/CombatMap/CombatMap.h"
-#include "Warp/TurnBasedSystem/Manager/TurnBasedSystemManager.h"
-#include "Warp/UI/CombatUI/CombatUIWidget.h"
+#include "Warp/CombatMap(Deprecated)/CombatMap.h"
+#include "Warp/TurnBasedSystem(Deprecated)/Manager/TurnBasedSystemManager.h"
+#include "Warp/UI/CombatUI(Deprecated)/CombatUIWidget.h"
 DEFINE_LOG_CATEGORY_STATIC(ADefaultWarpHUDLog, Log, All);
 
 void ADefaultWarpHUD::BeginPlay()
@@ -18,15 +18,6 @@ void ADefaultWarpHUD::BeginPlay()
 	Super::BeginPlay();
 
 	APlayerController* PC = Init();
-
-	if (CombatUIWidgetClass)
-	{
-		CombatUIWidget = CreateWidget<UCombatUIWidget>(PC, CombatUIWidgetClass);
-		if (CombatUIWidget)
-		{
-			CombatUIWidget->AddToViewport();
-		}
-	}
 }
 
 void ADefaultWarpHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -56,12 +47,3 @@ AWarpGameState* ADefaultWarpHUD::GetGameState() const
 	return GetWorld() ? GetWorld()->GetGameState<AWarpGameState>() : nullptr;
 }
 
-UTurnBasedSystemManager* ADefaultWarpHUD::GetTurnBasedSystemManager() const
-{
-	return GetGameState() ? GetGameState()->GetTurnBasedSystemManager() : nullptr;
-}
-
-UCombatUIWidget* ADefaultWarpHUD::GetCombatUI() const
-{
-	return CombatUIWidget;
-}
