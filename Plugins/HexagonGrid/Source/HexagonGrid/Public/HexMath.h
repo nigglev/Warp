@@ -3,9 +3,14 @@
 
 namespace HexMath
 {
-	constexpr double sqrt3 = 1.7320508075688772935274463415059;
-	constexpr double sqrt3_2 = sqrt3 / 2.;
-	constexpr double sqrt3_3 = sqrt3 / 3.;	
+	using HexReal = double;
+	using HexInt = int64;
+	
+	static constexpr bool bIsInt64 = std::is_same_v<HexInt, int64>;
+	
+	constexpr HexReal sqrt3 = 1.7320508075688772935274463415059;
+	constexpr HexReal sqrt3_2 = sqrt3 / 2.;
+	constexpr HexReal sqrt3_3 = sqrt3 / 3.;	
 	
 	//https://www.redblobgames.com/grids/hexagons/
 	
@@ -26,15 +31,18 @@ namespace HexMath
 #pragma region OffsetCoord
 	struct FOffsetCoord
 	{
-		int64 Up = INT64_MAX;
-		int64 Right = INT64_MAX;
+		HexInt Up = INT32_MAX;
+		HexInt Right = INT32_MAX;
 		
 		FOffsetCoord() = default;
-		FOffsetCoord(int64 InRight, int64 InUp) : Up(InUp), Right(InRight) {}
+		FOffsetCoord(HexInt InRight, HexInt InUp) : Up(InUp), Right(InRight) {}
 		
 		friend auto operator<=>(const FOffsetCoord&, const FOffsetCoord&) = default;
 		
-		FString ToString() const { return FString::Printf(TEXT("(%lld, %lld)"), Right, Up); }
+		FString ToString() const
+		{
+			return FString::Printf(TEXT("(%d, %d)"), Right, Up);
+		}
 	};
 	
 	inline FOffsetCoord operator+(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Right + RHS.Right, LHS.Up + RHS.Up); }
@@ -47,11 +55,11 @@ namespace HexMath
 	
 	struct FOffsetRealCoord
 	{
-		double Up = 0;
-		double Right = 0;
+		HexReal Up = 0;
+		HexReal Right = 0;
 		
 		FOffsetRealCoord() = default;
-		FOffsetRealCoord(double InRight, double InUp) : Up(InUp), Right(InRight) {}
+		FOffsetRealCoord(HexReal InRight, HexReal InUp) : Up(InUp), Right(InRight) {}
 		
 		FString ToString() const { return FString::Printf(TEXT("(%.3f, %.3f)"), Right, Up); }
 	};
@@ -67,24 +75,24 @@ namespace HexMath
 	
 	struct FAxialRealCoord
 	{
-		double Q = 0; //Col vert for flat-top
-		double R = 0; //120 degree rows
+		HexReal Q = 0; //Col vert for flat-top
+		HexReal R = 0; //120 degree rows
 		
 		FAxialRealCoord() = default;
-		FAxialRealCoord(double InQ, double InR) : Q(InQ), R(InR) {}
+		FAxialRealCoord(HexReal InQ, HexReal InR) : Q(InQ), R(InR) {}
 		
 		FString ToString() const { return FString::Printf(TEXT("(%.3f, %.3f)"), Q, R); }
 	};
 	
 	struct FAxialCoord
 	{
-		int64 Q = 0; //Col vert for flat-top
-		int64 R = 0; //120 degree rows
+		HexInt Q = INT32_MAX; //Col vert for flat-top
+		HexInt R = INT32_MAX; //120 degree rows
 		
 		FAxialCoord() = default;
-		FAxialCoord(int64 InQ, int64 InR) : Q(InQ), R(InR) {}
+		FAxialCoord(HexInt InQ, HexInt InR) : Q(InQ), R(InR) {}
 		
-		FString ToString() const { return FString::Printf(TEXT("(%lld, %lld)"), Q, R); }
+		FString ToString() const { return FString::Printf(TEXT("(%d, %d)"), Q, R); }
 	};
 	
 	inline FAxialCoord operator+(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q + RHS.Q, LHS.R + RHS.R); }
@@ -92,6 +100,21 @@ namespace HexMath
 	
 	inline bool operator==(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q == RHS.Q && LHS.R == RHS.R; }
 	inline bool operator!=(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q != RHS.Q || LHS.R != RHS.R; }
+	
+	FORCEINLINE uint32 GetTypeHash(const FAxialCoord& Key)
+	{
+		uint32 Hash = 0;
+		Hash = HashCombine(Hash, ::GetTypeHash(Key.Q));
+		Hash = HashCombine(Hash, ::GetTypeHash(Key.R));
+		return Hash;
+	}
+	
+	inline HexReal AxialDistance(const FAxialCoord& LHS, const FAxialCoord& RHS)
+	{
+		const HexInt dq = LHS.Q - RHS.Q;
+		const HexInt dr = LHS.R - RHS.R;
+		return static_cast<HexReal>(FMath::Abs(dq) + FMath::Abs(dr) + FMath::Abs(dq + dr)) / 2.0;
+	}
 
 	namespace HexMathAxial
 	{
@@ -100,8 +123,8 @@ namespace HexMath
 		template<EHexOffsetLayout OffsetType>
 		FAxialRealCoord OffsetToRealAxial(const FOffsetRealCoord& InWorldPoint, float InHexSize)
 		{
-			float q = 0; 
-			float r = 0;
+			HexReal q; 
+			HexReal r;
 			
 			if constexpr (bIsFlat<OffsetType>)
 			{
@@ -119,15 +142,15 @@ namespace HexMath
 		
 		inline FAxialCoord CubeRoundAxial(const FAxialRealCoord& InCoord)
 		{
-			double y = -InCoord.Q - InCoord.R;
+			HexReal y = -InCoord.Q - InCoord.R;
 	
 			int32 rq = FMath::RoundToInt(InCoord.Q);
 			int32 ry = FMath::RoundToInt(y);
 			int32 rr = FMath::RoundToInt(InCoord.R);
 	
-			const double dq = FMath::Abs(rq - InCoord.Q);
-			const double dy = FMath::Abs(ry - y);
-			const double dr = FMath::Abs(rr - InCoord.R);
+			const HexReal dq = FMath::Abs(rq - InCoord.Q);
+			const HexReal dy = FMath::Abs(ry - y);
+			const HexReal dr = FMath::Abs(rr - InCoord.R);
 	
 			if (dq > dy && dq > dr)      rq = -ry - rr;
 			else if (dy > dr)            ry = -rq - rr;
@@ -147,26 +170,26 @@ namespace HexMath
 		template<EHexOffsetLayout OffsetType>
 		FOffsetCoord AxialToOffset(const FAxialCoord& InACoord)
 		{
-			const int64 Q1 = InACoord.Q & 1;
-			const int64 R1 = InACoord.R & 1;
+			const HexInt Q1 = InACoord.Q & 1;
+			const HexInt R1 = InACoord.R & 1;
 			if constexpr (OffsetType == EHexOffsetLayout::FlatTopOddQ)
 			{
-				const int64 row = InACoord.R + (InACoord.Q - Q1) / 2;
+				const HexInt row = InACoord.R + (InACoord.Q - Q1) / 2;
 				return FOffsetCoord(InACoord.Q, row);
 			}
 			else if constexpr (OffsetType == EHexOffsetLayout::FlatTopEvenQ)
 			{
-				const int64 row = InACoord.R + (InACoord.Q + Q1) / 2;
+				const HexInt row = InACoord.R + (InACoord.Q + Q1) / 2;
 				return FOffsetCoord(InACoord.Q, row);
 			}
 			else if constexpr (OffsetType == EHexOffsetLayout::PointyTopOddR)
 			{
-				const int64 col = InACoord.Q + (InACoord.R - R1) / 2;
+				const HexInt col = InACoord.Q + (InACoord.R - R1) / 2;
 				return FOffsetCoord(col, InACoord.R);
 			}
 			else // PointyTopEvenR
 			{
-				const int64 col = InACoord.Q + (InACoord.R + R1) / 2;
+				const HexInt col = InACoord.Q + (InACoord.R + R1) / 2;
 				return FOffsetCoord(col, InACoord.R);
 			}
 		}
@@ -205,49 +228,40 @@ namespace HexMath
 			}
 		}
 	
-		inline double GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }
+		inline float GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }
 	
-		inline double GetEdgeLength(float InCircularRadius, int32 InSegmentCount)
+		inline float GetEdgeLength(float InCircularRadius, int32 InSegmentCount)
 		{
-			double A = GetAngle(InSegmentCount);
-			double SinValue = FMath::Sin(FMath::DegreesToRadians(A) / 2.);
+			float A = GetAngle(InSegmentCount);
+			float SinValue = FMath::Sin(FMath::DegreesToRadians(A) / 2.f);
 			return 2 * InCircularRadius * SinValue;
 		}
 	
-		inline double GetInRadius(float InCircularRadius, int32 InSegmentCount)
+		inline float GetInRadius(float InCircularRadius, int32 InSegmentCount)
 		{
-			double E = GetEdgeLength(InCircularRadius, InSegmentCount);
+			float E = GetEdgeLength(InCircularRadius, InSegmentCount);
 			return FMath::Sqrt(InCircularRadius * InCircularRadius - E * E / 4);
 		}
 	
 		//Q along UE X, R along UE Y
-		inline FVector AxialToWorld(int32 Q, int32 R, float InCircularRadius, float InZOffset = 0, bool InPointyTop = false)
-		{
-			// Axial (q,r) -> world XY
-			// Pointy-top:
-			//   x = size * sqrt(3) * (q + r/2)
-			//   y = size * 3/2 * r
-			// Flat-top:
-			//   x = size * 3/2 * q
-			//   y = size * sqrt(3) * (r + q/2)
-	
-			constexpr float Sqrt3 = 1.7320508075688772f;
-			float x = 0.f;
-			float y = 0.f;
-	
-			if (InPointyTop)
-			{
-				x = InCircularRadius * Sqrt3 * (static_cast<float>(Q) + static_cast<float>(R) * 0.5f);
-				y = InCircularRadius * 1.5f * static_cast<float>(R);
-			}
-			else
-			{
-				x = InCircularRadius * 1.5f * static_cast<float>(Q);
-				y = InCircularRadius * Sqrt3 * (static_cast<float>(R) + static_cast<float>(Q) * 0.5f);
-			}
-	
-			return FVector(x, y, InZOffset);
-		}
+		// inline FVector AxialToWorld(int32 Q, int32 R, float InCircularRadius, float InZOffset = 0, bool InPointyTop = false)
+		// {
+		// 	HexReal x;
+		// 	HexReal y;
+		//
+		// 	if (InPointyTop)
+		// 	{
+		// 		x = InCircularRadius * sqrt3 * (static_cast<float>(Q) + static_cast<float>(R) * 0.5f);
+		// 		y = InCircularRadius * 1.5f * static_cast<float>(R);
+		// 	}
+		// 	else
+		// 	{
+		// 		x = InCircularRadius * 1.5f * static_cast<float>(Q);
+		// 		y = InCircularRadius * sqrt3 * (static_cast<float>(R) + static_cast<float>(Q) * 0.5f);
+		// 	}
+		//
+		// 	return FVector(x, y, InZOffset);
+		// }
 	
 		// static FIntPoint WorldToAxial(const FVector& InWorldPoint, float InHexSize, bool InPointyTop = false)
 		// {
@@ -262,31 +276,31 @@ namespace HexMath
 		// 	return CubeRoundAxial(Ax.X / static_cast<float>(Stride), Ax.Y / static_cast<float>(Stride));
 		// }
 	
-		inline void BuildHexagonGrid(int32 InHexRadius, float InCircularRadius, 
-			const TFunctionRef<void(int32, int32, const FVector&)>& InHandler, 
-			float InZOffset = 0, bool InPointyTop = false)
-		{
-			for (int32 q = -InHexRadius; q <= InHexRadius; ++q)
-			{
-				const int32 r1 = FMath::Max(-InHexRadius, -q - InHexRadius);
-				const int32 r2 = FMath::Min( InHexRadius, -q + InHexRadius);
-	
-				for (int32 r = r1; r <= r2; ++r)
-				{
-					const FVector Loc = AxialToWorld(q, r, InCircularRadius, InZOffset, InPointyTop);
-					//UE_LOG(LogTemp, Warning, TEXT("%2d : %2d\t%5.2f : %2.2f"), q, r, Loc.X, Loc.Y);
-					InHandler(q, r, Loc);
-				}
-			}
-		}
+		// inline void BuildHexagonGrid(int32 InHexRadius, float InCircularRadius, 
+		// 	const TFunctionRef<void(int32, int32, const FVector&)>& InHandler, 
+		// 	float InZOffset = 0, bool InPointyTop = false)
+		// {
+		// 	for (int32 q = -InHexRadius; q <= InHexRadius; ++q)
+		// 	{
+		// 		const int32 r1 = FMath::Max(-InHexRadius, -q - InHexRadius);
+		// 		const int32 r2 = FMath::Min( InHexRadius, -q + InHexRadius);
+		//
+		// 		for (int32 r = r1; r <= r2; ++r)
+		// 		{
+		// 			const FVector Loc = AxialToWorld(q, r, InCircularRadius, InZOffset, InPointyTop);
+		// 			//UE_LOG(LogTemp, Warning, TEXT("%2d : %2d\t%5.2f : %2.2f"), q, r, Loc.X, Loc.Y);
+		// 			InHandler(q, r, Loc);
+		// 		}
+		// 	}
+		// }
 	}
 
 	namespace HexMathOffset
 	{
 		
 	
-		constexpr double GetH(float InCircularRadius) { return InCircularRadius * sqrt3; } //flat-top
-		constexpr double GetW(float InCircularRadius) { return InCircularRadius * sqrt3; } //pointy-top
+		constexpr HexReal GetH(float InCircularRadius) { return InCircularRadius * sqrt3; } //flat-top
+		constexpr HexReal GetW(float InCircularRadius) { return InCircularRadius * sqrt3; } //pointy-top
 	
 		template<EHexOffsetLayout OffsetType>
 		FOffsetRealCoord ColBasis(float InCircularRadius)
@@ -332,28 +346,28 @@ namespace HexMath
 		template<EHexOffsetLayout OffsetType>
 		FOffsetRealCoord WorldSize(uint32 NumCols, uint32 NumRows, float R)
 		{
-			const double H = sqrt3 * R;      // sqrt(3)*R
-			const double W = sqrt3 * R;      // sqrt(3)*R
+			const HexReal H = sqrt3 * R;      // sqrt(3)*R
+			const HexReal W = sqrt3 * R;      // sqrt(3)*R
 
 			if constexpr (bIsFlat<OffsetType>)
 			{
 				// flat-top: stepX = 1.5R, halfExtentX = R
-				const double SizeRight = (NumCols - 1) * 1.5 * R + 2.0 * R;
+				const HexReal SizeRight = (NumCols - 1) * 1.5 * R + 2.0 * R;
 
 				// height: stepY = H, плюс запас на паритет (+0.5H) и вершины (+0.5H)
 				// Консервативно: H*(NumRows + 0.5)
-				const double SizeUp = NumRows * H + 0.5 * H;
+				const HexReal SizeUp = NumRows * H + 0.5 * H;
 
 				return FOffsetRealCoord(SizeRight, SizeUp);
 			}
 			else
 			{
 				// pointy-top: stepY = 1.5R, halfExtentY = R
-				const double SizeUp = (NumRows - 1) * 1.5 * R + 2.0 * R;
+				const HexReal SizeUp = (NumRows - 1) * 1.5 * R + 2.0 * R;
 
 				// width: stepX = W, плюс возможный паритет (+0.5W) и halfExtent (+0.5W)
 				// Консервативно: W*(NumCols + 0.5)
-				const double SizeRight = NumCols * W + 0.5 * W;
+				const HexReal SizeRight = NumCols * W + 0.5 * W;
 
 				return FOffsetRealCoord(SizeRight, SizeUp);
 			}
@@ -380,12 +394,12 @@ namespace HexMath
 		
 		inline FOffsetCoord OffsetCellToChunk(const FOffsetCoord& InCellCoord, uint32 NumCols, uint32 NumRows)
 		{
-			int64 Rc = InCellCoord.Right / NumCols;
-			int64 Ri = InCellCoord.Right % NumCols;
+			HexInt Rc = InCellCoord.Right / NumCols;
+			HexInt Ri = InCellCoord.Right % NumCols;
 			if (Ri < 0) Rc--;
 	
-			int64 Upc = InCellCoord.Up / NumRows;
-			int64 Upi = InCellCoord.Up % NumRows;
+			HexInt Upc = InCellCoord.Up / NumRows;
+			HexInt Upi = InCellCoord.Up % NumRows;
 			if (Upi < 0) Upc--;
 	
 			FOffsetCoord ChunkCoord(Rc,Upc);
@@ -405,8 +419,8 @@ namespace HexMath
 		template<EHexOffsetLayout OffsetType>
 		FOffsetRealCoord SnapPointShift(float R)
 		{
-			const double H = sqrt3 * R;
-			const double W = sqrt3 * R;
+			const HexReal H = sqrt3 * R;
+			const HexReal W = sqrt3 * R;
 
 			if constexpr (bIsFlat<OffsetType>)
 			{

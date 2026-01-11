@@ -230,3 +230,22 @@ TOptional<HexMath::FAxialCoord> UHexagonChunkGrid::WorldToAxialCellCoord(const F
 	return CellCoord;
 }
 
+UHexagonChunkGrid::FNodeRef UHexagonChunkGrid::GetNeighbour(const FNodeRef& NodeRef, const int32 NeighbourIndex) const
+{
+	if (NeighbourIndex >= HexMath::HexMathAxial::AxialNeighbourCount)
+	{
+		return FNodeRef();
+	}
+	
+	FNodeRef N = NodeRef + HexMath::HexMathAxial::AxialNeighboursShifts[NeighbourIndex];
+	return N;
+}
+
+void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& Start, const HexMath::FAxialCoord& End,
+	TArray<HexMath::FAxialCoord>& OutPath)
+{
+	//FGraphAStar<UHexagonChunkGrid> Pathfinder(*this);
+	
+	//TArray<HexMath::FAxialCoord> OutPathIndices;
+	//const EGraphAStarResult Result = Pathfinder.FindPath(Start, End, *this, OutPathIndices);
+}

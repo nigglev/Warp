@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ECellType.h"
+#include "GraphAStar.h"
 #include "HexMath.h"
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
@@ -37,6 +38,24 @@ struct FChunkData
 	}
 };
 
+class FSearchNode : public TSharedFromThis<FSearchNode>
+{
+public:
+	// virtual ~FSearchNode() { }
+	// virtual void GetChildren(TArray<TSharedPtr<FSearchNode>>& OutChildren) { }
+	// virtual ESearchNodeType GetType() const = 0;
+	// virtual FString GetText() const = 0;
+	// virtual FString GetObjectPath() const = 0;
+	//
+	// float GetTotalScore() const { return TotalScore; }
+	// float GetMaxScore() const { return MaxScore; }
+
+protected:
+	float TotalScore = 0;
+	float MaxScore = 0;
+};
+
+
 /**
  * 
  */
@@ -50,6 +69,38 @@ public:
 	
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
+	
+	using FNodeRef = HexMath::FAxialCoord;
+	
+	bool IsValidRef(FNodeRef NodeRef) const { return NodeRef.Q != INT64_MAX && NodeRef.R != INT64_MAX; }
+	FNodeRef GetNeighbour(const FNodeRef& NodeRef, const int32 NeighbourIndex) const;
+	
+	FVector::FReal GetHeuristicScale() const { return 1; }
+	
+	FVector::FReal GetHeuristicCost(const FNodeRef& Start, const FNodeRef& End) const
+	{
+		if (!IsValidRef(Start) || !IsValidRef(End))
+		{
+			return TNumericLimits<FVector::FReal>::Max();
+		}
+		return HexMath::AxialDistance(Start, End);
+	}
+	
+	// Стоимость шага (сюда можно подмешать “вес тайла”)
+	FVector::FReal GetTraversalCost(const FNodeRef& Start, const FNodeRef& End) const
+	{
+		return 1;
+	}
+	
+	bool IsTraversalAllowed(const FNodeRef& Start, const FNodeRef& End) const
+	{
+		return true; //Graph.IsValidRef(B) && !Graph.Blocked.Contains(B);
+	}
+
+	bool WantsPartialSolution() const { return false; }
+
+	// Если хочешь, чтобы Start тоже попал в OutPath
+	bool ShouldIncludeStartNodeInPath() const { return true; }
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
@@ -71,6 +122,8 @@ private:
 	
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
 	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
+	
+	void FindPath(const HexMath::FAxialCoord& Start, const HexMath::FAxialCoord& End, TArray<HexMath::FAxialCoord>& OutPath);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
