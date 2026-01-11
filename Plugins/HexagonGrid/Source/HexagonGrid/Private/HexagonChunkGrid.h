@@ -48,7 +48,8 @@ class HEXAGONGRID_API UHexagonChunkGrid : public UObject
 public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	
-	void SelectCell(const FVector& InPosition, ECellType InCellType);
+	void SelectCell(const FVector& InPosition);
+	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
@@ -68,7 +69,8 @@ private:
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 	
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	

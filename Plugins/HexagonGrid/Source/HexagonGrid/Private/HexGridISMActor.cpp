@@ -150,23 +150,7 @@ FVector AHexGridISMActor::GetExtent() const
 	return fSZ / 2;
 }
 
-void AHexGridISMActor::SelectCell(const FVector& InPosition)
-{
-	FVector LocalPosition = InPosition - GetActorLocation();
-	HexMath::FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(LocalPosition, HexSize_);
-	HexMath::FOffsetCoord OCoord = HexMath::HexMathAxial::WorldToOffset<HEX_LAYOUT>(Coord, HexSize_);
-	
-	if (!ensure(OCoord.Right >= 0 && OCoord.Up >= 0))
-		return;
-	
-	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
-		*ChunkCoord_.ToString(), *Coord.ToString(), *OCoord.ToString());
-	
-	int32 Index = GridSize_ * OCoord.Up + OCoord.Right;
-	SetSelectStatus(Index, ECellType::Selected);
-}
-
-void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
+void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected)
 {
 	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
@@ -177,24 +161,12 @@ void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, EC
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
-	SetSelectStatus(Index, InCellType);
+	SetSelectStatus(Index, InSelected);
 }
 
-AHexGridISMActor::FSelectStatus AHexGridISMActor::ChangeSelectStatus(int32 InIndex, ECellType InCellType)
+void AHexGridISMActor::SetSelectStatus(int32 InIndex, bool InSelected)
 {
-	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
-	if (InCellType == ECellType::Selected)
-		Cache.bSelected = !Cache.bSelected;
-	else if (InCellType == Cache.BaseStatus)
-		Cache.BaseStatus = ECellType::Opened;
-	else
-		Cache.BaseStatus = InCellType;
-	return Cache;
-}
-
-void AHexGridISMActor::SetSelectStatus(int32 InIndex, ECellType InCellType)
-{
-	ChangeSelectStatus(InIndex, InCellType);
+	ChangeSelectStatus(InIndex, InSelected);
 	
 	FLinearColor Clr = GetColor(InIndex);
 	float ZOffset = GetZOffset(InIndex);
@@ -202,10 +174,46 @@ void AHexGridISMActor::SetSelectStatus(int32 InIndex, ECellType InCellType)
 	SetColor(InIndex, Clr, ZOffset);
 }
 
+void AHexGridISMActor::ChangeSelectStatus(int32 InIndex, bool InSelected)
+{
+	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+	Cache.bSelected = InSelected;
+}
+
+void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
+{
+	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
+	
+	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
+		return;
+	
+	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
+		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
+	
+	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
+	SetCellType(Index, InCellType);
+}
+
+void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType)
+{
+	ChangeCellStatus(InIndex, InCellType);
+	
+	FLinearColor Clr = GetColor(InIndex);
+	float ZOffset = GetZOffset(InIndex);
+		
+	SetColor(InIndex, Clr, ZOffset);
+}
+
+void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType)
+{
+	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+	Cache.BaseStatus = InCellType;
+}
+
 FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
 {
 	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
-	return Status ? Status->bSelected ? Colors_[static_cast<int32>(ECellType::Selected)] 
+	return Status ? Status->bSelected ? SelectedColor_ 
 		: Colors_[static_cast<int32>(Status->BaseStatus)] 
 			: Colors_[static_cast<int32>(ECellType::Opened)];
 }
@@ -213,7 +221,7 @@ FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
 float AHexGridISMActor::GetZOffset(int32 InIndex) const
 {
 	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
-	return Status ? Status->bSelected ? ZOffsets_[static_cast<int32>(ECellType::Selected)] 
+	return Status ? Status->bSelected ? SelectedZOffset_ 
 		: ZOffsets_[static_cast<int32>(Status->BaseStatus)] 
 			: ZOffsets_[static_cast<int32>(ECellType::Opened)];
 }

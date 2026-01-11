@@ -90,6 +90,8 @@ protected:
 	class UInputAction* Action_CaptureCell;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_CloseCell;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* Action_OpenCell;
 	
 	void CheckClientLoading();
 	
@@ -97,6 +99,8 @@ protected:
 	
 	template<ECellType InCellType>
 	void OnCellAction(const FInputActionValue& Value);
+	
+	void OnSelectAction(const FInputActionValue& Value);
 
 	UPROPERTY()
 	ABaseUnitActor* SelectedUnit = nullptr;

@@ -8,6 +8,5 @@ enum class ECellType : uint8
 	Opened = 0,
 	Captured,
 	Closed	,
-	Selected,
 	MAX_VALUE
 };

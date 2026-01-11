@@ -24,7 +24,8 @@ public:
 	virtual void Deinitialize() override;
 
 	void OnChangeObserverPosition(const FVector& InNewPosition);
-	void SelectCell(const FVector& InPosition, ECellType InCellType);
+	void SelectCell(const FVector& InPosition);
+	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	

@@ -89,6 +89,9 @@ namespace HexMath
 	
 	inline FAxialCoord operator+(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q + RHS.Q, LHS.R + RHS.R); }
 	inline FAxialCoord operator-(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q - RHS.Q, LHS.R - RHS.R); }
+	
+	inline bool operator==(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q == RHS.Q && LHS.R == RHS.R; }
+	inline bool operator!=(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q != RHS.Q || LHS.R != RHS.R; }
 
 	namespace HexMathAxial
 	{

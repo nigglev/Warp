@@ -29,9 +29,8 @@ public:
 	
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
-	void SelectCell(const FVector& InPosition);
-	
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
 
 protected:
 	virtual void BeginPlay() override;
@@ -74,8 +73,13 @@ protected:
 	float FadeLength_ = 500.f;
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
+	FLinearColor SelectedColor_ = FLinearColor::Gray;
+	
+	UPROPERTY(EditAnywhere, Category="Grid")
+	float SelectedZOffset_ = 0;
+	
+	UPROPERTY(EditAnywhere, Category="Grid")
 	FLinearColor Colors_[static_cast<int32>(ECellType::MAX_VALUE)] ={
-		FLinearColor::Gray,
 		FLinearColor::Green,
 		FLinearColor::Black,
 		FLinearColor::Yellow,
@@ -83,7 +87,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
 	float ZOffsets_[static_cast<int32>(ECellType::MAX_VALUE)] ={
-		-4,
 		-2,
 		0,
 		2,
@@ -112,8 +115,12 @@ protected:
 		bool bSelected = false;
 	};
 	
-	FSelectStatus ChangeSelectStatus(int32 InIndex, ECellType InCellType);
-	void SetSelectStatus(int32 InIndex, ECellType InCellType);
+	void ChangeCellStatus(int32 InIndex, ECellType InCellType);
+	void ChangeSelectStatus(int32 InIndex, bool InSelected);
+	
+	void SetCellType(int32 InIndex, ECellType InCellType);
+	void SetSelectStatus(int32 InIndex, bool InSelected);
+	
 	FLinearColor GetColor(int32 InIndex) const;
 	float GetZOffset(int32 InIndex) const;
 	
