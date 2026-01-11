@@ -29,6 +29,7 @@ TOptional<UHexagonChunkGrid::FHexGridActorCDODataCache> UHexagonChunkGrid::GetHe
 	Cache.NumColsRows = CDO->GetGridSize();
 	Cache.BuildChunkAround = Settings->BuildChunkAround;
 	Cache.HexGridActorClass_ = Settings->HexGridActorClass_;
+	Cache.SelectRadius = Settings->SelectRadius;
 	
 	return Cache;
 }
@@ -115,11 +116,24 @@ void UHexagonChunkGrid::SelectCell(const FVector& InPosition, ECellType InCellTy
 	TOptional<HexMath::FAxialCoord> AxialCell = WorldToAxialCellCoord(InPosition);
 	if (!AxialCell.IsSet())
 		return;
+	
+	for (const HexMath::FAxialCoord& SelectedCell : SelectedCells_)
+	{
+		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(SelectedCell);
+		
+		SelectCell(NCell, CacheOpt->NumColsRows, ECellType::Selected);
+	}
+	SelectedCells_.Reset();
 
-	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), 1, 
+	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), CacheOpt->SelectRadius, 
 		[this, InCellType, NumColsRows = CacheOpt->NumColsRows] 
 			(const HexMath::FAxialCoord& InCell)
 	{
+		if (InCellType == ECellType::Selected)
+		{
+			SelectedCells_.Add(InCell);
+		}
+			
 		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InCell);
 		
 		SelectCell(NCell, NumColsRows, InCellType);

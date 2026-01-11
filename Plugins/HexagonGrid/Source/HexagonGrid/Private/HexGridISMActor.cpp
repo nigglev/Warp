@@ -28,7 +28,7 @@ AHexGridISMActor::AHexGridISMActor()
 	ISM_->SetUsingAbsoluteRotation(false);
 	ISM_->SetUsingAbsoluteScale(false);
 
-	ISM_->NumCustomDataFloats = 4; // R,G,B,A
+	ISM_->NumCustomDataFloats = 5; // R,G,B,A, ZOffset
 }
 
 void AHexGridISMActor::OnConstruction(const FTransform& Transform)
@@ -73,7 +73,8 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	const FRotator R90(0, 90, 0);
 	FRotator R = HexRotation_ ? R90 : FRotator::ZeroRotator;
 
-	HexMath::HexMathOffset::BuildHexagonGrid<HEX_LAYOUT>(InHexWidth, HexSize_, [&Transforms, &R, DetailDebug = DetailDebug_]
+	HexMath::HexMathOffset::BuildHexagonGrid<HEX_LAYOUT>(InHexWidth, HexSize_, 
+		[&Transforms, &R, DetailDebug = DetailDebug_, SizeScale = SizeScale_]
 		(const HexMath::FOffsetCoord& InOCoord, const FVector& InLoc)
 	{
 		if (DetailDebug)
@@ -81,7 +82,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 			UE_LOG(HexGridActorLog, Warning, TEXT("%llu : %llu\t%5.2f : %2.2f"), InOCoord.Right, InOCoord.Up, InLoc.X, InLoc.Y);
 		}
 		 
-		const FTransform Tr(R, InLoc, FVector::OneVector);
+		const FTransform Tr(R, InLoc, FVector(SizeScale, SizeScale, 1));
 		Transforms.Emplace(Tr);
 	});
 	
@@ -94,7 +95,8 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	{
 		const int32 Idx = BaseIndex + i;
 		FLinearColor Clr = GetColor(Idx);
-		SetColor(Idx, Clr);
+		float ZOffset = GetZOffset(Idx);
+		SetColor(Idx, Clr, ZOffset);
 	}
 	
 	UpdateMPC();
@@ -108,7 +110,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	}
 }
 
-void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor) const
+void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const
 {
 	if (ISM_ == nullptr)
 		return;
@@ -121,6 +123,7 @@ void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor) const
 	ISM_->SetCustomDataValue(InIndex, 1, InColor.G, false);
 	ISM_->SetCustomDataValue(InIndex, 2, InColor.B, false);
 	ISM_->SetCustomDataValue(InIndex, 3, InColor.A, false);
+	ISM_->SetCustomDataValue(InIndex, 4, InZOffset, false);
 }
 
 void AHexGridISMActor::UpdateMPC()
@@ -191,11 +194,12 @@ AHexGridISMActor::FSelectStatus AHexGridISMActor::ChangeSelectStatus(int32 InInd
 
 void AHexGridISMActor::SetSelectStatus(int32 InIndex, ECellType InCellType)
 {
-	FSelectStatus Status = ChangeSelectStatus(InIndex, InCellType);
+	ChangeSelectStatus(InIndex, InCellType);
 	
-	FLinearColor Clr = Status.bSelected ? Colors_[static_cast<int32>(ECellType::Selected)] : Colors_[static_cast<int32>(Status.BaseStatus)];
+	FLinearColor Clr = GetColor(InIndex);
+	float ZOffset = GetZOffset(InIndex);
 		
-	SetColor(InIndex, Clr);
+	SetColor(InIndex, Clr, ZOffset);
 }
 
 FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
@@ -204,4 +208,12 @@ FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
 	return Status ? Status->bSelected ? Colors_[static_cast<int32>(ECellType::Selected)] 
 		: Colors_[static_cast<int32>(Status->BaseStatus)] 
 			: Colors_[static_cast<int32>(ECellType::Opened)];
+}
+
+float AHexGridISMActor::GetZOffset(int32 InIndex) const
+{
+	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
+	return Status ? Status->bSelected ? ZOffsets_[static_cast<int32>(ECellType::Selected)] 
+		: ZOffsets_[static_cast<int32>(Status->BaseStatus)] 
+			: ZOffsets_[static_cast<int32>(ECellType::Opened)];
 }

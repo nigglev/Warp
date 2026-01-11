@@ -27,4 +27,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, Config, Category="HexGrid")
 	int32 BuildChunkAround = 1;
+	
+	UPROPERTY(EditAnywhere, Config, Category="HexGrid")
+	int32 SelectRadius = 1;
 };

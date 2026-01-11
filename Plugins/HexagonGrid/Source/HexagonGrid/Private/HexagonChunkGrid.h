@@ -59,6 +59,7 @@ private:
 		float HexSize = 0;
 		uint32 NumColsRows = 0;
 		uint32 BuildChunkAround = 0;
+		int32 SelectRadius = 1;
 		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
 	};
 	static TOptional<FHexGridActorCDODataCache> GetHexGridActorCDODataCache();
@@ -75,4 +76,6 @@ private:
 	TArray<FChunkData> ChunksList_;
 	
 	FHashTable ChunkIndexes_;
+	
+	TArray<HexMath::FAxialCoord> SelectedCells_;
 };

@@ -38,7 +38,7 @@ protected:
 	
 	void BuildHexagon(uint32 Radius);
 	
-	void SetColor(int32 InIndex, const FLinearColor InColor) const;
+	void SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const;
 	
 	UFUNCTION(CallInEditor, Category="Grid")
 	void UpdateMPC();
@@ -62,6 +62,9 @@ protected:
 	float ZOffset_ = 0.f;
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
+	float SizeScale_ = 1.f;
+	
+	UPROPERTY(EditAnywhere, Category="Grid")
 	bool HexRotation_ = false;
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
@@ -76,6 +79,14 @@ protected:
 		FLinearColor::Green,
 		FLinearColor::Black,
 		FLinearColor::Yellow,
+	};
+	
+	UPROPERTY(EditAnywhere, Category="Grid")
+	float ZOffsets_[static_cast<int32>(ECellType::MAX_VALUE)] ={
+		-4,
+		-2,
+		0,
+		2,
 	};
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
@@ -104,6 +115,7 @@ protected:
 	FSelectStatus ChangeSelectStatus(int32 InIndex, ECellType InCellType);
 	void SetSelectStatus(int32 InIndex, ECellType InCellType);
 	FLinearColor GetColor(int32 InIndex) const;
+	float GetZOffset(int32 InIndex) const;
 	
 	TMap<int32, FSelectStatus> SelectStatus_;
 };
