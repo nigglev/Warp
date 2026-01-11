@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
 #include "HexMath.h"
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
@@ -47,7 +48,7 @@ class HEXAGONGRID_API UHexagonChunkGrid : public UObject
 public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	
-	void SelectCell(const FVector& InPosition);
+	void SelectCell(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
@@ -66,7 +67,7 @@ private:
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 	
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	

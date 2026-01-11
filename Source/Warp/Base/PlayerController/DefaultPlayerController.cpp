@@ -140,7 +140,9 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRotateCameraReleased);
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRotateCameraReleased);
 
-		EIC->BindAction(LMBAction, ETriggerEvent::Started, this, &ADefaultPlayerController::OnLMBStarted);
+		EIC->BindAction(Action_SelectCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Selected>);
+		EIC->BindAction(Action_CaptureCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Captured>);
+		EIC->BindAction(Action_CloseCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Closed>);
 	}
 }
 
@@ -184,9 +186,8 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	}
 }
 
-
-
-void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
+template<ECellType InCellType>
+void ADefaultPlayerController::OnCellAction(const FInputActionValue& Value)
 {
 	FVector P;
 	if (GetMouseRayPlaneZIntersection(0.0f, P))
@@ -200,7 +201,7 @@ void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
 			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 			if (GridWorldSubsystem != nullptr)
 			{
-				GridWorldSubsystem->SelectCell(P);
+				GridWorldSubsystem->SelectCell(P, InCellType);
 			}
 		}
 	}

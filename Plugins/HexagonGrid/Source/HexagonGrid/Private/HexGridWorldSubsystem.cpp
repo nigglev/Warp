@@ -28,7 +28,7 @@ void UHexGridWorldSubsystem::OnChangeObserverPosition(const FVector& InNewPositi
 	ChunkGrid_->OnChangeObserverPosition(InNewPosition);
 }
 
-void UHexGridWorldSubsystem::SelectCell(const FVector& InPosition)
+void UHexGridWorldSubsystem::SelectCell(const FVector& InPosition, ECellType InCellType)
 {
-	ChunkGrid_->SelectCell(InPosition);
+	ChunkGrid_->SelectCell(InPosition, InCellType);
 }

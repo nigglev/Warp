@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
 #include "HexMath.h"
 #include "GameFramework/Actor.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -30,15 +31,12 @@ public:
 	
 	void SelectCell(const FVector& InPosition);
 	
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
 
 protected:
 	virtual void BeginPlay() override;
 	
 	void BuildHexagon(uint32 Radius);
-	
-	UFUNCTION(CallInEditor, Category="Grid")
-	void SetColors();
 	
 	void SetColor(int32 InIndex, const FLinearColor InColor) const;
 	
@@ -47,7 +45,7 @@ protected:
 	
 	UFUNCTION(CallInEditor, Category="Grid")
 	void Rebuild();
-
+	
 	UPROPERTY(EditAnywhere, Category="Grid")
 	TObjectPtr<UStaticMesh> HexTileMesh_;
 	
@@ -73,10 +71,12 @@ protected:
 	float FadeLength_ = 500.f;
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
-	FLinearColor NormalColor_ = FLinearColor::White;
-	
-	UPROPERTY(EditAnywhere, Category="Grid")
-	FLinearColor SelectedColor_ = FLinearColor::White;
+	FLinearColor Colors_[static_cast<int32>(ECellType::MAX_VALUE)] ={
+		FLinearColor::Gray,
+		FLinearColor::Green,
+		FLinearColor::Black,
+		FLinearColor::Yellow,
+	};
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
 	double GlowIntensity_ = 1;
@@ -94,4 +94,16 @@ protected:
 	TObjectPtr<UMaterialParameterCollection> MPC_;
 	
 	HexMath::FOffsetCoord ChunkCoord_;
+
+	struct FSelectStatus
+	{
+		ECellType BaseStatus = ECellType::Opened;
+		bool bSelected = false;
+	};
+	
+	FSelectStatus ChangeSelectStatus(int32 InIndex, ECellType InCellType);
+	void SetSelectStatus(int32 InIndex, ECellType InCellType);
+	FLinearColor GetColor(int32 InIndex) const;
+	
+	TMap<int32, FSelectStatus> SelectStatus_;
 };

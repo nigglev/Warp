@@ -106,7 +106,7 @@ int32 UHexagonChunkGrid::FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoor
 	return INDEX_NONE;
 }
 
-void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
+void UHexagonChunkGrid::SelectCell(const FVector& InPosition, ECellType InCellType)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -116,20 +116,17 @@ void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
 	if (!AxialCell.IsSet())
 		return;
 
-	HexMath::FOffsetCoord  OffsetCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(AxialCell.GetValue());
-	
-	SelectCell(OffsetCell, CacheOpt->NumColsRows);
-
-	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), 1, [this, NumColsRows = CacheOpt->NumColsRows] 
+	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), 1, 
+		[this, InCellType, NumColsRows = CacheOpt->NumColsRows] 
 			(const HexMath::FAxialCoord& InCell)
 	{
 		HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InCell);
 		
-		SelectCell(NCell, NumColsRows);
+		SelectCell(NCell, NumColsRows, InCellType);
 	});
 }
 
-void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows)
+void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType)
 {
 	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, InNumColsRows, InNumColsRows);
 	
@@ -138,7 +135,7 @@ void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, u
 	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
 	if (ChunkIndex != INDEX_NONE)
 	{
-		ChunksList_[ChunkIndex].ChunkActor->SelectCell(InOffsetCoord);
+		ChunksList_[ChunkIndex].ChunkActor->SelectCell(InOffsetCoord, InCellType);
 	}
 }
 

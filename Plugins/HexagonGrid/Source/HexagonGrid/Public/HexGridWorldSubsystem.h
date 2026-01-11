@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "HexGridWorldSubsystem.generated.h"
 
@@ -23,7 +24,7 @@ public:
 	virtual void Deinitialize() override;
 
 	void OnChangeObserverPosition(const FVector& InNewPosition);
-	void SelectCell(const FVector& InPosition);
+	void SelectCell(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	

@@ -93,7 +93,8 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	for (int32 i = 0; i < Transforms.Num(); ++i)
 	{
 		const int32 Idx = BaseIndex + i;
-		SetColor(Idx, NormalColor_);
+		FLinearColor Clr = GetColor(Idx);
+		SetColor(Idx, Clr);
 	}
 	
 	UpdateMPC();
@@ -105,15 +106,6 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 		FVector Pos = GetActorLocation() + GetExtent();
 		DrawDebugBox(GetWorld(), Pos, GetExtent(), FColor::Green, false, DebugBoundsTime_);
 	}
-}
-
-void AHexGridISMActor::SetColors()
-{
-	for (int32 Idx = 0; Idx < ISM_->GetNumInstances(); ++Idx)
-	{
-		SetColor(Idx, NormalColor_);
-	}
-	ISM_->MarkRenderStateDirty();
 }
 
 void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor) const
@@ -168,10 +160,10 @@ void AHexGridISMActor::SelectCell(const FVector& InPosition)
 		*ChunkCoord_.ToString(), *Coord.ToString(), *OCoord.ToString());
 	
 	int32 Index = GridSize_ * OCoord.Up + OCoord.Right;
-	SetColor(Index, SelectedColor_);
+	SetSelectStatus(Index, ECellType::Selected);
 }
 
-void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord)
+void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
 {
 	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
@@ -182,5 +174,34 @@ void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord)
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
-	SetColor(Index, SelectedColor_);
+	SetSelectStatus(Index, InCellType);
+}
+
+AHexGridISMActor::FSelectStatus AHexGridISMActor::ChangeSelectStatus(int32 InIndex, ECellType InCellType)
+{
+	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+	if (InCellType == ECellType::Selected)
+		Cache.bSelected = !Cache.bSelected;
+	else if (InCellType == Cache.BaseStatus)
+		Cache.BaseStatus = ECellType::Opened;
+	else
+		Cache.BaseStatus = InCellType;
+	return Cache;
+}
+
+void AHexGridISMActor::SetSelectStatus(int32 InIndex, ECellType InCellType)
+{
+	FSelectStatus Status = ChangeSelectStatus(InIndex, InCellType);
+	
+	FLinearColor Clr = Status.bSelected ? Colors_[static_cast<int32>(ECellType::Selected)] : Colors_[static_cast<int32>(Status.BaseStatus)];
+		
+	SetColor(InIndex, Clr);
+}
+
+FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
+{
+	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
+	return Status ? Status->bSelected ? Colors_[static_cast<int32>(ECellType::Selected)] 
+		: Colors_[static_cast<int32>(Status->BaseStatus)] 
+			: Colors_[static_cast<int32>(ECellType::Opened)];
 }
