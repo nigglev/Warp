@@ -3,8 +3,10 @@
 
 namespace HexMath
 {
-	using HexReal = double;
-	using HexInt = int64;
+	using HexReal = float;
+	using HexInt = int32;
+	
+	static_assert(std::is_signed_v<HexInt>, "HexInt must be signed");
 	
 	static constexpr bool bIsInt64 = std::is_same_v<HexInt, int64>;
 	
@@ -109,11 +111,11 @@ namespace HexMath
 		return Hash;
 	}
 	
-	inline HexReal AxialDistance(const FAxialCoord& LHS, const FAxialCoord& RHS)
+	inline HexInt AxialDistance(const FAxialCoord& LHS, const FAxialCoord& RHS)
 	{
 		const HexInt dq = LHS.Q - RHS.Q;
 		const HexInt dr = LHS.R - RHS.R;
-		return static_cast<HexReal>(FMath::Abs(dq) + FMath::Abs(dr) + FMath::Abs(dq + dr)) / 2.0;
+		return (FMath::Abs(dq) + FMath::Abs(dr) + FMath::Abs(dq + dr)) / 2;
 	}
 
 	namespace HexMathAxial
@@ -392,8 +394,11 @@ namespace HexMath
 			}
 		}
 		
-		inline FOffsetCoord OffsetCellToChunk(const FOffsetCoord& InCellCoord, uint32 NumCols, uint32 NumRows)
+		inline FOffsetCoord OffsetCellToChunk(const FOffsetCoord& InCellCoord, HexInt NumCols, HexInt NumRows)
 		{
+			if (!ensure(NumCols > 0 && NumRows > 0)) 
+				return FOffsetCoord(0,0);
+			
 			HexInt Rc = InCellCoord.Right / NumCols;
 			HexInt Ri = InCellCoord.Right % NumCols;
 			if (Ri < 0) Rc--;

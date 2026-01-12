@@ -58,10 +58,10 @@ void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 	{
 		CurrentChunkCoord_ = ObserverChunkCoord;
 		
-		uint32 iT = CacheOpt->BuildChunkAround;
+		int32 iT = CacheOpt->BuildChunkAround;
 		
-		for (int64 Idx = CurrentChunkCoord_.Up - iT; Idx <= CurrentChunkCoord_.Up + iT; ++Idx)
-			for (int64 Jdx = CurrentChunkCoord_.Right - iT; Jdx <= CurrentChunkCoord_.Right + iT; ++Jdx)
+		for (HexInt Idx = CurrentChunkCoord_.Up - iT; Idx <= CurrentChunkCoord_.Up + iT; ++Idx)
+			for (HexInt Jdx = CurrentChunkCoord_.Right - iT; Jdx <= CurrentChunkCoord_.Right + iT; ++Jdx)
 			{
 				FOffsetCoord ChunkCoord(Jdx, Idx);
 				int32 ChunkIndex = FindChunkIndex(ChunkCoord);
@@ -201,7 +201,7 @@ TOptional<HexMath::FOffsetCoord> UHexagonChunkGrid::WorldToChunkCoord(const FVec
 	using namespace HexMath::HexMathOffset;
 	
 	float HexSize = CacheOpt->HexSize;
-	uint32 NumColsRows = CacheOpt->NumColsRows;
+	int32 NumColsRows = CacheOpt->NumColsRows;
 	
 	FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(InWorldPoint, HexSize);
 	
@@ -244,6 +244,124 @@ UHexagonChunkGrid::FNodeRef UHexagonChunkGrid::GetNeighbour(const FNodeRef& Node
 void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& Start, const HexMath::FAxialCoord& End,
 	TArray<HexMath::FAxialCoord>& OutPath)
 {
+	OutPath.Reset();
+
+    // Быстрые случаи
+    if (Start == End)
+    {
+        OutPath.Add(Start);
+        return;
+    }
+
+    // Эти функции/проверки подставь под свою сетку:
+    // if (!IsValidCoord(Start) || !IsValidCoord(End)) return;
+    // if (!IsWalkable(Start) || !IsWalkable(End)) return;
+
+    struct FOpenNode
+    {
+        HexMath::FAxialCoord Coord;
+        int32 F = 0;   // g + h
+        int32 G = 0;   // стоимость от Start
+    };
+
+    // Min-heap по F: меньший F должен быть "наверху".
+    // В UE heap-алгоритмах часто нужно инвертировать сравнение для min-heap.
+    auto MinHeapPred = [](const FOpenNode& A, const FOpenNode& B)
+    {
+        return A.F > B.F; // меньше F = выше приоритет
+    };
+
+    TArray<FOpenNode> Open;
+    Open.Reserve(256);
+
+    TMap<HexMath::FAxialCoord, int32> GScore;
+    GScore.Reserve(256);
+    GScore.Add(Start, 0);
+
+    TMap<HexMath::FAxialCoord, HexMath::FAxialCoord> CameFrom;
+    CameFrom.Reserve(256);
+
+    // closed можно не хранить отдельно, но удобно
+    TSet<HexMath::FAxialCoord> Closed;
+    Closed.Reserve(256);
+
+    {
+        const int32 H = AxialDistance(Start, End);
+        Open.HeapPush(FOpenNode{ Start, /*F*/ H, /*G*/ 0 }, MinHeapPred);
+    }
+
+    while (Open.Num() > 0)
+    {
+        FOpenNode Current;
+        Open.HeapPop(Current, MinHeapPred, EAllowShrinking::No);
+
+        // Отбрасываем устаревшие записи (из-за отсутствия decrease-key)
+        const int32* BestG = GScore.Find(Current.Coord);
+        if (!BestG || Current.G != *BestG)
+        {
+            continue;
+        }
+
+        if (Current.Coord == End)
+        {
+            // Восстановление пути
+            TArray<HexMath::FAxialCoord> ReversePath;
+            ReversePath.Reserve(64);
+
+            HexMath::FAxialCoord C = End;
+            ReversePath.Add(C);
+
+            while (!(C == Start))
+            {
+                HexMath::FAxialCoord* Parent = CameFrom.Find(C);
+                if (!Parent)
+                {
+                    OutPath.Reset();
+                    return;
+                }
+                C = *Parent;
+                ReversePath.Add(C);
+            }
+
+            Algo::Reverse(ReversePath);
+            OutPath = MoveTemp(ReversePath);
+            return;
+        }
+
+        if (Closed.Contains(Current.Coord))
+        {
+            continue;
+        }
+        Closed.Add(Current.Coord);
+
+        for (int32 i = 0; i < HexMath::HexMathAxial::AxialNeighbourCount; ++i)
+        {
+            const HexMath::FAxialCoord N = Current.Coord + HexMath::HexMathAxial::AxialNeighboursShifts[i];
+
+            // Подставь свои проверки:
+            // if (!IsValidCoord(N)) continue;
+            // if (!IsWalkable(N)) continue;
+
+            // Стоимость шага: 1 (или возьми из тайла)
+            const int32 StepCost = GetTraversalCost(Current.Coord, N);
+            const int32 TentativeG = Current.G + StepCost;
+
+            int32* OldG = GScore.Find(N);
+            if (!OldG || TentativeG < *OldG)
+            {
+                CameFrom.Add(N, Current.Coord);
+                GScore.Add(N, TentativeG);
+
+                const int32 H = AxialDistance(N, End);
+                const int32 F = TentativeG + H;
+
+                Open.HeapPush(FOpenNode{ N, F, TentativeG }, MinHeapPred);
+            }
+        }
+    }
+
+    // пути нет
+    OutPath.Reset();
 	//FGraphAStar<UHexagonChunkGrid> Pathfinder(*this);
 	
 	//TArray<HexMath::FAxialCoord> OutPathIndices;

@@ -109,8 +109,8 @@ private:
 	struct FHexGridActorCDODataCache
 	{
 		float HexSize = 0;
-		uint32 NumColsRows = 0;
-		uint32 BuildChunkAround = 0;
+		int32 NumColsRows = 0;
+		int32 BuildChunkAround = 0;
 		int32 SelectRadius = 1;
 		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
 	};
