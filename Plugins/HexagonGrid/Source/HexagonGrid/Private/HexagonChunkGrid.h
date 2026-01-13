@@ -70,38 +70,6 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	using FNodeRef = HexMath::FAxialCoord;
-	
-	bool IsValidRef(FNodeRef NodeRef) const { return NodeRef.Q != INT64_MAX && NodeRef.R != INT64_MAX; }
-	FNodeRef GetNeighbour(const FNodeRef& NodeRef, const int32 NeighbourIndex) const;
-	
-	FVector::FReal GetHeuristicScale() const { return 1; }
-	
-	FVector::FReal GetHeuristicCost(const FNodeRef& Start, const FNodeRef& End) const
-	{
-		if (!IsValidRef(Start) || !IsValidRef(End))
-		{
-			return TNumericLimits<FVector::FReal>::Max();
-		}
-		return HexMath::AxialDistance(Start, End);
-	}
-	
-	// Стоимость шага (сюда можно подмешать “вес тайла”)
-	FVector::FReal GetTraversalCost(const FNodeRef& Start, const FNodeRef& End) const
-	{
-		return 1;
-	}
-	
-	bool IsTraversalAllowed(const FNodeRef& Start, const FNodeRef& End) const
-	{
-		return true; //Graph.IsValidRef(B) && !Graph.Blocked.Contains(B);
-	}
-
-	bool WantsPartialSolution() const { return false; }
-
-	// Если хочешь, чтобы Start тоже попал в OutPath
-	bool ShouldIncludeStartNodeInPath() const { return true; }
-	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
@@ -120,10 +88,12 @@ private:
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 	
+	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, bool InSelected);
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
 	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, ECellType InCellType);
 	
-	void FindPath(const HexMath::FAxialCoord& Start, const HexMath::FAxialCoord& End, TArray<HexMath::FAxialCoord>& OutPath);
+	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
@@ -133,4 +103,7 @@ private:
 	FHashTable ChunkIndexes_;
 	
 	TArray<HexMath::FAxialCoord> SelectedCells_;
+	TArray<HexMath::FAxialCoord> PFCells_;
+	
+	TSet<HexMath::FAxialCoord> Obstacles_;
 };
