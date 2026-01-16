@@ -13,4 +13,7 @@ UCLASS()
 class WARP_API ACampaignGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
+	
+public:
+	ACampaignGameMode();
 };
