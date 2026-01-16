@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EUnitSize.h"
+#include "JsonObjectConverter.h"
 
 #include "UnitDescription.generated.h"
 
@@ -25,7 +26,9 @@ struct FDescriptionVersions
 	void UpdateVersions(const FString& InDescriptionName, int32 InVersion)
 	{
 		FDescriptionVersion* Item = Items.FindByPredicate([InDescriptionName](const FDescriptionVersion& It){return It.DescriptionName == InDescriptionName;});
-		RETURN_ON_FAIL(DescriptionReaderLog, Item);
+		if (!ensure(Item != nullptr))
+			return;
+		
 		Item->Version = InVersion;
 
 		int32 Sum = 0;
@@ -51,12 +54,20 @@ struct FDescriptionVersions
 };
 
 USTRUCT(BlueprintType)
-struct FUnitDescription
+struct FBaseDescription
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName UnitTypeName = TEXT("TestUnit");
+	FName Name = TEXT("TestName");
+};
+
+USTRUCT(BlueprintType)
+struct FUnitDescription : public FBaseDescription
+{
+	GENERATED_BODY()
+
+	static inline const FName DescrName = TEXT("UnitDescriptions");
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EUnitSize UnitSize = EUnitSize::Medium;
@@ -69,13 +80,35 @@ struct FUnitDescription
 };
 
 USTRUCT(BlueprintType)
-struct FUnitDescriptions
+struct FBaseDescriptions
+{
+	GENERATED_BODY()
+	virtual ~FBaseDescriptions() = default;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Version = 0;
+
+	virtual FBaseDescription* Find(FName InDescrName) PURE_VIRTUAL(FBaseDescriptions::Find, return nullptr;);
+	virtual void JsonToDescription(const FString& InJsonString) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, );
+};
+
+USTRUCT(BlueprintType)
+struct FUnitDescriptions : public FBaseDescriptions
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Version = 0;
+	TArray<FUnitDescription> Items;
+
+	virtual FBaseDescription* Find(FName InDescrName) override
+	{
+		return Items.FindByPredicate([InDescrName](const FUnitDescription& InDescr) { return InDescr.Name == InDescrName; } );
+	}
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FUnitDescription> Items;	
+	virtual void JsonToDescription(const FString& InJsonString) override
+	{
+		if (!ensure(!InJsonString.IsEmpty()))
+			return;
+		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this);
+	}
 };

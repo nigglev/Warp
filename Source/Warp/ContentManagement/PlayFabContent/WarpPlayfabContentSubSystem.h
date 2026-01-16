@@ -8,8 +8,8 @@
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
+#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
-
 
 class UPlayFabStateManager;
 enum class EPlayFabContentStates : uint8;
@@ -41,9 +41,8 @@ public:
 	
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 
-	void LoginToPlayFab();
+	
 	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
-	void UpdateContent();
 	
 	bool IsClient() const;
 	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
@@ -53,12 +52,37 @@ public:
 	
 	FOnUnitsLoaded OnUnitsLoaded;
 
+	template<typename Descr>
+	const Descr& GetDescr(FName InDescrName)
+	{
+		FBaseDescriptions& Descriptions = Descriptions_.FindOrAdd(Descr::DescrName);
+		
+		const FBaseDescription* BaseDescr = Descriptions.Find(InDescrName);
+
+		const Descr* D = static_cast<const Descr*>(BaseDescr);
+		ensure(D);
+		return *D;
+	}
+
 protected:
+	bool LoginToPlayFab();
+
+	bool ReadDescriptions();
+
+	UFUNCTION()
+	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 
+	UPROPERTY()
+	UPlayFabLoginInfo* LoginInfo_ = nullptr;
+	PlayFabClientPtr ClientAPI_ = nullptr;
+	PlayFabServerPtr ServerAPI_ = nullptr;
+	
+	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
+	
 	bool bUnitsLoaded_ = false;
 
 	UPROPERTY()
 	UPlayFabStateManager* StateManager_ = nullptr;
-
 };
+

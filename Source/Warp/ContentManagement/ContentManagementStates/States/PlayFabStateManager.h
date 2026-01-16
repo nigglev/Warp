@@ -18,6 +18,9 @@ enum class EPlayFabContentStates : uint8;
  */
 struct WARP_API FPlayFabStateManagerData
 {
+	// TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> Versions;
+	// TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders;
+	// TUniquePtr<FDescriptionReaderBase> DescriptionReader;
 	FString DescriptionName = FString("");
 	virtual ~FPlayFabStateManagerData() {}
 };
@@ -39,7 +42,6 @@ protected:
 	void OnStateSet(const FPlayFabStateManagerData* InData = nullptr);
 
 	void HandleStartLogin();
-	void HandleProcessingLogin();
 	void HandleLoginFailure();
 	void HandleLoginSuccess();
 	

@@ -18,14 +18,10 @@ class UPlayFabLoginInfo : public UObject
 {
     GENERATED_BODY()
 public:
-    void SetLoginSuccess(const bool InLoginSuccess) { bLoginSuccess_ = InLoginSuccess; }
-    void SetWaitingToLogin(const bool InWaiting) { bLoginSuccess_ = InWaiting; }
     void SetPlayFabId(const FString& InPlayFabId) { PlayFabId_ = InPlayFabId; }
     void SetEntityToken(const FString& InEntityToken, const FDateTime& InExpiration) { EntityToken_ = InEntityToken; EntityTokenExpiration_ = InExpiration; }
     void SetSessionTicket(const FString& InSessionTicket) { SessionTicket_ = InSessionTicket; }
 
-    bool IsWaitingToLogin() const { return bWaitingToLogin_; }
-    bool GetLoginSuccess() const { return bLoginSuccess_; }
     FString GetPlayFabId() const { return PlayFabId_; }
     FString GetEntityToken() const { return EntityToken_; }
     FDateTime GetEntityTokenExpiration() const { return EntityTokenExpiration_; }
@@ -34,8 +30,7 @@ public:
     FOnLoginResult OnLoginResult;
 
 protected:
-    bool bWaitingToLogin_ = true;
-    bool bLoginSuccess_ = false;
+
     FString PlayFabId_;
     FString EntityToken_;
     FDateTime EntityTokenExpiration_;
@@ -43,10 +38,13 @@ protected:
 
 };
 
+class FDescriptionReaderBase;
 namespace WarpPlayfabContent
 {
+    using FReaderFactory = TFunction<TUniquePtr<FDescriptionReaderBase>()>;
+    TUniquePtr<FDescriptionReaderBase> CreateReaderByKey(const FName& Key);
+    
     TOptional<FString> ReadSecret();
-
     struct FServerTag
     {
         using TPlayFabAPI = PlayFab::UPlayFabServerAPI;
@@ -88,7 +86,6 @@ namespace WarpPlayfabContent
         SuccessDelegate.BindWeakLambda(InUserObject, [InUserObject](const typename TTag::TLoginWithCustomIDResult& InResult)
         {
             InUserObject->SetPlayFabId(InResult.PlayFabId);
-
             if (InResult.EntityToken.IsValid())
             {
                 InUserObject->SetEntityToken(InResult.EntityToken->EntityToken, InResult.EntityToken->TokenExpiration.mValue);

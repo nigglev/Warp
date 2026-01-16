@@ -7,20 +7,21 @@ enum class EPlayFabContentStates : uint8
 {
 	None = 0	UMETA(DisplayName="None"),
 	StartLogin = 1 UMETA(DisplayName="StartLogin"),
-	ProcessingLogin = 2 UMETA(DisplayName="ProcessingLogin"),
-	LoginFailure = 3 UMETA(DisplayName="LoginFailure"),
-	LoginSuccess = 4 UMETA(DisplayName="LoginSuccess"),
+	StartLoginEditor = 2 UMETA(DisplayName="StartLoginEditor"),
+	ProcessingLogin = 3 UMETA(DisplayName="ProcessingLogin"),
+	LoginFailure = 4 UMETA(DisplayName="LoginFailure"),
+	LoginSuccess = 5 UMETA(DisplayName="LoginSuccess"),
 	
-	SaveDescriptions = 5 UMETA(DisplayName="SaveDescriptions"),
+	SaveDescriptions = 6 UMETA(DisplayName="SaveDescriptions"),
 	
-	DownloadVersions = 6 UMETA(DisplayName="DownloadingVersions"),
-	CompareVersions = 7 UMETA(DisplayName="CheckingVersions"),
-	GettingOutdatedContent = 8 UMETA(DisplayName="GettingOutdatedContent"),
-	UpdatingContent = 9 UMETA(DisplayName="UpdatingContent"),
+	DownloadVersions = 7 UMETA(DisplayName="DownloadingVersions"),
+	CompareVersions = 8 UMETA(DisplayName="CheckingVersions"),
+	GettingOutdatedContent = 9 UMETA(DisplayName="GettingOutdatedContent"),
+	UpdatingContent = 10 UMETA(DisplayName="UpdatingContent"),
 	
-	UpdateDone = 10 UMETA(DisplayName="UpdatingDone"),
-	UpdatePending= 11 UMETA(DisplayName="UpdateFailed"),
+	UpdateDone = 11 UMETA(DisplayName="UpdatingDone"),
+	UpdatePending= 12 UMETA(DisplayName="UpdateFailed"),
 
-	Failure = 12 UMETA(DisplayName="Failure"),
-	Finished = 13 UMETA(DisplayName="Finished"),
+	Failure = 13 UMETA(DisplayName="Failure"),
+	Finished = 14 UMETA(DisplayName="Finished"),
 };

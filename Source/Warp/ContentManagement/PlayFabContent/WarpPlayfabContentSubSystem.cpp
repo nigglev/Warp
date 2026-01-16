@@ -8,13 +8,15 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
 #include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
+#include "Warp/Utils/WarpUtils.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
 
 UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 {
-    StateManager_ = CreateDefaultSubobject<UPlayFabStateManager>(TEXT("PFStateManager"));
+    //StateManager_ = CreateDefaultSubobject<UPlayFabStateManager>(TEXT("PFStateManager"));
+    LoginInfo_ = CreateDefaultSubobject<UPlayFabLoginInfo>(TEXT("LoginInfo"));
 }
 
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
@@ -34,51 +36,110 @@ UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* W
 void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);
-    StateManager_->SetOwner(this);
-    StateManager_->SetState(EPlayFabContentStates::StartLogin);
+    
+    Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
+    
+    bool bLoginAttemptSuccess = LoginToPlayFab();
+    RETURN_ON_FAIL(ContentLog, bLoginAttemptSuccess)
 }
 
-void UWarpPlayfabContentSubSystem::LoginToPlayFab()
+void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
 {
-    if (StateManager_->GetState() == EPlayFabContentStates::None || StateManager_->GetState() == EPlayFabContentStates::LoginFailure)
-        StateManager_->SetState(EPlayFabContentStates::StartLogin);
+    MG_FUNC_LABEL(ContentLog);
+    RETURN_ON_FAIL_T(ContentLog, InLoginRes, TEXT("Failed to Login"));
+    if (!IsUEEditorActive())
+    {
+        StateManager_ = NewObject<UPlayFabStateManager>(this);
+    }
     else
     {
-        MG_WARNING(ContentLog, TEXT("Already logged in"));
+        ReadDescriptions();
     }
 }
+
+bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
+{
+    MG_COND_ERROR(ContentLog, LoginInfo_ != nullptr, TEXT("LoginInfo_ already exist"));
+    LoginInfo_->OnLoginResult.AddUObject(this, &UWarpPlayfabContentSubSystem::OnLoginResult);
+    ENetMode NetMode = GetWorld()->GetNetMode();
+    bool bSuccess;
+    TOptional<FString> SecretKey = WarpPlayfabContent::ReadSecret();
+    if (SecretKey.IsSet() && NetMode != NM_Client)
+    {
+        UPlayFabRuntimeSettings* Settings = GetMutableDefault<UPlayFabRuntimeSettings>();
+        RETURN_ON_FAIL_BOOL(ContentLog, Settings != nullptr);
+        Settings->DeveloperSecretKey = SecretKey.GetValue();
+        MG_LOG(ContentLog, TEXT("PlayFab secret set"));
+        ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
+        MG_COND_ERROR(ContentLog, ServerAPI_ == nullptr, TEXT("Server API missing"));
+        bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FServerTag>(ServerAPI_, LoginInfo_, TEXT("DedicatedServer"));
+    }
+    else
+    {
+        ClientAPI_ = IPlayFabModuleInterface::Get().GetClientAPI();
+        MG_COND_ERROR(ContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
+        bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, LoginInfo_, TEXT("DevClient"));
+    }
+
+    return bSuccess;
+}
+
+bool UWarpPlayfabContentSubSystem::ReadDescriptions()
+{
+    const FString FolderDir = IsUEEditorActive()
+        ? FPaths::Combine(FPaths::ProjectDir(), TEXT("GameDataSource"))
+        : FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+
+    if (!IFileManager::Get().DirectoryExists(*FolderDir))
+    {
+        MG_ERROR(ContentLog, TEXT("GameDataSource directory does not exist: %s"), *FolderDir);
+        return false;
+    }
+
+    for (auto It = Descriptions_.CreateIterator(); It; ++It)
+    {
+        const FName DescriptionName = It.Key();
+        const FString FileName = DescriptionName.ToString() + TEXT(".json");
+        const FString JsonPath = FPaths::Combine(FolderDir, FileName);
+
+        FString JsonString;
+        if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
+        {
+            MG_ERROR(ContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
+            continue;
+        }
+
+        It.Value()->JsonToDescription(JsonString);
+    }
+    return true;
+}
+
 
 void UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FString& InDescriptionName)
 {
-    if (IsClient())
-    {
-        MG_ERROR(ContentLog, TEXT("Can't save to PlayFab from client"));
-        return;
-    }
-   
-    if (StateManager_->GetState() == EPlayFabContentStates::UpdatePending)
-    {
-        MG_ERROR(ContentLog, TEXT("Please update to latest version before saving to PlayFab"));
-        return;
-    }
-    FPlayFabStateManagerData StateData;
-    StateData.DescriptionName = InDescriptionName;
-    StateManager_->SetState(EPlayFabContentStates::SaveDescriptions, &StateData);
+    RETURN_ON_FAIL(ContentLog, IsUEEditorActive());
+    RETURN_ON_FAIL(ContentLog, !IsClient());
+    RETURN_ON_FAIL(ContentLog, ServerAPI_);
+    RETURN_ON_FAIL(ContentLog, !InDescriptionName.IsEmpty());
     
+    // if (!Versions_)
+    // {
+    // 	Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
+    // }
+    //
+    // if (!CurrentDescriptionReader_)
+    // {
+    // 	CurrentDescriptionReader_ = CreateReaderByKey(FName(*InDescriptionName));
+    // }
+    //
+    //
+    // bool bOk = CurrentDescriptionReader_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+    // RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to DescriptionReader from source"));
+    // bOk = Versions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+    // RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to VersionsReader from source"));
+    //
+    // CurrentDescriptionReader_->SaveToPlayFab(ServerAPI_, this);
 }
-
-void UWarpPlayfabContentSubSystem::UpdateContent()
-{
-    if (!IsClient())
-    {
-        if (StateManager_->GetState() != EPlayFabContentStates::UpdatePending)
-        {
-            MG_WARNING(ContentLog, TEXT("Nothing to update; You have latest version"));
-        }
-        StateManager_->SetState(EPlayFabContentStates::GettingOutdatedContent);    
-    }
-}
-
 
 void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult)
 {

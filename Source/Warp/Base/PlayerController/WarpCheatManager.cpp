@@ -16,18 +16,4 @@ void UWarpCheatManager::SaveDescriptionToPlayFab(const FString& InDescriptionNam
 	CS->SaveDescriptionToPlayFab(InDescriptionName);	
 }
 
-void UWarpCheatManager::UpdateContent()
-{
-	auto CS = UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
-	
-	CS->UpdateContent();	
-}
 
-void UWarpCheatManager::LoginToPlayFab()
-{
-	auto CS = UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
-	
-	CS->LoginToPlayFab();	
-}

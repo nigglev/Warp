@@ -6,6 +6,8 @@
 #include "DescriptionReaderBase.generated.h"
 
 
+struct FBaseDescriptions;
+class UWarpPlayFabContentManager;
 class UPlayFabStateManager;
 class UWarpPlayfabContentSubSystem;
 
@@ -35,5 +37,4 @@ public:
 	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
 	virtual bool ReadFromPlayFab(const FAnyPlayFabPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
 	virtual void UpdateDescriptionVersion() = 0;
-
 };

@@ -12,20 +12,20 @@
 
 DEFINE_LOG_CATEGORY_STATIC(PFStateLog, Log, All);
 
-using FReaderFactory = TFunction<TUniquePtr<FDescriptionReaderBase>()>;
-
-static TMap<FName, FReaderFactory> GReaderFactories = {
-	{ TEXT("UnitDescriptions"), [](){ return MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>(); } },
-};
-
-TUniquePtr<FDescriptionReaderBase> CreateReaderByKey(const FName& Key)
-{
-	if (const FReaderFactory* Factory = GReaderFactories.Find(Key))
-	{
-		return (*Factory)();
-	}
-	return nullptr;
-}
+// using FReaderFactory = TFunction<TUniquePtr<FDescriptionReaderBase>()>;
+//
+// static TMap<FName, FReaderFactory> GReaderFactories = {
+// 	{ TEXT("UnitDescriptions"), [](){ return MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>(); } },
+// };
+//
+// TUniquePtr<FDescriptionReaderBase> CreateReaderByKey(const FName& Key)
+// {
+// 	if (const FReaderFactory* Factory = GReaderFactories.Find(Key))
+// 	{
+// 		return (*Factory)();
+// 	}
+// 	return nullptr;
+// }
 
 void UPlayFabStateManager::SetOwner(UWarpPlayfabContentSubSystem* InOwner)
 {
@@ -60,10 +60,6 @@ void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 	{
 		HandleStartLogin();
 	}
-	else if (CurrentState_ == EPlayFabContentStates::ProcessingLogin)
-	{
-		HandleProcessingLogin();
-	}
 	else if (CurrentState_ == EPlayFabContentStates::LoginFailure)
 	{
 		HandleLoginFailure();
@@ -72,11 +68,11 @@ void UPlayFabStateManager::OnStateSet(const FPlayFabStateManagerData* InData)
 	{
 		HandleLoginSuccess();
 	}
-	else if (CurrentState_ == EPlayFabContentStates::SaveDescriptions)
-	{
-		const FString DescName = InData ? InData->DescriptionName : FString();
-		HandleSavingDescriptions(DescName);
-	}
+	// else if (CurrentState_ == EPlayFabContentStates::SaveDescriptions)
+	// {
+	// 	const FString DescName = InData ? InData->DescriptionName : FString();
+	// 	HandleSavingDescriptions(DescName);
+	// }
 	else if (CurrentState_ == EPlayFabContentStates::DownloadVersions)
 	{
 		HandleDownloadingVersions();
@@ -148,36 +144,35 @@ void UPlayFabStateManager::OnDescriptionReadingResult(FDescriptionReaderBase* In
 
 void UPlayFabStateManager::OnDescriptionSavingResult(FDescriptionReaderBase* InDescription, bool InSuccess)
 {
-	if (ServerAPI_ != nullptr)
-	{
-		if (CurrentDescriptionReader_.Get() == InDescription && InSuccess)
-		{
-			MG_LOG(PFStateLog, TEXT("Description Save Successful"));
-			bDescriptionSaveSuccessful_ = true;
-
-			if (Versions_ == nullptr)
-			{
-				MG_ERROR(PFStateLog, TEXT("Versions_ invalid"))
-				SetState(EPlayFabContentStates::Failure);
-			}
-			
-			FDescriptionVersions& V = Versions_->GetDescriptions();
-			V.UpdateVersions(CurrentDescriptionReader_->GetName(), CurrentDescriptionReader_->GetVersion());
-			Versions_->SaveToPlayFab(ServerAPI_, this);
-		}
-
-		if (Versions_.Get() == InDescription && InSuccess && bDescriptionSaveSuccessful_)
-		{
-			SetState(EPlayFabContentStates::UpdateDone);
-		}	
-	}
+	// if (ServerAPI_ != nullptr)
+	// {
+	// 	if (CurrentDescriptionReader_.Get() == InDescription && InSuccess)
+	// 	{
+	// 		MG_LOG(PFStateLog, TEXT("Description Save Successful"));
+	// 		bDescriptionSaveSuccessful_ = true;
+	//
+	// 		if (Versions_ == nullptr)
+	// 		{
+	// 			MG_ERROR(PFStateLog, TEXT("Versions_ invalid"))
+	// 			SetState(EPlayFabContentStates::Failure);
+	// 		}
+	// 		
+	// 		FDescriptionVersions& V = Versions_->GetDescriptions();
+	// 		V.UpdateVersions(CurrentDescriptionReader_->GetName(), CurrentDescriptionReader_->GetVersion());
+	// 		Versions_->SaveToPlayFab(ServerAPI_, this);
+	// 	}
+	//
+	// 	if (Versions_.Get() == InDescription && InSuccess && bDescriptionSaveSuccessful_)
+	// 	{
+	// 		SetState(EPlayFabContentStates::UpdateDone);
+	// 	}	
+	// }
 }
 
 void UPlayFabStateManager::HandleStartLogin()
 {
 	MG_FUNC_LABEL(PFStateLog);
 	LoginToPlayFab();
-	SetState(EPlayFabContentStates::ProcessingLogin);
 }
 
 
@@ -187,17 +182,16 @@ void UPlayFabStateManager::OnLoginResult(const bool InLoginRes)
 	RETURN_ON_FAIL_T(PFStateLog, LoginInfo_, TEXT("Failed to create LoginInfo"));
 	
 	if (InLoginRes)
+	{
 		SetState(EPlayFabContentStates::LoginSuccess);
+	}
+		
 	else
 	{
 		SetState(EPlayFabContentStates::LoginFailure);
 	}
 }
 
-void UPlayFabStateManager::HandleProcessingLogin()
-{
-	MG_FUNC_LABEL(PFStateLog);
-}
 
 void UPlayFabStateManager::HandleLoginFailure()
 {
@@ -212,24 +206,24 @@ void UPlayFabStateManager::HandleLoginSuccess()
 
 void UPlayFabStateManager::HandleSavingDescriptions(const FString& InDescriptionName)
 {
-	RETURN_ON_FAIL(PFStateLog, ServerAPI_);
-	if (!Versions_)
-	{
-		Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
-	}
-
-	if (!CurrentDescriptionReader_)
-	{
-		CurrentDescriptionReader_ = CreateReaderByKey(FName(*InDescriptionName));
-	}
-	
-	
-	bool bOk = CurrentDescriptionReader_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
-	RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to DescriptionReader from source"));
-	bOk = Versions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
-	RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to VersionsReader from source"));
-	
-	CurrentDescriptionReader_->SaveToPlayFab(ServerAPI_, this);
+	// RETURN_ON_FAIL(PFStateLog, ServerAPI_);
+	// if (!Versions_)
+	// {
+	// 	Versions_ = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
+	// }
+	//
+	// if (!CurrentDescriptionReader_)
+	// {
+	// 	CurrentDescriptionReader_ = CreateReaderByKey(FName(*InDescriptionName));
+	// }
+	//
+	//
+	// bool bOk = CurrentDescriptionReader_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+	// RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to DescriptionReader from source"));
+	// bOk = Versions_->ReadGameplaySource(FAnyPlayFabPtr(TInPlaceType<PlayFabServerPtr>()));
+	// RETURN_ON_FAIL_T(PFStateLog, bOk, TEXT("Failed to VersionsReader from source"));
+	//
+	// CurrentDescriptionReader_->SaveToPlayFab(ServerAPI_, this);
 }
 
 void UPlayFabStateManager::HandleDownloadingVersions()
@@ -253,7 +247,7 @@ void UPlayFabStateManager::HandleDownloadingVersions()
 	}
 	Versions_->ReadFromPlayFab(AnyApi, this);
 }
-
+	
 void UPlayFabStateManager::HandleComparingVersions()
 {
 	MG_FUNC_LABEL(PFStateLog);
@@ -374,8 +368,7 @@ void UPlayFabStateManager::GetOutdatedDescriptions(const FDescriptionVersions& L
 		if (Latest.Version > CurVer)
 		{
 			const FName Key(*Latest.DescriptionName);
-
-			if (TUniquePtr<FDescriptionReaderBase> Reader = CreateReaderByKey(Key))
+			if (TUniquePtr<FDescriptionReaderBase> Reader = WarpPlayfabContent::CreateReaderByKey(Key))
 			{
 				OutOutdated.Add(MoveTemp(Reader));
 			}
