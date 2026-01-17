@@ -7,8 +7,10 @@
 #include "PlayFabServerDataModels.h"
 #include "Core/PlayFabServerAPI.h"
 #include "MGLogs.h"
+#include "PlayFab.h"
 #include "WarpPlayFabContentExtension.generated.h"
 
+class UWarpPlayfabContentSubSystem;
 class UPlayFabStateManager;
 DEFINE_LOG_CATEGORY_STATIC(WarpPlayfabContentLog, Log, All);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginResult, bool /*bLoginRes*/)
@@ -45,6 +47,9 @@ namespace WarpPlayfabContent
     TUniquePtr<FDescriptionReaderBase> CreateReaderByKey(const FName& Key);
     
     TOptional<FString> ReadSecret();
+    bool SaveDescriptionToPlayFab(const PlayFabServerPtr& InPlayFabAPI, const FString& InKey, const FString& InJsonToSave, UWarpPlayfabContentSubSystem* InContentSubSystem);
+    bool SaveVersionsToPlayFab(const PlayFabServerPtr& InPlayFabAPI);
+    
     struct FServerTag
     {
         using TPlayFabAPI = PlayFab::UPlayFabServerAPI;

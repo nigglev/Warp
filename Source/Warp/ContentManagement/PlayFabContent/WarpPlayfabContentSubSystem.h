@@ -36,19 +36,18 @@ class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
 	
 public:
 	UWarpPlayfabContentSubSystem();
+	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
-	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
-
-	
-	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
+	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
+	void OnDescriptionSavingResult(bool bSucceeded);
 	
 	bool IsClient() const;
-	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
 	
 	UFUNCTION()
 	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
+	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
 	
 	FOnUnitsLoaded OnUnitsLoaded;
 
@@ -67,22 +66,35 @@ public:
 protected:
 	bool LoginToPlayFab();
 
-	bool ReadDescriptions();
+	bool ReadDescriptionsFromDataSource();
+	
+	bool WriteDescriptionsToDataSource();
+	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
+	bool WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description);
 
+	FDescriptionVersions CreateVersions();
+	bool WriteVersionsToDataSource(const FDescriptionVersions& InVersions, FString& OutJsonString);
+	bool SaveVersionsToPlayFab();
+	
+	
 	UFUNCTION()
 	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
-
+	FString GetGameDataSourceFilePath();
+	
+	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
+	UPROPERTY()
+	UPlayFabStateManager* StateManager_ = nullptr;
+	
 	UPROPERTY()
 	UPlayFabLoginInfo* LoginInfo_ = nullptr;
 	PlayFabClientPtr ClientAPI_ = nullptr;
 	PlayFabServerPtr ServerAPI_ = nullptr;
-	
-	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
-	
-	bool bUnitsLoaded_ = false;
 
-	UPROPERTY()
-	UPlayFabStateManager* StateManager_ = nullptr;
+	FString VersionsFileName = TEXT("DescriptionVersions.json");
+
+	bool bSaveDescriptionToPlayFabDone_ = false;
+	bool bSaveVersionToPlayFabDone_ = false;
+	bool bUnitsLoaded_ = false;
 };
 

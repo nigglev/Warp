@@ -31,6 +31,11 @@ struct FDescriptionVersions
 		
 		Item->Version = InVersion;
 
+		UpdateVersion();
+	};
+
+	void UpdateVersion()
+	{
 		int32 Sum = 0;
 		for (const FDescriptionVersion& It : Items)
 		{
@@ -39,9 +44,15 @@ struct FDescriptionVersions
 
 		Version += Sum;
 		VersionDate = FDateTime::UtcNow();
-	};
+	}
 
-	
+	bool VersionsToJson(FString& OutJsonString) const
+	{
+		OutJsonString.Empty();
+		
+		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(*this, OutJsonString, 0, 0, 0, nullptr, false);
+		return bOk;
+	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version = 0;
@@ -89,7 +100,8 @@ struct FBaseDescriptions
 	int32 Version = 0;
 
 	virtual FBaseDescription* Find(FName InDescrName) PURE_VIRTUAL(FBaseDescriptions::Find, return nullptr;);
-	virtual void JsonToDescription(const FString& InJsonString) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, );
+	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, return false;);
+	virtual bool DescriptionToJson(FString& OutJsonString) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, return false;);
 };
 
 USTRUCT(BlueprintType)
@@ -105,10 +117,19 @@ struct FUnitDescriptions : public FBaseDescriptions
 		return Items.FindByPredicate([InDescrName](const FUnitDescription& InDescr) { return InDescr.Name == InDescrName; } );
 	}
 	
-	virtual void JsonToDescription(const FString& InJsonString) override
+	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) override
 	{
 		if (!ensure(!InJsonString.IsEmpty()))
-			return;
-		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this);
+			return false;
+		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this,0,0,false, OutFailReason);
+		return bOk;
+	}
+
+	virtual bool DescriptionToJson(FString& OutJsonString) override
+	{
+		OutJsonString.Empty();
+		
+		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(*this, OutJsonString, 0, 0, 0, nullptr, false);
+		return bOk;
 	}
 };
