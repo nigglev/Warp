@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
+class UMapNodeWidget;
 class UCanvasPanel;
 class UBorder;
 
@@ -30,6 +31,8 @@ protected:
 
 	UFUNCTION()
 	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	
+	void SpawnTestNodes();
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> InputCatcher;
@@ -45,6 +48,18 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category="MapViewport")
 	float InterpSpeed_ = 10;
+	
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
+	TSubclassOf<UMapNodeWidget> MapNodeClass;
+
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
+	FVector2D NodeSize_ = FVector2D(64.0, 64.0);
+
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
+	FVector2D NodeAlign_ = FVector2D(0.5, 0.5);
+
+	UPROPERTY()
+	TArray<TObjectPtr<UMapNodeWidget>> SpawnedNodes_;
 
 	bool bMouseDown_ = false;
 	bool bDragging_ = false;

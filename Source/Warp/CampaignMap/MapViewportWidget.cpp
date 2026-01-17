@@ -2,10 +2,13 @@
 
 
 #include "MapViewportWidget.h"
+
+#include "MapNodeWidget.h"
 #include "MGLogs.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(AMapViewportWidgetLog, Log, All);
@@ -26,6 +29,8 @@ void UMapViewportWidget::NativeConstruct()
 
 	InputCatcher->OnMouseButtonUpEvent.BindUFunction(this,
 		GET_FUNCTION_NAME_CHECKED(UMapViewportWidget, OnCatcherMouseUp));
+	
+	SpawnTestNodes();
 }
 
 void UMapViewportWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -98,4 +103,35 @@ FEventReply UMapViewportWidget::OnCatcherMouseUp(FGeometry Geo, const FPointerEv
 	FEventReply Reply(true);
 	Reply.NativeReply = FReply::Handled().ReleaseMouseCapture();
 	return Reply;
+}
+
+void UMapViewportWidget::SpawnTestNodes()
+{
+	RETURN_ON_FAIL(AMapViewportWidgetLog, MapNodeClass);
+
+	MapContentRoot->ClearChildren();
+	SpawnedNodes_.Reset();
+
+	const TArray<FVector2D> TestPositions = {
+		{ 200, 200 },
+		{ 400, 260 },
+		{ 650, 180 },
+		{ 800, 320 },
+	};
+
+	for (const FVector2D& Pos : TestPositions)
+	{
+		UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
+		RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+
+		UCanvasPanelSlot* ChildSlot = MapContentRoot->AddChildToCanvas(Node);
+		RETURN_ON_FAIL(AMapViewportWidgetLog, ChildSlot);
+
+		ChildSlot->SetPosition(Pos);
+		//ChildSlot->SetSize(NodeSize_);
+		ChildSlot->SetAlignment(NodeAlign_);
+		ChildSlot->SetZOrder(10);
+
+		SpawnedNodes_.Add(Node);
+	}
 }
