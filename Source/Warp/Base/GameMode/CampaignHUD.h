@@ -13,4 +13,15 @@ UCLASS()
 class WARP_API ACampaignHUD : public AHUD
 {
 	GENERATED_BODY()
+
+public:
+	virtual void PostInitializeComponents() override;
+	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> MainWidgetClass_;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> MainWidget_;
 };
