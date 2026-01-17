@@ -2,8 +2,7 @@
 
 
 #include "CampaignGameMode.h"
-
-#include "Warp/Base/GameMode/CampaignHUD.h"
+#include "CampaignHUD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ACampaignGameModeLog, Log, All);
 

@@ -36,7 +36,7 @@ void ACampaignHUD::BeginPlay()
 	PC->bEnableMouseOverEvents = false;
 
 	FInputModeUIOnly Mode;
-	Mode.SetWidgetToFocus(MainWidget_->TakeWidget());
+	//Mode.SetWidgetToFocus(MainWidget_->TakeWidget());
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // или LockAlways/LockInFullscreen
 	PC->SetInputMode(Mode);
 }
