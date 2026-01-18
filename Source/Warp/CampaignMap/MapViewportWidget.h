@@ -23,44 +23,37 @@ protected:
 
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
-	UFUNCTION()
-	FEventReply OnCatcherMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
-	UFUNCTION()
-	FEventReply OnCatcherMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
-	UFUNCTION()
-	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION() FEventReply OnCatcherMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION()	FEventReply OnCatcherMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION()	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	
-	void SpawnTestNodes();
+	void SpawnNodes();
+	void SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D& InPos);
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> InputCatcher;
+	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> InputCatcher;
+	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> MapBorder;
+	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> MapContentRoot;
 	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> MapBorder;
+	UPROPERTY(EditAnywhere, Category="MapViewport") float DragThreshold_ = 10;
+	UPROPERTY(EditAnywhere, Category="MapViewport") float InterpSpeed_ = 10;
 	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UCanvasPanel> MapContentRoot;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") TSubclassOf<UMapNodeWidget> MapNodeClass;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") FVector2D NodeSize_ = FVector2D(64.0, 64.0);
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") FVector2D NodeAlign_ = FVector2D(0.5, 0.5);
 	
-	UPROPERTY(EditAnywhere, Category="MapViewport")
-	float DragThreshold_ = 10;
-	
-	UPROPERTY(EditAnywhere, Category="MapViewport")
-	float InterpSpeed_ = 10;
-	
-	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
-	TSubclassOf<UMapNodeWidget> MapNodeClass;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 LayerCount_ = 3;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 NodeInLayerCount_ = 3;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerWidth_ = 120;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerShift_ = 360;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float XDispersion_ = 0.8f;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerHeight_ = 400;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerVertPadding_ = 100;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float YDispersion_ = 0.6f;
 
-	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
-	FVector2D NodeSize_ = FVector2D(64.0, 64.0);
+	UPROPERTY() TArray<TObjectPtr<UMapNodeWidget>> SpawnedNodes_;
 
-	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes")
-	FVector2D NodeAlign_ = FVector2D(0.5, 0.5);
-
-	UPROPERTY()
-	TArray<TObjectPtr<UMapNodeWidget>> SpawnedNodes_;
-
+	float MaxX_ = 0;
+	
 	bool bMouseDown_ = false;
 	bool bDragging_ = false;
 	

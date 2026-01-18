@@ -30,15 +30,12 @@ void UMapViewportWidget::NativeConstruct()
 	InputCatcher->OnMouseButtonUpEvent.BindUFunction(this,
 		GET_FUNCTION_NAME_CHECKED(UMapViewportWidget, OnCatcherMouseUp));
 	
-	SpawnTestNodes();
+	SpawnNodes();
 }
 
 void UMapViewportWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	
-	//const FGeometry& BorderGeo = MapBorder->GetCachedGeometry();
-	//FVector2f ViewSize = BorderGeo.GetLocalSize();
 	
 	CurrentOffset_ = FMath::Vector2DInterpTo(CurrentOffset_, TargetOffset_, InDeltaTime, InterpSpeed_);
 	MapContentRoot->SetRenderTranslation(CurrentOffset_);
@@ -87,7 +84,13 @@ FEventReply UMapViewportWidget::OnCatcherMouseMove(FGeometry Geo, const FPointer
 	{
 		FVector2f Delta = LocalPos - LastPos_;
 		TargetOffset_ += FVector2D(Delta);
-		//TargetOffset_ = ClampOffset(TargetOffset_);
+
+		TargetOffset_.Y = 0;
+		
+		const FGeometry& BorderGeo = MapBorder->GetCachedGeometry();
+		FVector2f ViewSize = BorderGeo.GetLocalSize();
+		float MaxX = FMath::Max(0, MaxX_ - ViewSize.X);
+		TargetOffset_.X = FMath::Clamp(TargetOffset_.X, -MaxX, 0);
 	}
 	
 	LastPos_ = LocalPos;
@@ -105,33 +108,57 @@ FEventReply UMapViewportWidget::OnCatcherMouseUp(FGeometry Geo, const FPointerEv
 	return Reply;
 }
 
-void UMapViewportWidget::SpawnTestNodes()
+void UMapViewportWidget::SpawnNodes()
 {
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapNodeClass);
 
 	MapContentRoot->ClearChildren();
 	SpawnedNodes_.Reset();
-
-	const TArray<FVector2D> TestPositions = {
-		{ 200, 200 },
-		{ 400, 260 },
-		{ 650, 180 },
-		{ 800, 320 },
-	};
-
-	for (const FVector2D& Pos : TestPositions)
+	
+	float LayerWidthHS = LayerWidth_ / 2;
+	
+	float LayerHeightPadded = LayerHeight_ / 3;
+	float LayerHeightHS = LayerHeightPadded / 2;
+	
+	for (uint8 ILayer = 0; ILayer < LayerCount_; ++ILayer)
 	{
-		UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
-		RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
-
-		UCanvasPanelSlot* ChildSlot = MapContentRoot->AddChildToCanvas(Node);
-		RETURN_ON_FAIL(AMapViewportWidgetLog, ChildSlot);
-
-		ChildSlot->SetPosition(Pos);
-		//ChildSlot->SetSize(NodeSize_);
-		ChildSlot->SetAlignment(NodeAlign_);
-		ChildSlot->SetZOrder(10);
-
-		SpawnedNodes_.Add(Node);
+		for (uint8 Step = 0; Step < NodeInLayerCount_; ++Step)
+		{
+			double XCenter = LayerShift_ * (ILayer + 1) + LayerWidthHS;
+			double X = FMath::RandRange(XCenter - LayerWidthHS * XDispersion_, XCenter + LayerWidthHS * XDispersion_);
+			
+			double YCenter = LayerVertPadding_ + LayerHeightPadded * Step + LayerHeightHS;
+			double Y = FMath::RandRange(YCenter - LayerHeightHS * YDispersion_, YCenter + LayerHeightHS * YDispersion_);
+			
+			FVector2D Pos(X,Y);
+			SpawnNode(ILayer, Step, Pos);	
+		}
 	}
+	
+	double XCenter = LayerShift_ * (LayerCount_ + 1) + LayerWidthHS;
+	double YCenter = LayerHeight_ / 2;
+	FVector2D Pos(XCenter,YCenter);
+	SpawnNode(LayerCount_, 0, Pos);
+	
+	MaxX_ = XCenter + LayerWidthHS;
+}
+
+void UMapViewportWidget::SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D& InPos)
+{
+	MG_LOG(AMapViewportWidgetLog, TEXT("Layer: %u; Step: %u;  %s"), InLayer, InStep, *InPos.ToString());
+			
+	UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+
+	UCanvasPanelSlot* ChildSlot = MapContentRoot->AddChildToCanvas(Node);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, ChildSlot);
+
+	ChildSlot->SetPosition(InPos);
+	//ChildSlot->SetSize(NodeSize_);
+	ChildSlot->SetAlignment(NodeAlign_);
+	ChildSlot->SetZOrder(10);
+	
+	Node->Init(InLayer, InStep);
+
+	SpawnedNodes_.Add(Node);
 }
