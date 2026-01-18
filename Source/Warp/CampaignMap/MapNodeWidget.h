@@ -24,11 +24,12 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 
-	//UPROPERTY(meta=(BindWidget)) TObjectPtr<class UButton> Button_ClickArea;
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UButton> Button_Node;
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Icon;
-	//UPROPERTY(meta=(BindWidget)) TObjectPtr<class UBorder> Border_StateFrame;
-	//UPROPERTY(meta=(BindWidget)) TObjectPtr<class UBorder> Border_SelectedOverlay;
-	//UPROPERTY(meta=(BindWidget)) TObjectPtr<class UTextBlock> Text_Debug;
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Repair;
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Shop;
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UBorder> Border_Selected;
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UTextBlock> Text_Debug;
 
 	void ApplyVisuals();
 	UFUNCTION() void HandleClicked();
