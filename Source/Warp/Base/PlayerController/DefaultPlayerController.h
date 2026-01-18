@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
 #include "GameFramework/PlayerController.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -85,12 +86,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Input|Camera")
 	class UInputAction* CameraZoomAction = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
-	class UInputAction* LMBAction;
+	class UInputAction* Action_SelectCell;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* Action_CaptureCell;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* Action_CloseCell;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* Action_OpenCell;
 	
 	
 	
-	void OnLMBStarted(const FInputActionValue& Value);
 	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
+	
+	template<ECellType InCellType>
+	void OnCellAction(const FInputActionValue& Value);
+	
+	void OnSelectAction(const FInputActionValue& Value);
 	
 	float MouseYawScaleDegPerUnit = 1.0f;
 	bool bRotateCamera = false;

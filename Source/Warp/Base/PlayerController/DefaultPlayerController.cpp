@@ -139,7 +139,10 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRotateCameraReleased);
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRotateCameraReleased);
 
-		EIC->BindAction(LMBAction, ETriggerEvent::Started, this, &ADefaultPlayerController::OnLMBStarted);
+		EIC->BindAction(Action_SelectCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnSelectAction);
+		EIC->BindAction(Action_CaptureCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Captured>);
+		EIC->BindAction(Action_CloseCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Closed>);
+		EIC->BindAction(Action_OpenCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Opened>);
 	}
 }
 
@@ -183,9 +186,7 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	}
 }
 
-
-
-void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
+void ADefaultPlayerController::OnSelectAction(const FInputActionValue& Value)
 {
 	FVector P;
 	if (GetMouseRayPlaneZIntersection(0.0f, P))
@@ -195,6 +196,33 @@ void ADefaultPlayerController::OnLMBStarted(const FInputActionValue& Value)
 			MG_LOG(ADefaultPlayerControllerLog,  TEXT("Coordinates: %s"), *P.ToString());
 			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
 			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
+			
+			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+			if (GridWorldSubsystem != nullptr)
+			{
+				GridWorldSubsystem->SelectCell(P);
+			}
+		}
+	}
+}
+
+template<ECellType InCellType>
+void ADefaultPlayerController::OnCellAction(const FInputActionValue& Value)
+{
+	FVector P;
+	if (GetMouseRayPlaneZIntersection(0.0f, P))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			MG_LOG(ADefaultPlayerControllerLog,  TEXT("Coordinates: %s"), *P.ToString());
+			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
+			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
+			
+			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+			if (GridWorldSubsystem != nullptr)
+			{
+				GridWorldSubsystem->SetCellType(P, InCellType);
+			}
 		}
 	}
 }

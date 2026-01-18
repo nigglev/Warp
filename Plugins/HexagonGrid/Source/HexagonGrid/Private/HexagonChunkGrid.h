@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
+#include "GraphAStar.h"
 #include "HexMath.h"
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
@@ -36,6 +38,24 @@ struct FChunkData
 	}
 };
 
+class FSearchNode : public TSharedFromThis<FSearchNode>
+{
+public:
+	// virtual ~FSearchNode() { }
+	// virtual void GetChildren(TArray<TSharedPtr<FSearchNode>>& OutChildren) { }
+	// virtual ESearchNodeType GetType() const = 0;
+	// virtual FString GetText() const = 0;
+	// virtual FString GetObjectPath() const = 0;
+	//
+	// float GetTotalScore() const { return TotalScore; }
+	// float GetMaxScore() const { return MaxScore; }
+
+protected:
+	float TotalScore = 0;
+	float MaxScore = 0;
+};
+
+
 /**
  * 
  */
@@ -48,13 +68,32 @@ public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	
 	void SelectCell(const FVector& InPosition);
+	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
+	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
+	
+	struct FHexGridActorCDODataCache
+	{
+		float HexSize = 0;
+		int32 NumColsRows = 0;
+		int32 BuildChunkAround = 0;
+		int32 SelectRadius = 1;
+		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
+	};
+	static TOptional<FHexGridActorCDODataCache> GetHexGridActorCDODataCache();
 	
 	void CreateNewChunks(const FVector& InNewPosition);
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
+	
+	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, bool InSelected);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, ECellType InCellType);
+	
+	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath);
 
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
@@ -62,4 +101,9 @@ private:
 	TArray<FChunkData> ChunksList_;
 	
 	FHashTable ChunkIndexes_;
+	
+	TArray<HexMath::FAxialCoord> SelectedCells_;
+	TArray<HexMath::FAxialCoord> PFCells_;
+	
+	TSet<HexMath::FAxialCoord> Obstacles_;
 };

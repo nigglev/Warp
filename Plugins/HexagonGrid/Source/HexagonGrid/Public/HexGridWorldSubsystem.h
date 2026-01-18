@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ECellType.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "HexGridWorldSubsystem.generated.h"
 
@@ -24,6 +25,7 @@ public:
 
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SelectCell(const FVector& InPosition);
+	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
 private:
 	

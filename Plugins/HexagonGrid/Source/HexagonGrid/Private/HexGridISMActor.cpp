@@ -28,7 +28,7 @@ AHexGridISMActor::AHexGridISMActor()
 	ISM_->SetUsingAbsoluteRotation(false);
 	ISM_->SetUsingAbsoluteScale(false);
 
-	ISM_->NumCustomDataFloats = 4; // R,G,B,A
+	ISM_->NumCustomDataFloats = 5; // R,G,B,A, ZOffset
 }
 
 void AHexGridISMActor::OnConstruction(const FTransform& Transform)
@@ -73,7 +73,8 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	const FRotator R90(0, 90, 0);
 	FRotator R = HexRotation_ ? R90 : FRotator::ZeroRotator;
 
-	HexMath::HexMathOffset::BuildHexagonGrid<HEX_LAYOUT>(InHexWidth, HexSize_, [&Transforms, &R, DetailDebug = DetailDebug_]
+	HexMath::HexMathOffset::BuildHexagonGrid<HEX_LAYOUT>(InHexWidth, HexSize_, 
+		[&Transforms, &R, DetailDebug = DetailDebug_, SizeScale = SizeScale_]
 		(const HexMath::FOffsetCoord& InOCoord, const FVector& InLoc)
 	{
 		if (DetailDebug)
@@ -81,7 +82,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 			UE_LOG(HexGridActorLog, Warning, TEXT("%llu : %llu\t%5.2f : %2.2f"), InOCoord.Right, InOCoord.Up, InLoc.X, InLoc.Y);
 		}
 		 
-		const FTransform Tr(R, InLoc, FVector::OneVector);
+		const FTransform Tr(R, InLoc, FVector(SizeScale, SizeScale, 1));
 		Transforms.Emplace(Tr);
 	});
 	
@@ -93,7 +94,9 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	for (int32 i = 0; i < Transforms.Num(); ++i)
 	{
 		const int32 Idx = BaseIndex + i;
-		SetColor(Idx, NormalColor_);
+		FLinearColor Clr = GetColor(Idx);
+		float ZOffset = GetZOffset(Idx);
+		SetColor(Idx, Clr, ZOffset);
 	}
 	
 	UpdateMPC();
@@ -107,16 +110,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	}
 }
 
-void AHexGridISMActor::SetColors()
-{
-	for (int32 Idx = 0; Idx < ISM_->GetNumInstances(); ++Idx)
-	{
-		SetColor(Idx, NormalColor_);
-	}
-	ISM_->MarkRenderStateDirty();
-}
-
-void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor) const
+void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const
 {
 	if (ISM_ == nullptr)
 		return;
@@ -129,6 +123,7 @@ void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor) const
 	ISM_->SetCustomDataValue(InIndex, 1, InColor.G, false);
 	ISM_->SetCustomDataValue(InIndex, 2, InColor.B, false);
 	ISM_->SetCustomDataValue(InIndex, 3, InColor.A, false);
+	ISM_->SetCustomDataValue(InIndex, 4, InZOffset, false);
 }
 
 void AHexGridISMActor::UpdateMPC()
@@ -155,18 +150,78 @@ FVector AHexGridISMActor::GetExtent() const
 	return fSZ / 2;
 }
 
-void AHexGridISMActor::SelectCell(const FVector& InPosition)
+void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected)
 {
-	FVector LocalPosition = InPosition - GetActorLocation();
-	HexMath::FOffsetRealCoord Coord = HexMath::HexMathOffset::WorldToHexSnapped<HEX_LAYOUT>(LocalPosition, HexSize_);
-	HexMath::FOffsetCoord OCoord = HexMath::HexMathAxial::WorldToOffset<HEX_LAYOUT>(Coord, HexSize_);
+	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
-	if (!ensure(OCoord.Right >= 0 && OCoord.Up >= 0))
+	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
 		return;
 	
 	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
-		*ChunkCoord_.ToString(), *Coord.ToString(), *OCoord.ToString());
+		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
-	int32 Index = GridSize_ * OCoord.Up + OCoord.Right;
-	SetColor(Index, SelectedColor_);
+	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
+	SetSelectStatus(Index, InSelected);
+}
+
+void AHexGridISMActor::SetSelectStatus(int32 InIndex, bool InSelected)
+{
+	ChangeSelectStatus(InIndex, InSelected);
+	
+	FLinearColor Clr = GetColor(InIndex);
+	float ZOffset = GetZOffset(InIndex);
+		
+	SetColor(InIndex, Clr, ZOffset);
+}
+
+void AHexGridISMActor::ChangeSelectStatus(int32 InIndex, bool InSelected)
+{
+	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+	Cache.bSelected = InSelected;
+}
+
+void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
+{
+	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
+	
+	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
+		return;
+	
+	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
+		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
+	
+	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
+	SetCellType(Index, InCellType);
+}
+
+void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType)
+{
+	ChangeCellStatus(InIndex, InCellType);
+	
+	FLinearColor Clr = GetColor(InIndex);
+	float ZOffset = GetZOffset(InIndex);
+		
+	SetColor(InIndex, Clr, ZOffset);
+}
+
+void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType)
+{
+	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+	Cache.BaseStatus = InCellType;
+}
+
+FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
+{
+	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
+	return Status ? Status->bSelected ? SelectedColor_ 
+		: Colors_[static_cast<int32>(Status->BaseStatus)] 
+			: Colors_[static_cast<int32>(ECellType::Opened)];
+}
+
+float AHexGridISMActor::GetZOffset(int32 InIndex) const
+{
+	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
+	return Status ? Status->bSelected ? SelectedZOffset_ 
+		: ZOffsets_[static_cast<int32>(Status->BaseStatus)] 
+			: ZOffsets_[static_cast<int32>(ECellType::Opened)];
 }
