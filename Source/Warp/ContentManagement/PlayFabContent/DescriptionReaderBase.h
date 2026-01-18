@@ -22,7 +22,6 @@ class UReaderObserver : public UObject
 
 public:
 	virtual void OnDescriptionReadingResult(FDescriptionReaderBase* InDescription, bool InSuccess) PURE_VIRTUAL();
-	virtual void OnDescriptionSavingResult(FDescriptionReaderBase* InDescription, bool InSuccess) PURE_VIRTUAL();
 };
 
 class FDescriptionReaderBase
@@ -34,7 +33,5 @@ public:
 	virtual int32 GetVersion() const { return 0; }
 	virtual bool ReadGameplaySource(const FAnyPlayFabPtr& InApi) { return false; }
 	virtual bool WriteGameplaySource(const FAnyPlayFabPtr& InApi) { return false; }
-	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
 	virtual bool ReadFromPlayFab(const FAnyPlayFabPtr& InPlayFabAPI, UReaderObserver* InUserObject) { return false; };
-	virtual void UpdateDescriptionVersion() = 0;
 };

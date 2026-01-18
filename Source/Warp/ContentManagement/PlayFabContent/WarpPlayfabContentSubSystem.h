@@ -9,6 +9,7 @@
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
 #include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/Utils/WarpUtils.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
 
 class UPlayFabStateManager;
@@ -80,7 +81,14 @@ protected:
 	UFUNCTION()
 	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
-	FString GetGameDataSourceFilePath();
+
+	bool IsClientOnly() const;
+	bool IsClientEditor() const;
+	
+	bool IsServerOnly() const;
+	bool IsServerEditor() const;
+	
+	FString GetGameDataSourceFilePath() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
 	UPROPERTY()

@@ -8,8 +8,6 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
 #include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
-#include "Warp/Utils/WarpUtils.h"
-
 
 DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
 
@@ -46,13 +44,22 @@ void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
 {
     MG_FUNC_LABEL(ContentLog);
     RETURN_ON_FAIL_T(ContentLog, InLoginRes, TEXT("Failed to Login"));
-    if (!IsUEEditorActive())
+
+    if (IsServerOnly() || IsServerEditor())
+    {
+        BroadcastContentIsLoaded(true);
+    }
+    if (IsClientEditor())
     {
         StateManager_ = NewObject<UPlayFabStateManager>(this);
+        StateManager_->SetClientAPI(ClientAPI_);
+        StateManager_->Start();
     }
-    else
+    if (IsClientOnly())
     {
-        ReadDescriptionsFromDataSource();
+        StateManager_ = NewObject<UPlayFabStateManager>(this);
+        StateManager_->SetClientAPI(ClientAPI_);
+        StateManager_->Start();
     }
 }
 
@@ -273,12 +280,22 @@ bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
 }
 
 
-FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath()
+FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 {
-    const FString FolderDir = IsUEEditorActive()
-       ? FPaths::Combine(FPaths::ProjectDir(), TEXT("GameDataSource"))
-       : FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
-
+    FString FolderDir;
+    if (IsServerOnly() || IsServerEditor())
+    {
+        FolderDir = FPaths::Combine(FPaths::ProjectDir(), TEXT("GameDataSource"));
+    }
+    if (IsClientEditor())
+    {
+        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+    }
+    if (IsClientOnly())
+    {
+        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+    }
+    
     if (!IFileManager::Get().DirectoryExists(*FolderDir))
     {
         MG_ERROR(ContentLog, TEXT("GameDataSource directory does not exist: %s"), *FolderDir);
@@ -295,6 +312,26 @@ void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppErro
            *ErrorResult.GenerateErrorReport());
 }
 
+bool UWarpPlayfabContentSubSystem::IsClientOnly() const
+{
+    return !IsUEEditorActive() && IsClient();
+}
+
+bool UWarpPlayfabContentSubSystem::IsClientEditor() const
+{
+    return IsUEEditorActive() && IsClient();
+}
+
+bool UWarpPlayfabContentSubSystem::IsServerOnly() const
+{
+    return !IsUEEditorActive() && !IsClient();
+}
+
+bool UWarpPlayfabContentSubSystem::IsServerEditor() const
+{
+    return IsUEEditorActive() && !IsClient();
+}
+
 bool UWarpPlayfabContentSubSystem::IsClient() const
 {
     ENetMode NetMode = GetWorld()->GetNetMode();
@@ -303,6 +340,16 @@ bool UWarpPlayfabContentSubSystem::IsClient() const
 
 void UWarpPlayfabContentSubSystem::BroadcastContentIsLoaded(bool InbIsContentLoaded)
 {
-    bUnitsLoaded_ = InbIsContentLoaded;
-    OnUnitsLoaded.Broadcast();
+    RETURN_ON_FAIL_T(ContentLog, InbIsContentLoaded, TEXT("Failed to load content"));
+    
+    if (StateManager_)
+        StateManager_ = nullptr;
+    
+    if (InbIsContentLoaded)
+    {
+        bool bSuccess = ReadDescriptionsFromDataSource();
+        RETURN_ON_FAIL(ContentLog, bSuccess);
+        bUnitsLoaded_ = true;
+        OnUnitsLoaded.Broadcast();
+    }
 }

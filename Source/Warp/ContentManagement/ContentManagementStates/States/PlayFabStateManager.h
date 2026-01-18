@@ -18,10 +18,11 @@ enum class EPlayFabContentStates : uint8;
  */
 struct WARP_API FPlayFabStateManagerData
 {
-	// TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> Versions;
-	// TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders;
-	// TUniquePtr<FDescriptionReaderBase> DescriptionReader;
-	FString DescriptionName = FString("");
+	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> Versions;
+	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> OldVersions;
+	
+	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders;
+	TUniquePtr<FDescriptionReaderBase> CurrentDescriptionReader;
 	virtual ~FPlayFabStateManagerData() {}
 };
 
@@ -31,61 +32,31 @@ class WARP_API UPlayFabStateManager : public UReaderObserver
 	GENERATED_BODY()
 
 public:
-	void SetOwner(UWarpPlayfabContentSubSystem* InOwner);
-	void SetState(EPlayFabContentStates InNewState, const FPlayFabStateManagerData* InData = nullptr);
+	void Start();
+	void SetClientAPI(const PlayFabClientPtr& InClientAPI) {ClientAPI_ = InClientAPI;};
 	EPlayFabContentStates GetState() const {return CurrentState_; }
 
 	virtual void OnDescriptionReadingResult(FDescriptionReaderBase* InDescription, bool InSuccess) override;
-	virtual void OnDescriptionSavingResult(FDescriptionReaderBase* InDescription, bool InSuccess) override;
 
 protected:
-	void OnStateSet(const FPlayFabStateManagerData* InData = nullptr);
+	void SetState(EPlayFabContentStates InNewState, FPlayFabStateManagerData& InData);
+	void OnStateSet(FPlayFabStateManagerData& InData);
 
-	void HandleStartLogin();
-	void HandleLoginFailure();
-	void HandleLoginSuccess();
+	void HandleCheckUpdate(FPlayFabStateManagerData& InData);
+	void HandleDownloadingVersions(FPlayFabStateManagerData& InData);
+	void HandleComparingVersions(FPlayFabStateManagerData& InData);
+	void HandleGettingOutdatedContent(FPlayFabStateManagerData& InData);
+	void HandleUpdatingContent(FPlayFabStateManagerData& InData);
+	void HandleUpdateDone(FPlayFabStateManagerData& InData);
+	void HandleUpdateFailed(FPlayFabStateManagerData& InData);
+	void HandleFinished(FPlayFabStateManagerData& InData);
+
 	
-	void HandleSavingDescriptions(const FString& InDescriptionName);
-	void HandleDownloadingVersions();
-	void HandleComparingVersions();
-	void HandleGettingOutdatedContent();
-	void HandleUpdatingContent();
-	
-
-	void HandleUpdateDone();
-
-	void HandleFailure();
-	void HandleFinished();
-
-	UFUNCTION()
-	void OnLoginResult(const bool InLoginRes);
-	bool LoginToPlayFab();
 	void GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions, const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated);
-	void Reset();
-	
-	
 	static void StateChangedLog(EPlayFabContentStates InOldState, EPlayFabContentStates InNewState);
 
-	UPROPERTY()
-	UWarpPlayfabContentSubSystem* Owner_ = nullptr;
+	FPlayFabStateManagerData ContextData_;
 	EPlayFabContentStates CurrentState_ = EPlayFabContentStates::None;
-
-	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> Versions_;
-	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> CurrentVersions_;
-	
-	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders_;
-	TArray<TUniquePtr<FDescriptionReaderBase>> OutDatedDescriptionReaders_;
-	TUniquePtr<FDescriptionReaderBase> CurrentDescriptionReader_;
-
-	bool bVersionSaveSuccessful_ = false;
-	bool bDescriptionSaveSuccessful_ = false;
-
-	UPROPERTY()
-	UPlayFabLoginInfo* LoginInfo_ = nullptr;
 	PlayFabClientPtr ClientAPI_ = nullptr;
-	PlayFabServerPtr ServerAPI_ = nullptr;
-
-
-	
 };
 

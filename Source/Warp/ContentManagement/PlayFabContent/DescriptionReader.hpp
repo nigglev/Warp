@@ -91,39 +91,6 @@ public:
 		return bOk;
 	}
 	
-	virtual bool SaveToPlayFab(const PlayFabServerPtr& InPlayFabAPI, UReaderObserver* InUserObject) override
-	{
-		RETURN_ON_FAIL_BOOL(DescriptionReaderLog, InPlayFabAPI != nullptr);
-		RETURN_ON_FAIL_BOOL(DescriptionReaderLog, InUserObject != nullptr);
-		RETURN_ON_FAIL_BOOL(DescriptionReaderLog, !Descriptions_.Items.IsEmpty());
-		
-		PlayFab::ServerModels::FSetTitleDataRequest Request;
-		
-		Request.Key = GetName();
-		FString JsonString;
-		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(Descriptions_, JsonString, 0, 0, 0, nullptr, false);
-		RETURN_ON_FAIL_BOOL_T(DescriptionReaderLog, bOk, TEXT("Failed to JSON convert"));
-		
-		Request.Value = JsonString;
-
-		PlayFab::UPlayFabServerAPI::FSetTitleDataDelegate SuccessDelegate;
-		SuccessDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
-		{
-			InUserObject->OnDescriptionSavingResult(this, true);
-			MG_LOG(DescriptionReaderLog, TEXT("PlayFab login success!"));
-		});
-
-		PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-		ErrorDelegate.BindWeakLambda(InUserObject, [this, InUserObject](const PlayFab::FPlayFabCppError& InError)
-		{
-			InUserObject->OnDescriptionSavingResult(this, false);
-			MG_ERROR(DescriptionReaderLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
-		});
-				
-		bOk = InPlayFabAPI->SetTitleData(Request, SuccessDelegate, ErrorDelegate);
-		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("InPlayFabAPI->SetTitleData was failed!"));
-		return bOk; 
-	};
 
 	virtual bool ReadFromPlayFab(const FAnyPlayFabPtr& InApi, UReaderObserver* InUserObject) override
 	{
@@ -142,10 +109,10 @@ public:
 	   }, InApi);
 	}
 
-	virtual void UpdateDescriptionVersion() override
-	{
-		++Descriptions_.Version;
-	};
+	// virtual void UpdateDescriptionVersion() override
+	// {
+	// 	++Descriptions_.Version;
+	// };
 
 	virtual TUStruct& GetDescriptions()
 	{
