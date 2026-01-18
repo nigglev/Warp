@@ -36,6 +36,8 @@ protected:
 	
 	virtual void HandleMatchHasLoading();
 	virtual bool CheckLoading();
+
+	virtual void HandleUnitCreation();
 	
 	virtual void HandleMatchHasStarted() override;
 	virtual void HandleMatchIsWaitingToStart() override;

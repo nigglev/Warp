@@ -44,8 +44,6 @@ public:
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 	void OnDescriptionSavingResult(bool bSucceeded);
 	
-	bool IsClient() const;
-	
 	UFUNCTION()
 	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
 	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
@@ -82,6 +80,7 @@ protected:
 	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 
+	bool IsClient() const;
 	bool IsClientOnly() const;
 	bool IsClientEditor() const;
 	

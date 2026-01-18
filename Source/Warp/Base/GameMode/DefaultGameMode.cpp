@@ -32,7 +32,7 @@ void ADefaultGameMode::StartPlay()
 {
 	if (MatchState == MatchState::EnteringMap)
 	{
-		SetMatchState(MatchState::WaitingToStart);
+		SetMatchState(MatchState::Loading);
 	}
 }
 
@@ -46,13 +46,13 @@ void ADefaultGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	FName MS = GetMatchState();
 
-	if (MS == MatchState::WaitingToStart)
+	if (MS == MatchState::Loading)
 	{
 		// Check to see if we should start the match
 		if (CheckLoading())
 		{
 			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
-			StartBattle();
+			SetMatchState(MatchState::UnitCreation);
 		}
 	}
 }
@@ -62,15 +62,25 @@ void ADefaultGameMode::OnMatchStateSet()
 	MG_LOG(ADefaultGameModeLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
 	Super::OnMatchStateSet();
-	if (MatchState == MatchState::WaitingToStart)
+	if (MatchState == MatchState::Loading)
 	{
 		HandleMatchHasLoading();
+	}
+	if (MatchState == MatchState::UnitCreation)
+	{
+		HandleUnitCreation();
 	}
 }
 
 void ADefaultGameMode::HandleMatchHasLoading()
 {
 	CheckServerContentLoading();
+}
+
+void ADefaultGameMode::HandleUnitCreation()
+{
+	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()

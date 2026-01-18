@@ -5,10 +5,12 @@
 
 #include "Engine/DataTable.h"
 #include "Engine/StaticMesh.h"
-#include "UnitMeshRow.generated.h"
+#include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "UnitDataTableRows.generated.h"
+
 
 USTRUCT(BlueprintType)
-struct FUnitMeshRow : public FTableRowBase
+struct FUnitDataTableRows : public FTableRowBase
 {
 	GENERATED_BODY()
 	
@@ -16,5 +18,5 @@ struct FUnitMeshRow : public FTableRowBase
 	FName UnitType = NAME_None;
 	
 	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Mesh;
+	TSoftClassPtr<ABaseUnitActor> UnitActor;
 };
