@@ -117,14 +117,23 @@ void UMapViewportWidget::SpawnNodes()
 	
 	float LayerWidthHS = LayerWidth_ / 2;
 	
-	float LayerHeightPadded = LayerHeight_ / 3;
-	float LayerHeightHS = LayerHeightPadded / 2;
-	
-	for (uint8 ILayer = 0; ILayer < LayerCount_; ++ILayer)
 	{
-		for (uint8 Step = 0; Step < NodeInLayerCount_; ++Step)
+		double XCenter = LayerWidthHS;
+		double YCenter = LayerHeight_ / 2;
+		FVector2D Pos(XCenter,YCenter);
+		SpawnNode(0, 0, Pos);
+	}
+	
+	for (uint8 ILayer = 1; ILayer < LayerCount_; ++ILayer)
+	{
+		int32 NodeCount = FMath::RandRange(NodeInLayerCountMin_, NodeInLayerCountMax_);
+		
+		float LayerHeightPadded = LayerHeight_ / NodeCount;
+		float LayerHeightHS = LayerHeightPadded / 2;
+		
+		for (uint8 Step = 0; Step < NodeCount; ++Step)
 		{
-			double XCenter = LayerShift_ * (ILayer + 1) + LayerWidthHS;
+			double XCenter = LayerShift_ * ILayer + LayerWidthHS;
 			double X = FMath::RandRange(XCenter - LayerWidthHS * XDispersion_, XCenter + LayerWidthHS * XDispersion_);
 			
 			double YCenter = LayerVertPadding_ + LayerHeightPadded * Step + LayerHeightHS;
@@ -135,12 +144,14 @@ void UMapViewportWidget::SpawnNodes()
 		}
 	}
 	
-	double XCenter = LayerShift_ * (LayerCount_ + 1) + LayerWidthHS;
-	double YCenter = LayerHeight_ / 2;
-	FVector2D Pos(XCenter,YCenter);
-	SpawnNode(LayerCount_, 0, Pos);
+	double LastXCenter = LayerShift_ * LayerCount_ + LayerWidthHS;
+	{
+		double YCenter = LayerHeight_ / 2;
+		FVector2D Pos(LastXCenter,YCenter);
+		SpawnNode(LayerCount_, 0, Pos);
+	}
 	
-	MaxX_ = XCenter + LayerWidthHS;
+	MaxX_ = LastXCenter + LayerWidthHS;
 }
 
 void UMapViewportWidget::SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D& InPos)

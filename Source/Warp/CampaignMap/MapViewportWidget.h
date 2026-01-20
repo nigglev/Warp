@@ -42,7 +42,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") FVector2D NodeAlign_ = FVector2D(0.5, 0.5);
 	
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 LayerCount_ = 3;
-	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 NodeInLayerCount_ = 3;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 NodeInLayerCountMin_ = 3;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") int32 NodeInLayerCountMax_ = 4;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerWidth_ = 120;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerShift_ = 360;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float XDispersion_ = 0.8f;
