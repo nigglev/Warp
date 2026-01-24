@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
+class UImage;
 class UMapNodeWidget;
 class UCanvasPanel;
 class UBorder;
@@ -32,7 +33,7 @@ protected:
 	UFUNCTION()	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	
 	void SpawnNodes();
-	void SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos);	
+	UMapNodeWidget* SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos);	
 	
 	EMapNodeState GetNodeState(FNodePosition InNodePosition) const;
 
@@ -56,8 +57,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerHeight_ = 400;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float LayerVertPadding_ = 100;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Nodes") float YDispersion_ = 0.6f;
+	
+	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") float EdgeThickness_ = 3.0f;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") bool bEdgeAntialias_ = true;
+	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") FLinearColor EdgeColor_ = FLinearColor(0.8f,0.9f,1.0f,0.35f);
+	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") TSubclassOf<UImage> LineSegmentClass;
 
-	UPROPERTY() TArray<TObjectPtr<UMapNodeWidget>> SpawnedNodes_;
+	void BuildEdges();
+	void GenerateEdges();
+
+	void SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness);
+	UImage* SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness);
 
 	float MaxX_ = 0;
 	
@@ -76,4 +86,24 @@ protected:
 	FNodePosition SelectedNodePosition_ = UnselectedNodePosition;
 	
 	FNodePosition CapturedNodePosition_ = {2, 2};
+	
+	struct FNodeData
+	{
+		TWeakObjectPtr<UMapNodeWidget> Node;
+		FVector2D Position;
+		float VerticalOffset = 0;
+				
+		TArray<FNodePosition> Next_;
+
+		FNodeData() = default;
+		FNodeData(UMapNodeWidget* InNode, FVector2D InPosition, float InVerticalOffset) 
+			: Node(InNode), Position(InPosition), VerticalOffset(InVerticalOffset) {}
+	};
+	
+	TArray<int32> NodeCountsInLayer_;
+	
+	TMap<FNodePosition, FNodeData> Nodes_;
+	
+	UPROPERTY()
+	TArray<UImage*> Lines_;
 };

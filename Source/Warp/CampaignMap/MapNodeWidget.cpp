@@ -17,7 +17,9 @@ void UMapNodeWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	Button_Node->OnClicked.AddDynamic(this, &UMapNodeWidget::HandleClicked);
+	MG_COND_ERROR_SHORT(MapNodeWidget, Button_Node == nullptr);
+	if (Button_Node != nullptr) 
+		Button_Node->OnClicked.AddDynamic(this, &UMapNodeWidget::HandleClicked);
 	
 	ApplyVisuals();
 }
@@ -36,6 +38,12 @@ void UMapNodeWidget::Init(UMapViewportWidget* InOwner, FNodePosition InNodePosit
 
 void UMapNodeWidget::ApplyVisuals() const
 {
+	RETURN_ON_FAIL(MapNodeWidget, Image_Icon);
+	RETURN_ON_FAIL(MapNodeWidget, Image_Repair);
+	RETURN_ON_FAIL(MapNodeWidget, Image_Shop);
+	RETURN_ON_FAIL(MapNodeWidget, Text_Debug);
+	RETURN_ON_FAIL(MapNodeWidget, Button_Node);
+	
 	Image_Repair->SetVisibility(Type_ == EMapNodeType::Repair ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 	Image_Shop->SetVisibility(Type_ == EMapNodeType::Shop ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 	

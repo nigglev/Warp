@@ -9,6 +9,7 @@
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(AMapViewportWidgetLog, Log, All);
@@ -31,6 +32,8 @@ void UMapViewportWidget::NativeConstruct()
 		GET_FUNCTION_NAME_CHECKED(UMapViewportWidget, OnCatcherMouseUp));
 	
 	SpawnNodes();
+	
+	BuildEdges();
 }
 
 void UMapViewportWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -113,7 +116,7 @@ void UMapViewportWidget::SpawnNodes()
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapNodeClass);
 
 	MapContentRoot->ClearChildren();
-	SpawnedNodes_.Reset();
+	Nodes_.Reset();
 	
 	float LayerWidthHS = LayerWidth_ / 2;
 	
@@ -121,12 +124,16 @@ void UMapViewportWidget::SpawnNodes()
 		double XCenter = LayerWidthHS;
 		double YCenter = LayerHeight_ / 2;
 		FVector2D Pos(XCenter,YCenter);
-		SpawnNode(FNodePosition(0, 0), Pos);
+		FNodePosition NodePos(0, 0);
+		UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
+		Nodes_.Add(NodePos, FNodeData(Node, Pos, 1));
+		NodeCountsInLayer_.Add(1);
 	}
 	
 	for (uint8 ILayer = 1; ILayer < LayerCount_; ++ILayer)
 	{
 		int32 NodeCount = RandomStream_.RandRange(NodeInLayerCountMin_, NodeInLayerCountMax_);
+		NodeCountsInLayer_.Add(NodeCount);
 		
 		float LayerHeightPadded = LayerHeight_ / NodeCount;
 		float LayerHeightHS = LayerHeightPadded / 2;
@@ -140,7 +147,10 @@ void UMapViewportWidget::SpawnNodes()
 			double Y = RandomStream_.RandRange(YCenter - LayerHeightHS * YDispersion_, YCenter + LayerHeightHS * YDispersion_);
 			
 			FVector2D Pos(X,Y);
-			SpawnNode(FNodePosition(ILayer, Step), Pos);	
+			FNodePosition NodePos(ILayer, Step);
+			UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
+			
+			Nodes_.Add(NodePos, FNodeData(Node, Pos, NodePos.Y + 1 / NodeCount));
 		}
 	}
 	
@@ -148,21 +158,24 @@ void UMapViewportWidget::SpawnNodes()
 	{
 		double YCenter = LayerHeight_ / 2;
 		FVector2D Pos(LastXCenter,YCenter);
-		SpawnNode(FNodePosition(LayerCount_, 0), Pos);
+		FNodePosition NodePos(LayerCount_, 0);
+		UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
+		Nodes_.Add(NodePos, FNodeData(Node, Pos, 1));
+		NodeCountsInLayer_.Add(1);
 	}
 	
 	MaxX_ = LastXCenter + LayerWidthHS;
 }
 
-void UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos)
+UMapNodeWidget* UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos)
 {
 	MG_LOG(AMapViewportWidgetLog, TEXT("InNodePosition: %s; %s"), *InNodePosition.ToString(), *InPos.ToString());
 			
 	UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
-	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+	RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, Node);
 
 	UCanvasPanelSlot* ChildSlot = MapContentRoot->AddChildToCanvas(Node);
-	RETURN_ON_FAIL(AMapViewportWidgetLog, ChildSlot);
+	RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, ChildSlot);
 
 	ChildSlot->SetPosition(InPos);
 	//ChildSlot->SetSize(NodeSize_);
@@ -180,8 +193,8 @@ void UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D
 	EMapNodeState NodeState = GetNodeState(InNodePosition); 
 	
 	Node->Init(this, InNodePosition, NodeType, NodeState);
-
-	SpawnedNodes_.Add(Node);
+	
+	return Node;
 }
 
 EMapNodeState UMapViewportWidget::GetNodeState(FNodePosition InNodePosition) const
@@ -198,6 +211,127 @@ EMapNodeState UMapViewportWidget::GetNodeState(FNodePosition InNodePosition) con
 	return EMapNodeState::Available;
 }
 
+void UMapViewportWidget::BuildEdges()
+{
+	GenerateEdges();
+	
+	for (const auto& Edge : Nodes_)
+	{
+		const FVector2D A = Edge.Value.Position;
+		for (auto Next : Edge.Value.Next_)
+		{
+			if (const FNodeData* NextNodeData = Nodes_.Find(Next))
+			{
+				SpawnEdgeSegments(A, NextNodeData->Position, EdgeThickness_);
+			}
+		}
+	}
+}
+
+int32 FindClosestWeightIndex(const float W, const TArray<float>& Weights)
+{
+	if (Weights.IsEmpty())
+	{
+		return INDEX_NONE;
+	}
+
+	int32 BestIndex = INDEX_NONE;
+	float BestDist = TNumericLimits<float>::Max();
+
+	for (int32 i = 0; i < Weights.Num(); ++i)
+	{
+		const float V = Weights[i];
+		if (!FMath::IsFinite(V))
+		{
+			continue; // пропускаем NaN/Inf
+		}
+
+		const float Dist = FMath::Abs(V - W);
+		if (Dist < BestDist)
+		{
+			BestDist = Dist;
+			BestIndex = i;
+		}
+	}
+
+	return BestIndex;
+}
+
+
+void UMapViewportWidget::GenerateEdges()
+{
+	
+	for (int32 Layer = 0; Layer < NodeCountsInLayer_.Num() - 1; ++Layer)
+	{
+		uint8 CurrentLayerNodeCount = NodeCountsInLayer_[Layer];
+		uint8 NextLayerNodeCount = NodeCountsInLayer_[Layer + 1];
+		
+		static TArray<float> NextWeights;
+		NextWeights.Reset();
+		for (uint8 j = 0; j < NextLayerNodeCount; ++j)
+		{
+			NextWeights.Add((j + 1) / (float)NextLayerNodeCount);
+		}
+		
+		static TArray<int32> UnusedIndexes;
+		UnusedIndexes.Reset();
+		for (uint8 j = 0; j < NextLayerNodeCount; ++j)
+		{
+			UnusedIndexes.Add(j);
+		}
+		
+		static TArray<float> CurrentWeights;
+		CurrentWeights.Reset();
+		
+		for (uint8 Y = 0; Y < CurrentLayerNodeCount; ++Y)
+		{
+			float CurrentWeight = (Y + 1) / (float)CurrentLayerNodeCount;
+			CurrentWeights.Add(CurrentWeight);
+			
+			int32 ClosestIndex = FindClosestWeightIndex(CurrentWeight, NextWeights);
+			
+			FNodePosition CurrentNodePosition(Layer, Y);
+			
+			FNodeData* Node = Nodes_.Find(CurrentNodePosition);
+			MG_COND_ERROR_SHORT(AMapViewportWidgetLog, Node == nullptr);
+			if (Node != nullptr)
+			{
+				Node->Next_.Add(FNodePosition(Layer + 1, ClosestIndex));
+				UnusedIndexes.Remove(ClosestIndex);
+				
+				if (ClosestIndex > 0 && RandomStream_.GetFraction() > 0.5f)
+				{
+					Node->Next_.Add(FNodePosition(Layer + 1, ClosestIndex - 1));
+					UnusedIndexes.Remove(ClosestIndex - 1);
+				}
+				
+				if (ClosestIndex < NextWeights.Num() - 1 && RandomStream_.GetFraction() > 0.5f)
+				{
+					Node->Next_.Add(FNodePosition(Layer + 1, ClosestIndex + 1));
+					UnusedIndexes.Remove(ClosestIndex + 1);
+				}
+			}
+		}
+		
+		for (int32 UnusedIndex : UnusedIndexes)
+		{
+			int32 ClosestIndex = FindClosestWeightIndex(NextWeights[UnusedIndex], CurrentWeights);
+			
+			FNodePosition CurrentNodePosition(Layer, ClosestIndex);
+			
+			FNodeData* Node = Nodes_.Find(CurrentNodePosition);
+			MG_COND_ERROR_SHORT(AMapViewportWidgetLog, Node == nullptr);
+			if (Node != nullptr)
+			{
+				FNodePosition UnusedNodePosition(Layer + 1, UnusedIndex);
+				Node->Next_.Add(UnusedNodePosition);
+			}
+		}
+		
+//		uint8 NodeIndex = RandomStream_.RandRange(0, NodeCount);
+	}
+}
+
 TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
 {
 	if (InNodePosition == SelectedNodePosition_)
@@ -208,17 +342,68 @@ TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNod
 	
 	if (SelectedNodePosition_ != UnselectedNodePosition)
 	{
-		int32 NodeIndex = SpawnedNodes_.IndexOfByPredicate([SelectedNodePosition=SelectedNodePosition_](const UMapNodeWidget* InNode) 
-			{ return InNode->GetNodePosition() == SelectedNodePosition;});
-		
-		if (NodeIndex == INDEX_NONE)
+		FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
+		if (Node == nullptr)
 		{
 			return MakeError(TEXT("Node not found"));
 		}
-	
-		SpawnedNodes_[NodeIndex]->DropSelection();
+		if (Node->Node == nullptr)
+		{
+			return MakeError(TEXT("Node Widget is null"));
+		}
+		Node->Node->DropSelection();
 	}
 	SelectedNodePosition_ = InNodePosition;
 	
 	return MakeValue(true);
+}
+
+void UMapViewportWidget::SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness)
+{
+	FVector2D Delta = B - A;
+	
+	float Len = Delta.Length();
+	if (Len < 0.001f) return;
+	
+	Delta /= Len;
+	
+	int32 N = 25;
+	float SmallLen = Len / N;
+	for (int32 I = 1; I < N; ++I)
+	{
+		if ((I & 0x1) == 0x1)
+		{
+			UImage* Img = SpawnEdgeSegment(A + Delta * SmallLen * I, A + Delta * SmallLen * (I + 1), Thickness);
+			Lines_.Add(Img);
+		}
+	}
+}
+
+UImage* UMapViewportWidget::SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness)
+{
+	UImage* Img = NewObject<UImage>(this, LineSegmentClass);
+	//Img->SetBrushFromTexture(nullptr); // или WhiteBrush в BP
+	Img->SetColorAndOpacity(EdgeColor_); // FLinearColor с альфой
+	Img->SetRenderTransformPivot(FVector2D(0.f, 0.5f)); // левый центр
+
+	MapContentRoot->AddChild(Img);
+
+	const FVector2D D = (B - A);
+	const float Len = D.Size();
+	const float AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X));
+
+	if (UCanvasPanelSlot* ChildSlot = Cast<UCanvasPanelSlot>(Img->Slot))
+	{
+		ChildSlot->SetAutoSize(false);
+		ChildSlot->SetAlignment(FVector2D(0.f, 0.5f));     // позиция = левый центр
+		ChildSlot->SetPosition(A);
+		ChildSlot->SetSize(FVector2D(Len, Thickness));
+		ChildSlot->SetZOrder(-10);
+	}
+
+	FWidgetTransform T;
+	T.Angle = AngleDeg;
+	Img->SetRenderTransform(T);
+
+	return Img;
 }
