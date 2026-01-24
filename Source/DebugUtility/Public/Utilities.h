@@ -64,3 +64,45 @@ inline void DEBUGUTILITY_API ParseIntoArray(const FString& InString, TArray<TTup
 {
 	ParseIntoArray(InString, OutArray, &InDelimeter, 1);
 }
+
+template<typename TEnum>
+const FString& ToStringEnum(const TEnum Value)
+{
+	static_assert(TIsEnum<TEnum>::Value, "Should only call this with enum types");
+
+	const UEnum* EnumPtr = StaticEnum<TEnum>();
+
+	static const FString EmptyString;
+
+	if (!EnumPtr)
+	{
+		return EmptyString;
+	}
+
+	static TMap<int64, FString> ValueToName;
+	static std::once_flag Once;
+
+	std::call_once(Once, [EnumPtr]()
+	{
+		const int32 N = EnumPtr->NumEnums();
+		ValueToName.Reserve(N);
+
+		for (int32 i = 0; i < N; ++i)
+		{
+			// Можно при желании пропускать Hidden/_MAX, но безопаснее
+			// просто маппить всё как есть, чтобы lookup был корректным.
+			const int64 V = EnumPtr->GetValueByIndex(i);
+			ValueToName.Add(V, EnumPtr->GetNameStringByIndex(i));
+		}
+	});
+
+	const int64 IValue = static_cast<int64>(Value);
+
+	if (const FString* Found = ValueToName.Find(IValue))
+	{
+		return *Found;
+	}
+
+	// Мягкое поведение на неизвестных значениях (как “старый код”, без ensure).
+	return EmptyString;
+}
