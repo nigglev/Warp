@@ -51,15 +51,30 @@ public:
 	FOnUnitsLoaded OnUnitsLoaded;
 
 	template<typename Descr>
-	const Descr& GetDescr(FName InDescrName)
+	const Descr& GetDescription(FName InDescriptionName)
 	{
-		FBaseDescriptions& Descriptions = Descriptions_.FindOrAdd(Descr::DescrName);
-		
-		const FBaseDescription* BaseDescr = Descriptions.Find(InDescrName);
+		const TUniquePtr<FBaseDescriptions>* BucketPtr = Descriptions_.Find(Descr::DescrName);
+		checkf(BucketPtr && BucketPtr->IsValid(), TEXT("Descriptions bucket '%s' is missing or null."),
+			*Descr::DescrName.ToString());
 
+		const FBaseDescription* BaseDescr = (*BucketPtr)->Find(InDescriptionName);
+		checkf(BaseDescr, TEXT("Description '%s' not found in bucket '%s'."),
+			*InDescriptionName.ToString(), *Descr::DescrName.ToString());
+		
+		
 		const Descr* D = static_cast<const Descr*>(BaseDescr);
-		ensure(D);
+		checkf(D, TEXT("Type mismatch for '%s' in bucket '%s'."),
+			*InDescriptionName.ToString(), *Descr::DescrName.ToString());
+
 		return *D;
+		
+		// FBaseDescriptions& Descriptions = Descriptions_.FindOrAdd(Descr::DescrName);
+		//
+		// const FBaseDescription* BaseDescr = Descriptions.Find(InDescrName);
+		//
+		// const Descr* D = static_cast<const Descr*>(BaseDescr);
+		// ensure(D);
+		// return *D;
 	}
 
 protected:

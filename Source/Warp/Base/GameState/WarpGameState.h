@@ -45,9 +45,6 @@ protected:
 	virtual void HandleMatchHasStarted() override;
 
 	void CheckValidState();
-	
-	UPROPERTY(EditAnywhere, Category="Unit")
-	TSubclassOf<ABaseUnitActor> UnitActorClass;
 
 	bool bClientValidState_ = false;
 };

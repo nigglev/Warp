@@ -11,6 +11,7 @@
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/ContentManagement/UnitStaticData/UnitDataTableRows.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 #include "Warp/Units(Deprecated)/UnitBase.h"
 
@@ -54,6 +55,11 @@ void ADefaultGameMode::Tick(float DeltaSeconds)
 			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
 			SetMatchState(MatchState::UnitCreation);
 		}
+		if (CheckUnitCreation())
+		{
+			UE_LOG(LogGameMode, Log, TEXT("Units Created"));
+			SetMatchState(MatchState::WaitingToStart);
+		}
 	}
 }
 
@@ -81,6 +87,41 @@ void ADefaultGameMode::HandleUnitCreation()
 {
 	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
+	RETURN_ON_FAIL(ADefaultGameModeLog, UnitsTable_);
+
+	static const FString Context(TEXT("UnitsTable"));
+	TArray<FUnitDataTableRows*> Rows;
+	UnitsTable_->GetAllRows(Context, Rows);
+
+	for (const FUnitDataTableRows* Row : Rows)
+	{
+		if (!Row || Row->UnitType.IsNone())
+		{
+			continue;
+		}
+		
+		const FUnitDescription& UnitDesc = Content->GetDescription<FUnitDescription>(Row->UnitType);
+		UClass* UnitClass = Row->UnitActor.LoadSynchronous();
+		MG_LOG(ADefaultGameModeLog, TEXT("Row UnitType=%s -> got description."), *Row->UnitType.ToString());
+
+		if (!UnitClass || !UnitClass->IsChildOf(ABaseUnitActor::StaticClass()))
+		{
+			return;
+		}
+
+		UWorld* World = GetWorld();
+		RETURN_ON_FAIL(ADefaultGameModeLog, World);
+
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		ABaseUnitActor* UnitActor = World->SpawnActor<ABaseUnitActor>(UnitClass, FTransform::Identity, Params);
+		RETURN_ON_FAIL(ADefaultGameModeLog, UnitActor);
+		FUnitSize Size(UnitDesc.UnitSize);
+		UnitActor->SetUnitActorSize(Size);
+	}
+
+	bUnitsCreated_ = true;
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
@@ -91,6 +132,7 @@ void ADefaultGameMode::HandleMatchHasStarted()
 void ADefaultGameMode::HandleMatchIsWaitingToStart()
 {
 	Super::HandleMatchIsWaitingToStart();
+	StartBattle();
 }
 
 bool ADefaultGameMode::StartBattle()
@@ -135,6 +177,13 @@ bool ADefaultGameMode::CheckLoading()
 
 	return false;
 }
+
+
+bool ADefaultGameMode::CheckUnitCreation()
+{
+	return bUnitsCreated_;
+}
+
 
 namespace ReadyToStartMatchErrors
 {

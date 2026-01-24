@@ -99,12 +99,6 @@ void ADefaultPlayerController::CheckClientLoading()
 bool ADefaultPlayerController::IsClientLoaded() const
 {
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, IsLocalController());
-	
-	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
-	if (PS == nullptr)
-	{
-		return false;
-	}
 
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);

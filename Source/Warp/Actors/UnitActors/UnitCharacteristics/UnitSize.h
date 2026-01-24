@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UnitEnums.h"
+#include "Warp/ContentManagement/StaticDescriptions/EUnitSize.h"
 #include "UnitSize.generated.h"
 
 
@@ -11,28 +12,28 @@ struct FUnitSize
 	GENERATED_BODY()
 
 	FUnitSize() = default;
-	explicit FUnitSize(const EUnitSizeCategory In) : SizeCategory(In) {}
+	explicit FUnitSize(const EUnitSize In) : SizeCategory(In) {}
 	
-	static FUnitSize None()   { return FUnitSize(EUnitSizeCategory::None); }
-	static FUnitSize Small()  { return FUnitSize(EUnitSizeCategory::Small); }
-	static FUnitSize Medium() { return FUnitSize(EUnitSizeCategory::Medium); }
-	static FUnitSize Big()    { return FUnitSize(EUnitSizeCategory::Big); }
+	static FUnitSize None()   { return FUnitSize(EUnitSize::None); }
+	static FUnitSize Small()  { return FUnitSize(EUnitSize::Small); }
+	static FUnitSize Medium() { return FUnitSize(EUnitSize::Medium); }
+	static FUnitSize Big()    { return FUnitSize(EUnitSize::Big); }
 	
-	EUnitSizeCategory GetUnitSize() const {return SizeCategory;}
+	EUnitSize GetUnitSize() const {return SizeCategory;}
 	FIntVector2 GetUnitTileLength() const
 	{
 		switch (SizeCategory)
 		{
-		case EUnitSizeCategory::None:	return FIntVector2(0,0);
-		case EUnitSizeCategory::Small:  return FIntVector2(1,1);
-		case EUnitSizeCategory::Medium: return FIntVector2(3,1);
-		case EUnitSizeCategory::Big:    return FIntVector2(5,1);
-		default:                        return FIntVector2(0,0);
+		case EUnitSize::None:	return FIntVector2(0,0);
+		case EUnitSize::Small:  return FIntVector2(1,1);
+		case EUnitSize::Medium: return FIntVector2(3,1);
+		case EUnitSize::Big:    return FIntVector2(5,1);
+		default:                return FIntVector2(0,0);
 		}
 	}
-	void SetUnitSize(const EUnitSizeCategory InSizeCategory) {SizeCategory = InSizeCategory;}
+	void SetUnitSize(const EUnitSize InSizeCategory) {SizeCategory = InSizeCategory;}
 	
 private:	
 	UPROPERTY()
-	EUnitSizeCategory SizeCategory = EUnitSizeCategory::None;
+	EUnitSize SizeCategory = EUnitSize::None;
 };

@@ -25,9 +25,6 @@ public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	uint32 GetID() const {return UnitID;}
-	void SetID(const uint32 InID) {UnitID = InID;}
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
@@ -36,9 +33,15 @@ public:
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
 	
 protected:
-
-	UPROPERTY(Replicated)
-	uint32 UnitID = 0;
-	UPROPERTY(Replicated)
+	UFUNCTION()
+	void OnRep_UnitActorSize();
+	
+	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
 	FUnitSize UnitActorSize = FUnitSize::None();
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<USceneComponent> Root;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<UStaticMeshComponent> Mesh;
 };

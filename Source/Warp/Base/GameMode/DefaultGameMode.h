@@ -38,6 +38,7 @@ protected:
 	virtual bool CheckLoading();
 
 	virtual void HandleUnitCreation();
+	virtual bool CheckUnitCreation();
 	
 	virtual void HandleMatchHasStarted() override;
 	virtual void HandleMatchIsWaitingToStart() override;
@@ -75,14 +76,13 @@ protected:
 
 	AWarpGameState* GetWarpGameState() const;
 
+	UPROPERTY(EditDefaultsOnly, Category="Data")
+	UDataTable* UnitsTable_ = nullptr;
+
 	FReadyToStartMatchError LastPlayersAndServerLoadError_;
 	
 	bool bServerContentReady_ = false;
-	
-	bool bInitialUnitsSpawned = false;
-	bool bMainPlayerSpawned = false;
-	bool bAISpawned = false;
-	int AINumber = 5;
+	bool bUnitsCreated_ = false;
 };
 
 
