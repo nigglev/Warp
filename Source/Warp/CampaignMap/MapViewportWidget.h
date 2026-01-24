@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CampaignEnums.h"
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
@@ -18,6 +19,9 @@ class WARP_API UMapViewportWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:	
+	TValueOrError<bool, FString> TryToSelect(FNodePosition InNodePosition);
+	
 protected:
 	virtual void NativeConstruct() override;
 
@@ -28,7 +32,7 @@ protected:
 	UFUNCTION()	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	
 	void SpawnNodes();
-	void SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D& InPos);
+	void SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos);	
 
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> InputCatcher;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> MapBorder;
@@ -62,4 +66,10 @@ protected:
 	FVector2f LastPos_ = FVector2f::ZeroVector;
 	FVector2D TargetOffset_ = FVector2D::ZeroVector;
 	FVector2D CurrentOffset_ = FVector2D::ZeroVector;
+	
+	FRandomStream RandomStream_;
+	
+	inline static const FNodePosition UnselectedNodePosition = FNodePosition(TNumericLimits<uint8>::Max(), TNumericLimits<uint8>::Max());
+	
+	FNodePosition SelectedNodePosition_ = UnselectedNodePosition;
 };

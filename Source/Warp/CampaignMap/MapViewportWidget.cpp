@@ -121,12 +121,12 @@ void UMapViewportWidget::SpawnNodes()
 		double XCenter = LayerWidthHS;
 		double YCenter = LayerHeight_ / 2;
 		FVector2D Pos(XCenter,YCenter);
-		SpawnNode(0, 0, Pos);
+		SpawnNode(FNodePosition(0, 0), Pos);
 	}
 	
 	for (uint8 ILayer = 1; ILayer < LayerCount_; ++ILayer)
 	{
-		int32 NodeCount = FMath::RandRange(NodeInLayerCountMin_, NodeInLayerCountMax_);
+		int32 NodeCount = RandomStream_.RandRange(NodeInLayerCountMin_, NodeInLayerCountMax_);
 		
 		float LayerHeightPadded = LayerHeight_ / NodeCount;
 		float LayerHeightHS = LayerHeightPadded / 2;
@@ -134,13 +134,13 @@ void UMapViewportWidget::SpawnNodes()
 		for (uint8 Step = 0; Step < NodeCount; ++Step)
 		{
 			double XCenter = LayerShift_ * ILayer + LayerWidthHS;
-			double X = FMath::RandRange(XCenter - LayerWidthHS * XDispersion_, XCenter + LayerWidthHS * XDispersion_);
+			double X = RandomStream_.RandRange(XCenter - LayerWidthHS * XDispersion_, XCenter + LayerWidthHS * XDispersion_);
 			
 			double YCenter = LayerVertPadding_ + LayerHeightPadded * Step + LayerHeightHS;
-			double Y = FMath::RandRange(YCenter - LayerHeightHS * YDispersion_, YCenter + LayerHeightHS * YDispersion_);
+			double Y = RandomStream_.RandRange(YCenter - LayerHeightHS * YDispersion_, YCenter + LayerHeightHS * YDispersion_);
 			
 			FVector2D Pos(X,Y);
-			SpawnNode(ILayer, Step, Pos);	
+			SpawnNode(FNodePosition(ILayer, Step), Pos);	
 		}
 	}
 	
@@ -148,15 +148,15 @@ void UMapViewportWidget::SpawnNodes()
 	{
 		double YCenter = LayerHeight_ / 2;
 		FVector2D Pos(LastXCenter,YCenter);
-		SpawnNode(LayerCount_, 0, Pos);
+		SpawnNode(FNodePosition(LayerCount_, 0), Pos);
 	}
 	
 	MaxX_ = LastXCenter + LayerWidthHS;
 }
 
-void UMapViewportWidget::SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D& InPos)
+void UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos)
 {
-	MG_LOG(AMapViewportWidgetLog, TEXT("Layer: %u; Step: %u;  %s"), InLayer, InStep, *InPos.ToString());
+	MG_LOG(AMapViewportWidgetLog, TEXT("InNodePosition: %s; %s"), *InNodePosition.ToString(), *InPos.ToString());
 			
 	UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
@@ -169,7 +169,40 @@ void UMapViewportWidget::SpawnNode(uint8 InLayer, uint8 InStep, const FVector2D&
 	ChildSlot->SetAlignment(NodeAlign_);
 	ChildSlot->SetZOrder(10);
 	
-	Node->Init(InLayer, InStep);
+	TArray<float> NodeTypeRanges({0.3f, 0.7f});
+	
+	float R = RandomStream_.GetFraction();
+	
+	int32 Index = Algo::UpperBound(NodeTypeRanges, R);
+	
+	EMapNodeType NodeType = static_cast<EMapNodeType>(Index);
+	
+	Node->Init(this, InNodePosition, NodeType, EMapNodeState::Available);
 
 	SpawnedNodes_.Add(Node);
+}
+
+TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
+{
+	if (InNodePosition == SelectedNodePosition_)
+	{
+		SelectedNodePosition_ = UnselectedNodePosition;
+		return MakeValue(false);
+	}
+	
+	if (SelectedNodePosition_ != UnselectedNodePosition)
+	{
+		int32 NodeIndex = SpawnedNodes_.IndexOfByPredicate([SelectedNodePosition=SelectedNodePosition_](const UMapNodeWidget* InNode) 
+			{ return InNode->GetNodePosition() == SelectedNodePosition;});
+		
+		if (NodeIndex == INDEX_NONE)
+		{
+			return MakeError(TEXT("Node not found"));
+		}
+	
+		SpawnedNodes_[NodeIndex]->DropSelection();
+	}
+	SelectedNodePosition_ = InNodePosition;
+	
+	return MakeValue(true);
 }

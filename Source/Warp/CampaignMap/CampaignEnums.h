@@ -17,3 +17,5 @@ enum class EMapNodeState : uint8
 	Available,
 	Completed
 };
+
+using FNodePosition = UE::Math::TIntVector2<uint8>;

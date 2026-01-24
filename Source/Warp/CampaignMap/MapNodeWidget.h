@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapNodeWidget.generated.h"
 
+class UMapViewportWidget;
 /**
  * 
  */
@@ -15,8 +16,10 @@ class WARP_API UMapNodeWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void Init(uint8 InLayer, uint8 InStep);
-	void Setup(EMapNodeType InType, EMapNodeState InState, bool bInSelected, const FText& InDebug);
+	void Init(UMapViewportWidget* InOwner, FNodePosition InNodePosition, EMapNodeType InType, EMapNodeState InState);
+	
+	FNodePosition GetNodePosition() const { return NodePosition_; }
+	void DropSelection();
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNodeClicked, UMapNodeWidget*);
 	FOnNodeClicked OnNodeClicked;
@@ -31,13 +34,15 @@ protected:
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UBorder> Border_Selected;
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UTextBlock> Text_Debug;
 
-	void ApplyVisuals();
+	void ApplyVisuals() const;
 	UFUNCTION() void HandleClicked();
 	
-	uint8 Layer_ = 0;
-	uint8 InStep_ = 0;
+	UPROPERTY()
+	UMapViewportWidget* Owner_ = nullptr;
+	
+	FNodePosition NodePosition_; 
 	
 	EMapNodeType Type_ = EMapNodeType::Combat;
-	EMapNodeState State_ = EMapNodeState::Locked;
+	EMapNodeState State_ = EMapNodeState::Available;
 	bool bSelected_ = false;
 };
