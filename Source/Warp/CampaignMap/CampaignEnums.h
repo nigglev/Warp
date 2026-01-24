@@ -13,9 +13,10 @@ enum class EMapNodeType : uint8
 UENUM(BlueprintType)
 enum class EMapNodeState : uint8
 {
-	Locked,
+	Completed,
+	Captured,
 	Available,
-	Completed
+	Unaccessible
 };
 
 using FNodePosition = UE::Math::TIntVector2<uint8>;

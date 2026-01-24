@@ -177,9 +177,25 @@ void UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D
 	
 	EMapNodeType NodeType = static_cast<EMapNodeType>(Index);
 	
-	Node->Init(this, InNodePosition, NodeType, EMapNodeState::Available);
+	EMapNodeState NodeState = GetNodeState(InNodePosition); 
+	
+	Node->Init(this, InNodePosition, NodeType, NodeState);
 
 	SpawnedNodes_.Add(Node);
+}
+
+EMapNodeState UMapViewportWidget::GetNodeState(FNodePosition InNodePosition) const
+{
+	if (InNodePosition == CapturedNodePosition_)
+		return EMapNodeState::Captured;
+	
+	if (InNodePosition.X <= CapturedNodePosition_.X)
+		return EMapNodeState::Completed;
+	
+	if (InNodePosition.X > CapturedNodePosition_.X + 1)
+		return EMapNodeState::Unaccessible;
+	
+	return EMapNodeState::Available;
 }
 
 TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)

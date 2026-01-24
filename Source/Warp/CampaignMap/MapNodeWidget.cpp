@@ -50,9 +50,17 @@ void UMapNodeWidget::ApplyVisuals() const
 	if (State_ != EMapNodeState::Available)
 	{
 		StringBuilder.Appendf(TEXT("%s"), *ToStringEnum(State_));
+		
+		Button_Node->SetVisibility(ESlateVisibility::Hidden);
 	}
 	
+	if (State_ == EMapNodeState::Completed)	{ SetNodeColor(CompletedStateColor); }
+	if (State_ == EMapNodeState::Available)	{ SetNodeColor(AvailableStateColor); }
+	if (State_ == EMapNodeState::Unaccessible)	{ SetNodeColor(UnaccessibleStateColor); }
+	if (State_ == EMapNodeState::Captured)	{ SetNodeColor(CapturedStateColor); }
+	
 	Text_Debug->SetText(FText::FromString(StringBuilder.ToString()));
+	Text_Debug->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UMapNodeWidget::HandleClicked()
@@ -71,6 +79,13 @@ void UMapNodeWidget::HandleClicked()
 	Border_Selected->SetVisibility(bSelected ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 	
 	MG_LOG(MapNodeWidget, TEXT("bSelected: %d"), bSelected);
+}
+
+void UMapNodeWidget::SetNodeColor(FLinearColor InColor) const
+{
+	Image_Icon->SetColorAndOpacity(InColor);
+	Image_Repair->SetColorAndOpacity(InColor);
+	Image_Shop->SetColorAndOpacity(InColor);
 }
 
 void UMapNodeWidget::DropSelection()

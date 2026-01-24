@@ -26,6 +26,11 @@ public:
 	
 protected:
 	virtual void NativeConstruct() override;
+	
+	UPROPERTY(EditAnywhere, Category="MapViewport") FLinearColor CompletedStateColor = FLinearColor::Gray;
+	UPROPERTY(EditAnywhere, Category="MapViewport") FLinearColor UnaccessibleStateColor = FLinearColor::Red;
+	UPROPERTY(EditAnywhere, Category="MapViewport") FLinearColor CapturedStateColor = FLinearColor::Green;
+	UPROPERTY(EditAnywhere, Category="MapViewport") FLinearColor AvailableStateColor = FLinearColor::White;
 
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UButton> Button_Node;
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Icon;
@@ -36,6 +41,8 @@ protected:
 
 	void ApplyVisuals() const;
 	UFUNCTION() void HandleClicked();
+	
+	void SetNodeColor(FLinearColor InColor) const;
 	
 	UPROPERTY()
 	UMapViewportWidget* Owner_ = nullptr;

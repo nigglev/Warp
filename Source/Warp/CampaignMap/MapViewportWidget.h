@@ -33,6 +33,8 @@ protected:
 	
 	void SpawnNodes();
 	void SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos);	
+	
+	EMapNodeState GetNodeState(FNodePosition InNodePosition) const;
 
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> InputCatcher;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> MapBorder;
@@ -72,4 +74,6 @@ protected:
 	inline static const FNodePosition UnselectedNodePosition = FNodePosition(TNumericLimits<uint8>::Max(), TNumericLimits<uint8>::Max());
 	
 	FNodePosition SelectedNodePosition_ = UnselectedNodePosition;
+	
+	FNodePosition CapturedNodePosition_ = {2, 2};
 };
