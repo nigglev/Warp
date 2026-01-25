@@ -3,6 +3,8 @@
 
 #include "MapViewportWidget.h"
 
+#include "CampaignGameMode.h"
+#include "CampaignHUD.h"
 #include "MapNodeWidget.h"
 #include "MGLogs.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -115,7 +117,7 @@ void UMapViewportWidget::SpawnNodes()
 {
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapNodeClass);
 
-	MapContentRoot->ClearChildren();
+	//MapContentRoot->ClearChildren();
 	Nodes_.Reset();
 	
 	float LayerWidthHS = LayerWidth_ / 2;
@@ -332,38 +334,6 @@ void UMapViewportWidget::GenerateEdges()
 	}
 }
 
-TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
-{
-	if (InNodePosition == SelectedNodePosition_)
-	{
-		SelectedNodePosition_ = UnselectedNodePosition;
-		return MakeValue(false);
-	}
-	
-	FNodeData* CapNode = Nodes_.Find(CapturedNodePosition_);
-	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, CapNode != nullptr, MakeError(TEXT("Captured Node is null")));
-	
-	if (!CapNode->Next_.Contains(InNodePosition))
-		return MakeValue(false);
-	
-	if (SelectedNodePosition_ != UnselectedNodePosition)
-	{
-		FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
-		if (Node == nullptr)
-		{
-			return MakeError(TEXT("Node not found"));
-		}
-		if (Node->Node == nullptr)
-		{
-			return MakeError(TEXT("Node Widget is null"));
-		}
-		Node->Node->DropSelection();
-	}
-	SelectedNodePosition_ = InNodePosition;
-	
-	return MakeValue(true);
-}
-
 void UMapViewportWidget::SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness)
 {
 	FVector2D Delta = B - A;
@@ -412,4 +382,46 @@ UImage* UMapViewportWidget::SpawnEdgeSegment(const FVector2D& A, const FVector2D
 	Img->SetRenderTransform(T);
 
 	return Img;
+}
+
+TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
+{
+	APlayerController* PC = GetOwningPlayer();
+	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, PC != nullptr, MakeError(TEXT("PlayerController is null")));
+	
+	ACampaignHUD* HUD = Cast<ACampaignHUD>(PC->GetHUD());
+	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, HUD != nullptr, MakeError(TEXT("HUD is null")));
+		
+	if (InNodePosition == SelectedNodePosition_)
+	{
+		SelectedNodePosition_ = UnselectedNodePosition;
+		HUD->OnSelectNode(false, SelectedNodePosition_);
+		return MakeValue(false);
+	}
+	
+	FNodeData* CapNode = Nodes_.Find(CapturedNodePosition_);
+	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, CapNode != nullptr, MakeError(TEXT("Captured Node is null")));
+	
+	if (!CapNode->Next_.Contains(InNodePosition))
+	{
+		return MakeValue(false);
+	}
+	
+	if (SelectedNodePosition_ != UnselectedNodePosition)
+	{
+		FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
+		if (Node == nullptr)
+		{
+			return MakeError(TEXT("Node not found"));
+		}
+		if (Node->Node == nullptr)
+		{
+			return MakeError(TEXT("Node Widget is null"));
+		}
+		Node->Node->DropSelection();
+	}
+	SelectedNodePosition_ = InNodePosition;
+	HUD->OnSelectNode(true, SelectedNodePosition_);
+		
+	return MakeValue(true);
 }

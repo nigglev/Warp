@@ -41,6 +41,8 @@ protected:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> MapBorder;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> MapContentRoot;
 	
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Ship;
+	
 	UPROPERTY(EditAnywhere, Category="MapViewport") float DragThreshold_ = 10;
 	UPROPERTY(EditAnywhere, Category="MapViewport") float InterpSpeed_ = 10;
 	

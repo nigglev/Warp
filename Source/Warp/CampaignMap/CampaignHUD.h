@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CampaignEnums.h"
 #include "GameFramework/HUD.h"
 #include "CampaignHUD.generated.h"
 
+class UMainCampaignWidget;
 /**
  * 
  */
@@ -17,11 +19,13 @@ class WARP_API ACampaignHUD : public AHUD
 public:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
+	
+	void OnSelectNode(bool bSelect, FNodePosition IntNodePosition);
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UUserWidget> MainWidgetClass_;
+	TSubclassOf<UMainCampaignWidget> MainWidgetClass_;
 	
 	UPROPERTY(Transient)
-	TObjectPtr<UUserWidget> MainWidget_;
+	TObjectPtr<UMainCampaignWidget> MainWidget_;
 };
