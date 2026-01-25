@@ -85,19 +85,18 @@ protected:
 	
 	FNodePosition SelectedNodePosition_ = UnselectedNodePosition;
 	
-	FNodePosition CapturedNodePosition_ = {2, 2};
+	FNodePosition CapturedNodePosition_ = {2, 1};
 	
 	struct FNodeData
 	{
 		TWeakObjectPtr<UMapNodeWidget> Node;
 		FVector2D Position;
-		float VerticalOffset = 0;
 				
 		TArray<FNodePosition> Next_;
 
 		FNodeData() = default;
-		FNodeData(UMapNodeWidget* InNode, FVector2D InPosition, float InVerticalOffset) 
-			: Node(InNode), Position(InPosition), VerticalOffset(InVerticalOffset) {}
+		FNodeData(UMapNodeWidget* InNode, FVector2D InPosition) 
+			: Node(InNode), Position(InPosition) {}
 	};
 	
 	TArray<int32> NodeCountsInLayer_;

@@ -126,7 +126,7 @@ void UMapViewportWidget::SpawnNodes()
 		FVector2D Pos(XCenter,YCenter);
 		FNodePosition NodePos(0, 0);
 		UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
-		Nodes_.Add(NodePos, FNodeData(Node, Pos, 1));
+		Nodes_.Add(NodePos, FNodeData(Node, Pos));
 		NodeCountsInLayer_.Add(1);
 	}
 	
@@ -150,7 +150,7 @@ void UMapViewportWidget::SpawnNodes()
 			FNodePosition NodePos(ILayer, Step);
 			UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
 			
-			Nodes_.Add(NodePos, FNodeData(Node, Pos, NodePos.Y + 1 / NodeCount));
+			Nodes_.Add(NodePos, FNodeData(Node, Pos));
 		}
 	}
 	
@@ -160,7 +160,7 @@ void UMapViewportWidget::SpawnNodes()
 		FVector2D Pos(LastXCenter,YCenter);
 		FNodePosition NodePos(LayerCount_, 0);
 		UMapNodeWidget* Node = SpawnNode(NodePos, Pos);
-		Nodes_.Add(NodePos, FNodeData(Node, Pos, 1));
+		Nodes_.Add(NodePos, FNodeData(Node, Pos));
 		NodeCountsInLayer_.Add(1);
 	}
 	
@@ -339,6 +339,12 @@ TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNod
 		SelectedNodePosition_ = UnselectedNodePosition;
 		return MakeValue(false);
 	}
+	
+	FNodeData* CapNode = Nodes_.Find(CapturedNodePosition_);
+	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, CapNode != nullptr, MakeError(TEXT("Captured Node is null")));
+	
+	if (!CapNode->Next_.Contains(InNodePosition))
+		return MakeValue(false);
 	
 	if (SelectedNodePosition_ != UnselectedNodePosition)
 	{
