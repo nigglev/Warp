@@ -39,10 +39,11 @@ class WARP_API ADefaultPlayerController : public APlayerController
 
 public:
 	ADefaultPlayerController();
-	//SETUP//
 	virtual void PostInitializeComponents() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	bool IsClientLoaded() const;
+	void SetControllerUnit(ABaseUnitActor* InUnitActor) {ControlledUnit = InUnitActor;};
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 	
@@ -93,7 +94,11 @@ protected:
 	class UInputAction* Action_CloseCell;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_OpenCell;
-	
+
+
+
+	UFUNCTION(Server, Reliable)
+	void ServerOrderMove(const FVector_NetQuantize10 Target);
 	
 	
 	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
@@ -102,6 +107,9 @@ protected:
 	void OnCellAction(const FInputActionValue& Value);
 	
 	void OnSelectAction(const FInputActionValue& Value);
+
+	UPROPERTY(Replicated)
+	TObjectPtr<ABaseUnitActor> ControlledUnit = nullptr;
 	
 	float MouseYawScaleDegPerUnit = 1.0f;
 	bool bRotateCamera = false;

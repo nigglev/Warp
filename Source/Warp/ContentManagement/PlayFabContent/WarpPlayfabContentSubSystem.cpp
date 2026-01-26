@@ -34,6 +34,7 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
 {
     Super::Initialize(InCollection);
     
+    LaunchContext_ = BuildLaunchContext(GetWorld());
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
     
     bool bLoginAttemptSuccess = LoginToPlayFab();
@@ -45,27 +46,29 @@ void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
     MG_FUNC_LABEL(ContentLog);
     RETURN_ON_FAIL_T(ContentLog, InLoginRes, TEXT("Failed to Login"));
 
-    if (IsServerOnly() || IsServerEditor())
+    if (IsAuthorityLike(LaunchContext_))
     {
         BroadcastContentIsLoaded(true);
     }
-    if (IsClientEditor())
+    else
     {
-        StateManager_ = NewObject<UPlayFabStateManager>(this);
-        StateManager_->SetClientAPI(ClientAPI_);
-        StateManager_->Start();
-    }
-    if (IsClientOnly())
-    {
-        StateManager_ = NewObject<UPlayFabStateManager>(this);
-        StateManager_->SetClientAPI(ClientAPI_);
-        StateManager_->Start();
+        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientPIE)
+        {
+            StateManager_ = NewObject<UPlayFabStateManager>(this);
+            StateManager_->SetClientAPI(ClientAPI_);
+            StateManager_->Start();
+        }
+        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientGame)
+        {
+            StateManager_ = NewObject<UPlayFabStateManager>(this);
+            StateManager_->SetClientAPI(ClientAPI_);
+            StateManager_->Start();
+        }
     }
 }
 
 bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
 {
-    MG_COND_ERROR(ContentLog, LoginInfo_ != nullptr, TEXT("LoginInfo_ already exist"));
     LoginInfo_->OnLoginResult.AddUObject(this, &UWarpPlayfabContentSubSystem::OnLoginResult);
     ENetMode NetMode = GetWorld()->GetNetMode();
     bool bSuccess;
@@ -141,8 +144,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource_Internal(const F
 
 bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, IsUEEditorActive());
-    RETURN_ON_FAIL_BOOL(ContentLog, !IsClient());
+    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
 
     bool bAllOk = true;
 
@@ -168,8 +170,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
 
 bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InDescriptionName)
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, IsUEEditorActive());
-    RETURN_ON_FAIL_BOOL(ContentLog, !IsClient());
+    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
     RETURN_ON_FAIL_BOOL(ContentLog, InDescriptionName.IsValid());
 
     TUniquePtr<FBaseDescriptions>* Found = Descriptions_.Find(InDescriptionName);
@@ -180,8 +181,8 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InD
 
 bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, IsUEEditorActive());
-    RETURN_ON_FAIL_BOOL(ContentLog, !IsClient());
+    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(ContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
     RETURN_ON_FAIL_BOOL(ContentLog, ServerAPI_);
     RETURN_ON_FAIL_BOOL(ContentLog, InDescriptionName.IsValid());
 
@@ -267,8 +268,8 @@ bool UWarpPlayfabContentSubSystem::WriteVersionsToDataSource(const FDescriptionV
 
 bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, IsUEEditorActive());
-    RETURN_ON_FAIL_BOOL(ContentLog, !IsClient());
+    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(ContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
     RETURN_ON_FAIL_BOOL(ContentLog, ServerAPI_);
 
     FDescriptionVersions VersionsToSave = CreateVersions();
@@ -279,23 +280,25 @@ bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
     return bSaveRes;
 }
 
-
 FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 {
     FString FolderDir;
-    if (IsServerOnly() || IsServerEditor())
+    if (IsAuthorityLike(LaunchContext_))
     {
         FolderDir = FPaths::Combine(FPaths::ProjectDir(), TEXT("GameDataSource"));
     }
-    if (IsClientEditor())
+    else
     {
-        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientPIE)
+        {
+            FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+        }
+        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientGame)
+        {
+            FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+        }
     }
-    if (IsClientOnly())
-    {
-        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
-    }
-    
+
     if (!IFileManager::Get().DirectoryExists(*FolderDir))
     {
         MG_ERROR(ContentLog, TEXT("GameDataSource directory does not exist: %s"), *FolderDir);
@@ -312,31 +315,6 @@ void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppErro
            *ErrorResult.GenerateErrorReport());
 }
 
-bool UWarpPlayfabContentSubSystem::IsClientOnly() const
-{
-    return !IsUEEditorActive() && IsClient();
-}
-
-bool UWarpPlayfabContentSubSystem::IsClientEditor() const
-{
-    return IsUEEditorActive() && IsClient();
-}
-
-bool UWarpPlayfabContentSubSystem::IsServerOnly() const
-{
-    return !IsUEEditorActive() && !IsClient();
-}
-
-bool UWarpPlayfabContentSubSystem::IsServerEditor() const
-{
-    return IsUEEditorActive() && !IsClient();
-}
-
-bool UWarpPlayfabContentSubSystem::IsClient() const
-{
-    ENetMode NetMode = GetWorld()->GetNetMode();
-    return  (NetMode == NM_Client);
-}
 
 void UWarpPlayfabContentSubSystem::BroadcastContentIsLoaded(bool InbIsContentLoaded)
 {

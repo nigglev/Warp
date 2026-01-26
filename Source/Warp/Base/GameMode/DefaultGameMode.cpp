@@ -5,6 +5,7 @@
 
 #include "MGLogs.h"
 #include "MGLogTypes.h"
+#include "Kismet/GameplayStatics.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
@@ -119,6 +120,13 @@ void ADefaultGameMode::HandleUnitCreation()
 		RETURN_ON_FAIL(ADefaultGameModeLog, UnitActor);
 		FUnitSize Size(UnitDesc.UnitSize);
 		UnitActor->SetUnitActorSize(Size);
+
+		if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+		{
+			UnitActor->SetOwner(PC);
+
+			PC->SetControllerUnit(UnitActor);
+		}
 	}
 
 	bUnitsCreated_ = true;

@@ -24,6 +24,7 @@ class WARP_API ABaseUnitActor : public AActor
 public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
@@ -31,6 +32,8 @@ public:
 
 	FUnitSize GetUnitActorSize() const {return UnitActorSize;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
+
+	void SetMoveTarget(const FVector& InTarget);
 	
 protected:
 	UFUNCTION()
@@ -38,6 +41,18 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
 	FUnitSize UnitActorSize = FUnitSize::None();
+	
+	UPROPERTY(EditDefaultsOnly, Category="Move")
+	float MoveSpeed = 600.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Move")
+	float AcceptanceRadius = 25.f;
+
+	UPROPERTY(Replicated)
+	FVector_NetQuantize10 MoveTarget = FVector::ZeroVector;
+
+	UPROPERTY(Replicated)
+	bool bHasMoveTarget = false;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")

@@ -17,16 +17,6 @@ enum class EPlayFabContentStates : uint8;
 /**
  * 
  */
-USTRUCT(BlueprintType)
-struct FUnitDefinition
-{
-	GENERATED_BODY()
-	
-	FName UnitTypeName;
-	FString UnitSize;
-	int32 UnitSpeed = 0;
-	int32 UnitMaxAP = 0;
-};
 
 DECLARE_MULTICAST_DELEGATE(FOnUnitsLoaded);
 
@@ -67,14 +57,6 @@ public:
 			*InDescriptionName.ToString(), *Descr::DescrName.ToString());
 
 		return *D;
-		
-		// FBaseDescriptions& Descriptions = Descriptions_.FindOrAdd(Descr::DescrName);
-		//
-		// const FBaseDescription* BaseDescr = Descriptions.Find(InDescrName);
-		//
-		// const Descr* D = static_cast<const Descr*>(BaseDescr);
-		// ensure(D);
-		// return *D;
 	}
 
 protected:
@@ -90,23 +72,16 @@ protected:
 	bool WriteVersionsToDataSource(const FDescriptionVersions& InVersions, FString& OutJsonString);
 	bool SaveVersionsToPlayFab();
 	
-	
 	UFUNCTION()
 	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
-
-	bool IsClient() const;
-	bool IsClientOnly() const;
-	bool IsClientEditor() const;
-	
-	bool IsServerOnly() const;
-	bool IsServerEditor() const;
-	
 	FString GetGameDataSourceFilePath() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
 	UPROPERTY()
 	UPlayFabStateManager* StateManager_ = nullptr;
+
+	FLaunchContext LaunchContext_;
 	
 	UPROPERTY()
 	UPlayFabLoginInfo* LoginInfo_ = nullptr;

@@ -50,6 +50,12 @@ void ADefaultPlayerController::PostInitializeComponents()
 	}
 }
 
+void ADefaultPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ADefaultPlayerController, ControlledUnit);
+}
+
 void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
 {
 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
@@ -140,6 +146,16 @@ void ADefaultPlayerController::SetupInputComponent()
 	}
 }
 
+void ADefaultPlayerController::ServerOrderMove_Implementation(const FVector_NetQuantize10 Target)
+{
+	if (!ControlledUnit)
+	{
+		return;
+	}
+
+	ControlledUnit->SetMoveTarget(Target);
+}
+
 void ADefaultPlayerController::OnCameraMove(const FInputActionValue& Value)
 {
 	const FVector2D Axis = Value.Get<FVector2D>();
@@ -197,6 +213,7 @@ void ADefaultPlayerController::OnSelectAction(const FInputActionValue& Value)
 				GridWorldSubsystem->SelectCell(P);
 			}
 		}
+		ServerOrderMove(P);
 	}
 }
 

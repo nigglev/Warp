@@ -23,17 +23,62 @@ ABaseUnitActor::ABaseUnitActor()
 	Mesh->SetupAttachment(Root);
 }
 
-void ABaseUnitActor::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseUnitActor, UnitActorSize);
+	DOREPLIFETIME(ABaseUnitActor, MoveTarget);
+	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget);
 }
+
+void ABaseUnitActor::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void ABaseUnitActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!HasAuthority() || !bHasMoveTarget)
+	{
+		return;
+	}
+
+	FVector Current = GetActorLocation();
+	FVector ToTarget = FVector(MoveTarget.X - Current.X, MoveTarget.Y - Current.Y, 0.f);
+
+	const float DistSq = ToTarget.SizeSquared();
+	if (DistSq <= FMath::Square(AcceptanceRadius))
+	{
+		bHasMoveTarget = false;
+		ForceNetUpdate();
+		return;
+	}
+
+	const FVector Dir = ToTarget.GetSafeNormal();
+	FVector NewLoc = Current + Dir * MoveSpeed * DeltaSeconds;
+	NewLoc.Z = Current.Z;
+
+	SetActorLocation(NewLoc, true);
+}
+
+
+void ABaseUnitActor::SetMoveTarget(const FVector& InTarget)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	MoveTarget = FVector(InTarget.X, InTarget.Y, GetActorLocation().Z);
+	bHasMoveTarget = true;
+
+	ForceNetUpdate();
+}
+
+
 
 void ABaseUnitActor::OnRep_UnitActorSize()
 {
