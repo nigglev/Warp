@@ -44,9 +44,3 @@ void ACampaignHUD::BeginPlay()
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // или LockAlways/LockInFullscreen
 	PC->SetInputMode(Mode);
 }
-
-void ACampaignHUD::OnSelectNode(bool bSelect, FNodePosition IntNodePosition)
-{
-	RETURN_ON_FAIL(CampaignHUDLog, MainWidget_);
-	MainWidget_->OnSelectNode(bSelect, IntNodePosition);
-}

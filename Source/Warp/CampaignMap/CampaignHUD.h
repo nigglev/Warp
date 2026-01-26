@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CampaignEnums.h"
+#include "MainCampaignWidget.h"
 #include "GameFramework/HUD.h"
 #include "CampaignHUD.generated.h"
 
@@ -19,8 +20,8 @@ class WARP_API ACampaignHUD : public AHUD
 public:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
-	
-	void OnSelectNode(bool bSelect, FNodePosition IntNodePosition);
+		
+	TWeakObjectPtr<UButton> GetDepartButton() const { return MainWidget_->GetDepartButton(); }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="UI")

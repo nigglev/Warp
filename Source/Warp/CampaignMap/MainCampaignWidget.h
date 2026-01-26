@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CampaignEnums.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Button.h"
 #include "MainCampaignWidget.generated.h"
 
 /**
@@ -15,12 +16,10 @@ class WARP_API UMainCampaignWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void OnSelectNode(bool bSelect, FNodePosition IntNodePosition);
+	TWeakObjectPtr<UButton> GetDepartButton() const { return Button_Depart.Get(); }
 	
 protected:
 	virtual void NativeConstruct() override;
 	
-	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UButton> Button_Depart;
-	
-	UFUNCTION() void HandleClicked();
+	UPROPERTY(meta=(BindWidget)) TObjectPtr<UButton> Button_Depart;
 };

@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
+class UButton;
 class UShipIconWidget;
 class UImage;
 class UMapNodeWidget;
@@ -73,6 +74,9 @@ protected:
 
 	void SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness);
 	UImage* SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness);
+	
+	void DepartHandleClicked();
+	void OnSelectNode(bool bSelect);
 
 	float MaxX_ = 0;
 	
@@ -110,4 +114,6 @@ protected:
 	
 	UPROPERTY()
 	TArray<UImage*> Lines_;
+	
+	TWeakObjectPtr<UButton> DepartButton_;
 };

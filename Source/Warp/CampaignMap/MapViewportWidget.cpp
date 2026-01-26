@@ -39,6 +39,16 @@ void UMapViewportWidget::NativeConstruct()
 	BuildEdges();
 	
 	CreateShipIcon();
+	
+	APlayerController* PC = GetOwningPlayer();
+	RETURN_ON_FAIL(AMapViewportWidgetLog, PC != nullptr);
+	
+	ACampaignHUD* HUD = Cast<ACampaignHUD>(PC->GetHUD());
+	RETURN_ON_FAIL(AMapViewportWidgetLog, HUD != nullptr);
+	
+	DepartButton_ = HUD->GetDepartButton();
+	RETURN_ON_FAIL(AMapViewportWidgetLog, DepartButton_.IsValid());
+	OnSelectNode(false);
 }
 
 void UMapViewportWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -410,16 +420,10 @@ void UMapViewportWidget::CreateShipIcon()
 
 TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
 {
-	APlayerController* PC = GetOwningPlayer();
-	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, PC != nullptr, MakeError(TEXT("PlayerController is null")));
-	
-	ACampaignHUD* HUD = Cast<ACampaignHUD>(PC->GetHUD());
-	RETURN_ON_FAIL_DEFAULT(AMapViewportWidgetLog, HUD != nullptr, MakeError(TEXT("HUD is null")));
-		
 	if (InNodePosition == SelectedNodePosition_)
 	{
 		SelectedNodePosition_ = UnselectedNodePosition;
-		HUD->OnSelectNode(false, SelectedNodePosition_);
+		OnSelectNode(false);
 		return MakeValue(false);
 	}
 	
@@ -445,7 +449,19 @@ TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNod
 		Node->Node->DropSelection();
 	}
 	SelectedNodePosition_ = InNodePosition;
-	HUD->OnSelectNode(true, SelectedNodePosition_);
+	OnSelectNode(true);
 		
 	return MakeValue(true);
 }
+
+void UMapViewportWidget::OnSelectNode(bool bSelect)
+{
+	RETURN_ON_FAIL(AMapViewportWidgetLog, DepartButton_.IsValid());
+	DepartButton_->SetVisibility(bSelect ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
+void UMapViewportWidget::DepartHandleClicked()
+{
+}
+
+
