@@ -7,6 +7,7 @@
 #include "CampaignHUD.h"
 #include "MapNodeWidget.h"
 #include "MGLogs.h"
+#include "ShipIconWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -36,6 +37,8 @@ void UMapViewportWidget::NativeConstruct()
 	SpawnNodes();
 	
 	BuildEdges();
+	
+	CreateShipIcon();
 }
 
 void UMapViewportWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -171,6 +174,8 @@ void UMapViewportWidget::SpawnNodes()
 
 UMapNodeWidget* UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos)
 {
+	RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, MapNodeClass);
+	
 	MG_LOG(AMapViewportWidgetLog, TEXT("InNodePosition: %s; %s"), *InNodePosition.ToString(), *InPos.ToString());
 			
 	UMapNodeWidget* Node = CreateWidget<UMapNodeWidget>(GetWorld(), MapNodeClass);
@@ -382,6 +387,25 @@ UImage* UMapViewportWidget::SpawnEdgeSegment(const FVector2D& A, const FVector2D
 	Img->SetRenderTransform(T);
 
 	return Img;
+}
+
+void UMapViewportWidget::CreateShipIcon()
+{
+	FNodeData* Node = Nodes_.Find(CapturedNodePosition_);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+	
+	RETURN_ON_FAIL(AMapViewportWidgetLog, ShipIconWidgetClass);
+	ShipIconWidget_ = CreateWidget<UShipIconWidget>(GetWorld(), ShipIconWidgetClass);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, ShipIconWidget_);
+	
+	ShipIconWidget_->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+	
+	UCanvasPanelSlot* ChildSlot = MapContentRoot->AddChildToCanvas(ShipIconWidget_);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, ChildSlot);
+
+	ChildSlot->SetPosition(Node->Position);
+	ChildSlot->SetAlignment(NodeAlign_);
+	ChildSlot->SetZOrder(20);
 }
 
 TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)

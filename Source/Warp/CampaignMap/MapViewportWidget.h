@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
+class UShipIconWidget;
 class UImage;
 class UMapNodeWidget;
 class UCanvasPanel;
@@ -41,8 +42,6 @@ protected:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UBorder> MapBorder;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> MapContentRoot;
 	
-	UPROPERTY(meta=(BindWidget)) TObjectPtr<class UImage>  Image_Ship;
-	
 	UPROPERTY(EditAnywhere, Category="MapViewport") float DragThreshold_ = 10;
 	UPROPERTY(EditAnywhere, Category="MapViewport") float InterpSpeed_ = 10;
 	
@@ -64,9 +63,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") bool bEdgeAntialias_ = true;
 	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") FLinearColor EdgeColor_ = FLinearColor(0.8f,0.9f,1.0f,0.35f);
 	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") TSubclassOf<UImage> LineSegmentClass;
-
+	
+	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") TSubclassOf<UShipIconWidget> ShipIconWidgetClass;
+	UPROPERTY() TObjectPtr<UShipIconWidget> ShipIconWidget_;	
+	
 	void BuildEdges();
 	void GenerateEdges();
+	void CreateShipIcon();
 
 	void SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness);
 	UImage* SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness);
