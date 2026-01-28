@@ -6,6 +6,7 @@
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Warp/Actors/UnitActors/UnitActorFactory.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
@@ -50,8 +51,7 @@ void ADefaultGameMode::Tick(float DeltaSeconds)
 
 	if (MS == MatchState::Loading)
 	{
-		// Check to see if we should start the match
-		if (CheckLoading())
+		if (CheckPlayersAndServerContentLoaded())
 		{
 			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
 			SetMatchState(MatchState::UnitCreation);
@@ -71,7 +71,7 @@ void ADefaultGameMode::OnMatchStateSet()
 	Super::OnMatchStateSet();
 	if (MatchState == MatchState::Loading)
 	{
-		HandleMatchHasLoading();
+		HandleMatchLoading();
 	}
 	if (MatchState == MatchState::UnitCreation)
 	{
@@ -79,16 +79,17 @@ void ADefaultGameMode::OnMatchStateSet()
 	}
 }
 
-void ADefaultGameMode::HandleMatchHasLoading()
+void ADefaultGameMode::HandleMatchLoading()
 {
-	CheckServerContentLoading();
+	CheckServerContentLoaded();
 }
 
 void ADefaultGameMode::HandleUnitCreation()
 {
-	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
 	RETURN_ON_FAIL(ADefaultGameModeLog, UnitsTable_);
+
+	UUnitActorFactory* Factory = CreateUnitsFactory();
+	RETURN_ON_FAIL(ADefaultGameModeLog, Factory);
 
 	static const FString Context(TEXT("UnitsTable"));
 	TArray<FUnitDataTableRows*> Rows;
@@ -96,36 +97,16 @@ void ADefaultGameMode::HandleUnitCreation()
 
 	for (const FUnitDataTableRows* Row : Rows)
 	{
-		if (!Row || Row->UnitType.IsNone())
+		if (!Row)
 		{
+			MG_ERROR(ADefaultGameModeLog, TEXT("Row %s not found"), *Row->UnitType.ToString());
 			continue;
 		}
 		
-		const FUnitDescription& UnitDesc = Content->GetDescription<FUnitDescription>(Row->UnitType);
-		UClass* UnitClass = Row->UnitActor.LoadSynchronous();
-		MG_LOG(ADefaultGameModeLog, TEXT("Row UnitType=%s -> got description."), *Row->UnitType.ToString());
-
-		if (!UnitClass || !UnitClass->IsChildOf(ABaseUnitActor::StaticClass()))
+		ABaseUnitActor* UnitActor = Factory->CreateFromRow(*Row, FTransform::Identity);
+		if (!UnitActor)
 		{
-			return;
-		}
-
-		UWorld* World = GetWorld();
-		RETURN_ON_FAIL(ADefaultGameModeLog, World);
-
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ABaseUnitActor* UnitActor = World->SpawnActor<ABaseUnitActor>(UnitClass, FTransform::Identity, Params);
-		RETURN_ON_FAIL(ADefaultGameModeLog, UnitActor);
-		FUnitSize Size(UnitDesc.UnitSize);
-		UnitActor->SetUnitActorSize(Size);
-
-		if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
-		{
-			UnitActor->SetOwner(PC);
-
-			PC->SetControllerUnit(UnitActor);
+			MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
 		}
 	}
 
@@ -152,28 +133,28 @@ bool ADefaultGameMode::StartBattle()
 
 #pragma region GameLoading
 
-void ADefaultGameMode::CheckServerContentLoading()
+void ADefaultGameMode::CheckServerContentLoaded()
 {
 	if (bServerContentReady_)
 		return;
 
-	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL(ADefaultGameModeLog, Content);
+	auto PlayfabContentSubSystem =	UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(ADefaultGameModeLog, PlayfabContentSubSystem);
 	
-	bServerContentReady_ = Content->IsClientDataLoaded();
+	bServerContentReady_ = PlayfabContentSubSystem->IsContentLoaded();
 	if (!bServerContentReady_)
 	{
-		Content->OnUnitsLoaded.AddWeakLambda(this, [this]()
+		PlayfabContentSubSystem->OnContentLoaded.AddWeakLambda(this, [this]()
 		{
-			this->CheckServerContentLoading();
+			this->CheckServerContentLoaded();
 		});
 	}
 	MG_LOG(ADefaultGameModeLog, TEXT("bServerContentReady_: %s"), bServerContentReady_ ? TEXT("true") : TEXT("false"));
 }
 
-bool ADefaultGameMode::CheckLoading()
+bool ADefaultGameMode::CheckPlayersAndServerContentLoaded()
 {
-	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerLoadValue();
+	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerContentLoadValue();
 	if (ReadyValue.HasValue())
 		return true;
 
@@ -186,13 +167,6 @@ bool ADefaultGameMode::CheckLoading()
 	return false;
 }
 
-
-bool ADefaultGameMode::CheckUnitCreation()
-{
-	return bUnitsCreated_;
-}
-
-
 namespace ReadyToStartMatchErrors
 {
 	const FName NoServerContentReady = FName("NoServerContentReady");
@@ -200,7 +174,7 @@ namespace ReadyToStartMatchErrors
 	const FName PlayerIsNotReady = FName("PlayerIsNotReady");
 }
 
-TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::PlayersAndServerLoadValue() const
+TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::PlayersAndServerContentLoadValue() const
 {
 	if (!bServerContentReady_)
 		return MakeError(ReadyToStartMatchErrors::NoServerContentReady);
@@ -211,7 +185,7 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	{	
 		if (AWarpPlayerState* WPS = Cast<AWarpPlayerState>(PS))
 		{
-			if (!WPS->IsClientLoaded())
+			if (!WPS->IsClientContentLoaded())
 			{
 				return MakeError(ReadyToStartMatchErrors::PlayerIsNotReady, WPS->GetName());
 			}
@@ -219,7 +193,27 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	}
 	return MakeValue();
 }
+
+bool ADefaultGameMode::CheckUnitCreation()
+{
+	return bUnitsCreated_;
+}
+
 #pragma endregion
+
+UUnitActorFactory* ADefaultGameMode::CreateUnitsFactory()
+{
+	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL_NULL(ADefaultGameModeLog, Content);
+	RETURN_ON_FAIL_NULL(ADefaultGameModeLog, UnitsTable_);
+	
+	UUnitActorFactory* Factory = NewObject<UUnitActorFactory>(this);
+	FUnitActorFactoryConfig Cfg;
+	Cfg.UnitsTable = UnitsTable_;
+	Cfg.CollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	Factory->Init(Content, Cfg);
+	return Factory;
+}
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const
 {
@@ -227,4 +221,6 @@ AWarpGameState* ADefaultGameMode::GetWarpGameState() const
 	MG_COND_ERROR_SHORT(ADefaultGameModeLog, GS == nullptr);
 	return GS;
 }
+
+
 

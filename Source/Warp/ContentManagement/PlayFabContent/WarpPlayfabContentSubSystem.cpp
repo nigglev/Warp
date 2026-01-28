@@ -327,7 +327,7 @@ void UWarpPlayfabContentSubSystem::BroadcastContentIsLoaded(bool InbIsContentLoa
     {
         bool bSuccess = ReadDescriptionsFromDataSource();
         RETURN_ON_FAIL(ContentLog, bSuccess);
-        bUnitsLoaded_ = true;
-        OnUnitsLoaded.Broadcast();
+        bContentLoaded_ = true;
+        OnContentLoaded.Broadcast();
     }
 }

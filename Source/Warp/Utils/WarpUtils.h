@@ -1,6 +1,6 @@
 #pragma once
 
-UENUM(BlueprintType)
+UENUM()
 enum class EClientEnv : uint8
 {
 	NotAClient,
@@ -9,7 +9,7 @@ enum class EClientEnv : uint8
 };
 
 
-UENUM(BlueprintType)
+UENUM()
 enum class ELaunchNetMode : uint8
 {
 	Standalone,

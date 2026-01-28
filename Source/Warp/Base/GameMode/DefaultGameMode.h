@@ -7,6 +7,9 @@
 #include "GameFramework/GameModeBase.h"
 #include "DefaultGameMode.generated.h"
 
+class UUnitActorFactory;
+class ABaseUnitActor;
+struct FUnitDescription;
 class UWarpPlayfabContentSubSystem;
 class ADefaultPlayerController;
 class ACombatMapManager;
@@ -34,8 +37,8 @@ protected:
 
 	virtual void OnMatchStateSet() override;
 	
-	virtual void HandleMatchHasLoading();
-	virtual bool CheckLoading();
+	virtual void HandleMatchLoading();
+	virtual bool CheckPlayersAndServerContentLoaded();
 
 	virtual void HandleUnitCreation();
 	virtual bool CheckUnitCreation();
@@ -69,12 +72,14 @@ protected:
 		}
 	};
 
-	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerLoadValue() const;
+	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerContentLoadValue() const;
 	
 	UFUNCTION()
-	void CheckServerContentLoading();
+	void CheckServerContentLoaded();
 
 	AWarpGameState* GetWarpGameState() const;
+
+	UUnitActorFactory* CreateUnitsFactory();
 
 	UPROPERTY(EditDefaultsOnly, Category="Data")
 	UDataTable* UnitsTable_ = nullptr;

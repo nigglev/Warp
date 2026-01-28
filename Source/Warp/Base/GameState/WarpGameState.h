@@ -40,11 +40,9 @@ public:
 protected:
 	virtual void OnRep_MatchState() override;
 	
-	void HandleMatchHasLoading();
+	void HandleMatchLoading();
 	virtual void HandleMatchIsWaitingToStart() override;
 	virtual void HandleMatchHasStarted() override;
-
-	void CheckValidState();
 
 	bool bClientValidState_ = false;
 };

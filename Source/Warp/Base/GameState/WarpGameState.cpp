@@ -43,7 +43,7 @@ void AWarpGameState::OnRep_MatchState()
 	
 	if (MatchState == MatchState::Loading)
 	{
-		HandleMatchHasLoading();
+		HandleMatchLoading();
 	}
 	
 	//Player Controller Iteration
@@ -59,7 +59,7 @@ void AWarpGameState::OnRep_MatchState()
 	}
 }
 
-void AWarpGameState::HandleMatchHasLoading()
+void AWarpGameState::HandleMatchLoading()
 {
 	//NOTHING AWHILE
 }
@@ -76,13 +76,3 @@ void AWarpGameState::HandleMatchHasStarted()
 	
 }
 
-void AWarpGameState::CheckValidState()
-{
-	if (bClientValidState_)
-		return;
-
-	bClientValidState_ = true;
-
-	MG_COND_LOG(AWarpGameStateLog, MGLogTypes::IsLogAccessed(EMGLogTypes::GameState), TEXT("Valid State"));
-	OnWarpGameStateValid.Broadcast(this);
-}

@@ -36,6 +36,7 @@ public:
 	void SetMoveTarget(const FVector& InTarget);
 	
 protected:
+	virtual void PostNetInit() override;
 	UFUNCTION()
 	void OnRep_UnitActorSize();
 	

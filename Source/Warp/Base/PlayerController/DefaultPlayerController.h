@@ -43,7 +43,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	bool IsClientLoaded() const;
-	void SetControllerUnit(ABaseUnitActor* InUnitActor) {ControlledUnit = InUnitActor;};
+	void SetControllerUnit(ABaseUnitActor* InUnitActor) {ControlledUnit_ = InUnitActor;};
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 	
@@ -109,7 +109,7 @@ protected:
 	void OnSelectAction(const FInputActionValue& Value);
 
 	UPROPERTY(Replicated)
-	TObjectPtr<ABaseUnitActor> ControlledUnit = nullptr;
+	TObjectPtr<ABaseUnitActor> ControlledUnit_ = nullptr;
 	
 	float MouseYawScaleDegPerUnit = 1.0f;
 	bool bRotateCamera = false;

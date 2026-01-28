@@ -35,10 +35,10 @@ public:
 	void OnDescriptionSavingResult(bool bSucceeded);
 	
 	UFUNCTION()
-	bool IsClientDataLoaded() const { return bUnitsLoaded_; }
+	bool IsContentLoaded() const { return bContentLoaded_; }
 	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
 	
-	FOnUnitsLoaded OnUnitsLoaded;
+	FOnUnitsLoaded OnContentLoaded;
 
 	template<typename Descr>
 	const Descr& GetDescription(FName InDescriptionName)
@@ -92,6 +92,6 @@ protected:
 
 	bool bSaveDescriptionToPlayFabDone_ = false;
 	bool bSaveVersionToPlayFabDone_ = false;
-	bool bUnitsLoaded_ = false;
+	bool bContentLoaded_ = false;
 };
 

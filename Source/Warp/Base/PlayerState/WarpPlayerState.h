@@ -20,7 +20,7 @@ public:
 
 	void SetClientLoaded();
 	
-	bool IsClientLoaded() const { return bClientLoaded; }
+	bool IsClientContentLoaded() const { return bClientLoaded; }
 	
 protected:	
 	

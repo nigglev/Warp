@@ -44,16 +44,16 @@ void ADefaultPlayerController::PostInitializeComponents()
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content != nullptr);
 
-	if (!Content->IsClientDataLoaded())
+	if (!Content->IsContentLoaded())
 	{
-		Content->OnUnitsLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
+		Content->OnContentLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
 	}
 }
 
 void ADefaultPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ADefaultPlayerController, ControlledUnit);
+	DOREPLIFETIME(ADefaultPlayerController, ControlledUnit_);
 }
 
 void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
@@ -109,7 +109,7 @@ bool ADefaultPlayerController::IsClientLoaded() const
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);
 
-	return Content->IsClientDataLoaded();
+	return Content->IsContentLoaded();
 }
 
 
@@ -148,12 +148,12 @@ void ADefaultPlayerController::SetupInputComponent()
 
 void ADefaultPlayerController::ServerOrderMove_Implementation(const FVector_NetQuantize10 Target)
 {
-	if (!ControlledUnit)
+	if (!ControlledUnit_)
 	{
 		return;
 	}
 
-	ControlledUnit->SetMoveTarget(Target);
+	ControlledUnit_->SetMoveTarget(Target);
 }
 
 void ADefaultPlayerController::OnCameraMove(const FInputActionValue& Value)
