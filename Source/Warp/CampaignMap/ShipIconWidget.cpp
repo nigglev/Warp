@@ -3,15 +3,23 @@
 
 #include "ShipIconWidget.h"
 
+#include "MapViewportWidget.h"
 #include "MGLogs.h"
 #include "Components/CanvasPanelSlot.h"
 
 DEFINE_LOG_CATEGORY_STATIC(AShipIconWidgetLog, Log, All);
 
-void UShipIconWidget::StartMove(FVector2D InPosition)
+void UShipIconWidget::Init(UMapViewportWidget* InOwner)
+{
+	Owner_ = InOwner;
+}
+
+void UShipIconWidget::StartMove(FVector2D InPosition, FNodePosition InNodePosition)
 {
 	UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot);
 	RETURN_ON_FAIL(AShipIconWidgetLog, CanvasSlot);
+	
+	NodePosition_ = InNodePosition;
 	
 	StartPosition_ = CanvasSlot->GetPosition();
 	TargetPosition_ = InPosition;
@@ -59,6 +67,10 @@ void UShipIconWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		if (Elapsed_ >= MoveDuration_)
 		{
 			bMoving_ = false;
+
+			MG_COND_ERROR_SHORT(AShipIconWidgetLog, Owner_ == nullptr);
+			if (Owner_ != nullptr)
+				Owner_->OnCaptureNode(NodePosition_);
 		}
 	}
 }

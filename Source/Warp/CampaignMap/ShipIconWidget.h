@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CampaignEnums.h"
 #include "Blueprint/UserWidget.h"
 #include "ShipIconWidget.generated.h"
 
+class UMapViewportWidget;
 /**
  * 
  */
@@ -14,8 +16,9 @@ class WARP_API UShipIconWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
-public:	
-	void StartMove(FVector2D InPosition);
+public:
+	void Init(UMapViewportWidget* InOwner);
+	void StartMove(FVector2D InPosition, FNodePosition InNodePosition);
 	
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;	
@@ -24,6 +27,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Map") float RotateDuration_ = 1;
 	
 private:
+	
+	UPROPERTY()
+	UMapViewportWidget* Owner_;
+	
+	FNodePosition NodePosition_;
 	
 	bool bMoving_ = false;
 	bool bRotation_ = false;

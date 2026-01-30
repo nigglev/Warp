@@ -58,9 +58,9 @@ void UMapNodeWidget::ApplyVisuals() const
 	if (State_ != EMapNodeState::Available)
 	{
 		StringBuilder.Appendf(TEXT("%s"), *ToStringEnum(State_));
-		
-		Button_Node->SetVisibility(ESlateVisibility::Hidden);
 	}
+	
+	Button_Node->SetVisibility(State_ != EMapNodeState::Available ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
 	
 	if (State_ == EMapNodeState::Completed)	{ SetNodeColor(CompletedStateColor); }
 	if (State_ == EMapNodeState::Available)	{ SetNodeColor(AvailableStateColor); }
@@ -100,4 +100,10 @@ void UMapNodeWidget::DropSelection()
 {
 	Border_Selected->SetVisibility(ESlateVisibility::Hidden);
 	MG_LOG(MapNodeWidget, TEXT("%s"), *NodePosition_.ToString());
+}
+
+void UMapNodeWidget::SetState(EMapNodeState InState)
+{
+	State_ = InState;
+	ApplyVisuals();
 }

@@ -407,8 +407,10 @@ void UMapViewportWidget::CreateShipIcon()
 	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
 	
 	RETURN_ON_FAIL(AMapViewportWidgetLog, ShipIconWidgetClass);
-	ShipIconWidget_ = CreateWidget<UShipIconWidget>(GetWorld(), ShipIconWidgetClass);
+	ShipIconWidget_ = CreateWidget<UShipIconWidget>(this, ShipIconWidgetClass);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, ShipIconWidget_);
+	
+	ShipIconWidget_->Init(this);
 	
 	ShipIconWidget_->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 	
@@ -422,6 +424,11 @@ void UMapViewportWidget::CreateShipIcon()
 
 TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNodePosition)
 {
+	if (bShipFlying)
+	{
+		return MakeValue(false);
+	}
+	
 	if (InNodePosition == SelectedNodePosition_)
 	{
 		SelectedNodePosition_ = UnselectedNodePosition;
@@ -456,6 +463,20 @@ TValueOrError<bool, FString> UMapViewportWidget::TryToSelect(FNodePosition InNod
 	return MakeValue(true);
 }
 
+void UMapViewportWidget::DropSelection()
+{
+	if (UnselectedNodePosition == SelectedNodePosition_)
+		return;
+	
+	FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Node != nullptr);
+	
+	Node->Node->DropSelection();
+	
+	SelectedNodePosition_ = UnselectedNodePosition;
+	OnSelectNode(false);
+}
+
 void UMapViewportWidget::OnSelectNode(bool bSelect)
 {
 	RETURN_ON_FAIL(AMapViewportWidgetLog, DepartButton_.IsValid());
@@ -470,7 +491,26 @@ void UMapViewportWidget::DepartHandleClicked()
 	FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
 	
-	ShipIconWidget_->StartMove(Node->Position);
+	ShipIconWidget_->StartMove(Node->Position, SelectedNodePosition_);
+	
+	DropSelection();
+	
+	bShipFlying = true;
 }
 
+void UMapViewportWidget::OnCaptureNode(FNodePosition InNodePosition)
+{
+	bShipFlying = false;
+	Capture(InNodePosition);
+}
 
+void UMapViewportWidget::Capture(FNodePosition InNodePosition)
+{
+	CapturedNodePosition_ = InNodePosition;
+
+	for (TPair<FNodePosition, FNodeData> NodePair : Nodes_)
+	{
+		EMapNodeState NodeState = GetNodeState(NodePair.Key);
+		NodePair.Value.Node->SetState(NodeState);
+	}
+}

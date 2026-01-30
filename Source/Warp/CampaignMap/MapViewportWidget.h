@@ -25,6 +25,8 @@ class WARP_API UMapViewportWidget : public UUserWidget
 public:	
 	TValueOrError<bool, FString> TryToSelect(FNodePosition InNodePosition);
 	
+	void OnCaptureNode(FNodePosition InNodePosition);
+	
 protected:
 	virtual void NativeConstruct() override;
 
@@ -75,15 +77,21 @@ protected:
 	void SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness);
 	UImage* SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness);
 	
+	void Capture(FNodePosition InNodePosition);
+	
 	UFUNCTION()
 	void DepartHandleClicked();
 	
 	void OnSelectNode(bool bSelect);
+	
+	void DropSelection();
 
 	float MaxX_ = 0;
 	
 	bool bMouseDown_ = false;
 	bool bDragging_ = false;
+	
+	bool bShipFlying = false;
 	
 	FVector2f PressPos_ = FVector2f::ZeroVector;
 	FVector2f LastPos_ = FVector2f::ZeroVector;
@@ -100,7 +108,7 @@ protected:
 	
 	struct FNodeData
 	{
-		TWeakObjectPtr<UMapNodeWidget> Node;
+		UMapNodeWidget* Node = nullptr;
 		FVector2D Position;
 				
 		TArray<FNodePosition> Next_;

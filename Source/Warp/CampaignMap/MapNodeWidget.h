@@ -20,6 +20,8 @@ public:
 	
 	FNodePosition GetNodePosition() const { return NodePosition_; }
 	void DropSelection();
+	
+	void SetState(EMapNodeState InState);
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNodeClicked, UMapNodeWidget*);
 	FOnNodeClicked OnNodeClicked;
