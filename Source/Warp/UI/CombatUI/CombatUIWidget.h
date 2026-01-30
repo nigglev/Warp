@@ -32,11 +32,15 @@ private:
 	void HandleStartClicked();
 	UFUNCTION()
 	void HandleNextTurnClicked();
+	UFUNCTION()
+	void HandleReturnToCampaignMapClicked();
 	
 	UPROPERTY(meta=(BindWidget))
 	UButton* StartButton = nullptr;
 	UPROPERTY(meta=(BindWidget))
 	UButton* NextTurnButton = nullptr;
+	UPROPERTY(meta=(BindWidget))
+	UButton* ReturnToCampaignMapButton = nullptr;
 
 	UPROPERTY(meta=(BindWidget))
 	UHorizontalBox* ActionPointsBox = nullptr;

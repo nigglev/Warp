@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/GameModeBase.h"
+#include "Warp/CampaignMap/CampaignEnums.h"
 #include "DefaultGameMode.generated.h"
 
 class UWarpPlayfabContentSubSystem;
@@ -23,6 +24,7 @@ class WARP_API ADefaultGameMode : public AGameMode
 public:
 	
 	ADefaultGameMode();
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 	virtual void StartPlay() override;
@@ -30,7 +32,12 @@ public:
 
 	bool StartBattle();
 	
+	EMapNodeType GetMapNode() const { return MapNodeType_; }
+	void ReturnToCampaignMap();
+
 protected:
+	
+	UPROPERTY(EditAnywhere, Category="Map") FName CampaignMap;
 
 	virtual void OnMatchStateSet() override;
 	
@@ -81,9 +88,7 @@ protected:
 	bool bMainPlayerSpawned = false;
 	bool bAISpawned = false;
 	int AINumber = 5;
+	
+	EMapNodeType MapNodeType_ = EMapNodeType::Undefined;
+	FNodePosition NodePosition_ = FNodePosition::ZeroValue;
 };
-
-
-
-
-

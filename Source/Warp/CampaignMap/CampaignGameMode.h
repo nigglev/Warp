@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MapNodeWidget.h"
 #include "GameFramework/GameModeBase.h"
 #include "CampaignGameMode.generated.h"
 
@@ -16,4 +17,16 @@ class WARP_API ACampaignGameMode : public AGameModeBase
 	
 public:
 	ACampaignGameMode();
+	
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+	
+	void OnCapture(FNodePosition InNodePosition, EMapNodeType InMapNode);
+	
+	FNodePosition GetNodePosition() const { return  NodePosition_; }
+	
+protected:
+	UPROPERTY(EditAnywhere, Category="Map") TMap<uint8, FName> LayerToBattleMap;
+	UPROPERTY(EditAnywhere, Category="Map") FName DefaultBattleMap;
+	
+	FNodePosition NodePosition_ = FNodePosition(0, 0);
 };

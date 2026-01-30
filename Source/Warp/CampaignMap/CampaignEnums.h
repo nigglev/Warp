@@ -5,6 +5,7 @@
 UENUM(BlueprintType)
 enum class EMapNodeType : uint8
 {
+	Undefined,
 	Combat,
 	Repair,
 	Shop

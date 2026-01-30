@@ -3,6 +3,7 @@
 
 #include "MapViewportWidget.h"
 
+#include "CampaignGameMode.h"
 #include "CampaignHUD.h"
 #include "MapNodeWidget.h"
 #include "MGLogs.h"
@@ -32,6 +33,13 @@ void UMapViewportWidget::NativeConstruct()
 
 	InputCatcher->OnMouseButtonUpEvent.BindUFunction(this,
 		GET_FUNCTION_NAME_CHECKED(UMapViewportWidget, OnCatcherMouseUp));
+	
+	ACampaignGameMode* GM = Cast<ACampaignGameMode>(GetWorld()->GetAuthGameMode());
+	MG_COND_ERROR_SHORT(AMapViewportWidgetLog, GM == nullptr);
+	if (GM != nullptr)
+	{
+		CapturedNodePosition_ = GM->GetNodePosition();
+	}
 	
 	SpawnNodes();
 	
@@ -201,13 +209,14 @@ UMapNodeWidget* UMapViewportWidget::SpawnNode(FNodePosition InNodePosition, cons
 	ChildSlot->SetAlignment(NodeAlign_);
 	ChildSlot->SetZOrder(10);
 	
+	//ЖЕСТЬ под переделку с настройками
 	TArray<float> NodeTypeRanges({0.3f, 0.7f});
 	
 	float R = RandomStream_.GetFraction();
 	
 	int32 Index = Algo::UpperBound(NodeTypeRanges, R);
 	
-	EMapNodeType NodeType = static_cast<EMapNodeType>(Index);
+	EMapNodeType NodeType = static_cast<EMapNodeType>(Index + 1);
 	
 	EMapNodeState NodeState = GetNodeState(InNodePosition); 
 	
@@ -513,4 +522,12 @@ void UMapViewportWidget::Capture(FNodePosition InNodePosition)
 		EMapNodeState NodeState = GetNodeState(NodePair.Key);
 		NodePair.Value.Node->SetState(NodeState);
 	}
+	
+	ACampaignGameMode* GM = Cast<ACampaignGameMode>(GetWorld()->GetAuthGameMode());
+	RETURN_ON_FAIL(AMapViewportWidgetLog, GM);
+	
+	FNodeData* Node = Nodes_.Find(CapturedNodePosition_);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+	
+	GM->OnCapture(CapturedNodePosition_, Node->Node->GetNodeType());
 }

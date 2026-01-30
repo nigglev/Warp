@@ -22,6 +22,8 @@ public:
 	void DropSelection();
 	
 	void SetState(EMapNodeState InState);
+	
+	EMapNodeType GetNodeType() const { return Type_; }
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNodeClicked, UMapNodeWidget*);
 	FOnNodeClicked OnNodeClicked;
