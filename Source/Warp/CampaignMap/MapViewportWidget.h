@@ -75,7 +75,9 @@ protected:
 	void SpawnEdgeSegments(const FVector2D& A, const FVector2D& B, float Thickness);
 	UImage* SpawnEdgeSegment(const FVector2D& A, const FVector2D& B, float Thickness);
 	
+	UFUNCTION()
 	void DepartHandleClicked();
+	
 	void OnSelectNode(bool bSelect);
 
 	float MaxX_ = 0;
@@ -94,7 +96,7 @@ protected:
 	
 	FNodePosition SelectedNodePosition_ = UnselectedNodePosition;
 	
-	FNodePosition CapturedNodePosition_ = {2, 1};
+	FNodePosition CapturedNodePosition_ = {0, 0};
 	
 	struct FNodeData
 	{

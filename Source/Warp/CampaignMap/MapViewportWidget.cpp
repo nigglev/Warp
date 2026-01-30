@@ -3,7 +3,6 @@
 
 #include "MapViewportWidget.h"
 
-#include "CampaignGameMode.h"
 #include "CampaignHUD.h"
 #include "MapNodeWidget.h"
 #include "MGLogs.h"
@@ -48,6 +47,9 @@ void UMapViewportWidget::NativeConstruct()
 	
 	DepartButton_ = HUD->GetDepartButton();
 	RETURN_ON_FAIL(AMapViewportWidgetLog, DepartButton_.IsValid());
+	
+	DepartButton_->OnClicked.AddDynamic(this, &UMapViewportWidget::DepartHandleClicked);
+	
 	OnSelectNode(false);
 }
 
@@ -462,6 +464,13 @@ void UMapViewportWidget::OnSelectNode(bool bSelect)
 
 void UMapViewportWidget::DepartHandleClicked()
 {
+	RETURN_ON_FAIL(AMapViewportWidgetLog, ShipIconWidget_ != nullptr);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, SelectedNodePosition_ != UnselectedNodePosition);
+	
+	FNodeData* Node = Nodes_.Find(SelectedNodePosition_);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Node);
+	
+	ShipIconWidget_->StartMove(Node->Position);
 }
 
 
