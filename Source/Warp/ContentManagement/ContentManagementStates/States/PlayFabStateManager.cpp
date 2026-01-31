@@ -213,7 +213,7 @@ void UPlayFabStateManager::HandleUpdateFailed(FPlayFabStateManagerData& InData)
 	MG_FUNC_LABEL(PFStateLog);
 	if (UWarpPlayfabContentSubSystem* SubSystem = Cast<UWarpPlayfabContentSubSystem>(GetOuter()))
 	{
-		SubSystem->BroadcastContentIsLoaded(false);
+		SubSystem->OnContentCheckedAndLoaded(false);
 	}
 }
 
@@ -222,7 +222,7 @@ void UPlayFabStateManager::HandleFinished(FPlayFabStateManagerData& InData)
 	MG_FUNC_LABEL(PFStateLog);
 	if (UWarpPlayfabContentSubSystem* SubSystem = Cast<UWarpPlayfabContentSubSystem>(GetOuter()))
 	{
-		SubSystem->BroadcastContentIsLoaded(true);
+		SubSystem->OnContentCheckedAndLoaded(true);
 	}
 	
 }

@@ -36,7 +36,8 @@ public:
 	
 	UFUNCTION()
 	bool IsContentLoaded() const { return bContentLoaded_; }
-	void BroadcastContentIsLoaded(bool InbIsContentLoaded);
+
+	void OnContentCheckedAndLoaded(bool InContentLoaded);
 	
 	FOnUnitsLoaded OnContentLoaded;
 

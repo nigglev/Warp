@@ -12,10 +12,11 @@ enum class EClientEnv : uint8
 UENUM()
 enum class ELaunchNetMode : uint8
 {
-	Standalone,
-	Client,
+	Standalone = 0,
+	DedicatedServer,
 	ListenServer,
-	DedicatedServer
+	Client,
+	MAX
 };
 
 struct FLaunchContext
@@ -23,6 +24,8 @@ struct FLaunchContext
 	bool bIsEditor = false;
 	bool bIsPIE = false;
 	ELaunchNetMode NetMode = ELaunchNetMode::Standalone;
+
+	FString ToString() const;
 };
 
 static FLaunchContext BuildLaunchContext(const UWorld* World)
@@ -42,14 +45,7 @@ static FLaunchContext BuildLaunchContext(const UWorld* World)
 		return Context;
 	}
 
-	switch (World->GetNetMode())
-	{
-	case NM_Standalone:     Context.NetMode = ELaunchNetMode::Standalone;     break;
-	case NM_Client:         Context.NetMode = ELaunchNetMode::Client;         break;
-	case NM_ListenServer:   Context.NetMode = ELaunchNetMode::ListenServer;   break;
-	case NM_DedicatedServer:Context.NetMode = ELaunchNetMode::DedicatedServer;break;
-	default:                Context.NetMode = ELaunchNetMode::Standalone;     break;
-	}
+	Context.NetMode = static_cast<ELaunchNetMode>(World->GetNetMode()); 
 
 	return Context;
 }

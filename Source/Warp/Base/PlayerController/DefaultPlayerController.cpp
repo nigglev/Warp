@@ -48,6 +48,8 @@ void ADefaultPlayerController::PostInitializeComponents()
 	{
 		Content->OnContentLoaded.AddUObject(this, &ADefaultPlayerController::CheckClientLoading);
 	}
+	else
+		CheckClientLoading();
 }
 
 void ADefaultPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -63,6 +65,10 @@ void ADefaultPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	SetupEnhancedInput();
+
+	FInputModeGameAndUI Mode;
+	Mode.SetHideCursorDuringCapture(false);
+	SetInputMode(Mode);
 }
 
 void ADefaultPlayerController::PlayerTick(float DeltaTime)
@@ -84,6 +90,7 @@ void ADefaultPlayerController::OnRep_PlayerState()
 void ADefaultPlayerController::CheckClientLoading()
 {
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, IsLocalController());
+	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
 	
 	if (!IsClientLoaded())
 		return;

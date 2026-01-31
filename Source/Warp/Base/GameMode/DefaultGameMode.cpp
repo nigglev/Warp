@@ -183,6 +183,8 @@ namespace ReadyToStartMatchErrors
 
 void ADefaultGameMode::CheckServerContentLoaded()
 {
+	MG_FUNC_LABEL(ADefaultGameModeLog);
+
 	if (bServerContentReady_)
 		return;
 

@@ -9,7 +9,7 @@
 #include "Serialization/JsonReader.h"
 #include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
 
-DEFINE_LOG_CATEGORY_STATIC(ContentLog, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(AContentLog, Log, All);
 
 UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 {   
@@ -19,13 +19,13 @@ UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
 {
     UWorld* World = WorldContextObject->GetWorld();
-    RETURN_ON_FAIL_NULL(ContentLog, World);
+    RETURN_ON_FAIL_NULL(AContentLog, World);
     
     UGameInstance* GI = World->GetGameInstance();
-    RETURN_ON_FAIL_NULL(ContentLog, GI);
+    RETURN_ON_FAIL_NULL(AContentLog, GI);
     
     auto Content =	GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
-    RETURN_ON_FAIL_NULL(ContentLog, Content);
+    RETURN_ON_FAIL_NULL(AContentLog, Content);
 
     return Content;
 }
@@ -33,22 +33,23 @@ UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* W
 void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);
-    
     LaunchContext_ = BuildLaunchContext(GetWorld());
+    MG_LOG(AContentLog, TEXT("%s"), *LaunchContext_.ToString());
+    
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
     
     bool bLoginAttemptSuccess = LoginToPlayFab();
-    RETURN_ON_FAIL(ContentLog, bLoginAttemptSuccess)
+    RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
 }
 
 void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
 {
-    MG_FUNC_LABEL(ContentLog);
-    RETURN_ON_FAIL_T(ContentLog, InLoginRes, TEXT("Failed to Login"));
+    RETURN_ON_FAIL_T(AContentLog, InLoginRes, TEXT("Failed to Login"));
+    MG_FUNC_LABEL(AContentLog);
 
     if (IsAuthorityLike(LaunchContext_))
     {
-        BroadcastContentIsLoaded(true);
+        OnContentCheckedAndLoaded(true);
     }
     else
     {
@@ -69,6 +70,8 @@ void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
 
 bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
 {
+    MG_FUNC_LABEL(AContentLog);
+    
     LoginInfo_->OnLoginResult.AddUObject(this, &UWarpPlayfabContentSubSystem::OnLoginResult);
     ENetMode NetMode = GetWorld()->GetNetMode();
     bool bSuccess;
@@ -76,18 +79,21 @@ bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
     if (SecretKey.IsSet() && NetMode != NM_Client)
     {
         UPlayFabRuntimeSettings* Settings = GetMutableDefault<UPlayFabRuntimeSettings>();
-        RETURN_ON_FAIL_BOOL(ContentLog, Settings != nullptr);
+        RETURN_ON_FAIL_BOOL(AContentLog, Settings != nullptr);
         Settings->DeveloperSecretKey = SecretKey.GetValue();
-        MG_LOG(ContentLog, TEXT("PlayFab secret set"));
         ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
-        MG_COND_ERROR(ContentLog, ServerAPI_ == nullptr, TEXT("Server API missing"));
+        MG_COND_ERROR(AContentLog, ServerAPI_ == nullptr, TEXT("Server API missing"));
         bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FServerTag>(ServerAPI_, LoginInfo_, TEXT("DedicatedServer"));
+
+        MG_LOG(AContentLog, TEXT("PlayFab under secret set. bSuccess %d"), bSuccess);
     }
     else
     {
         ClientAPI_ = IPlayFabModuleInterface::Get().GetClientAPI();
-        MG_COND_ERROR(ContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
+        MG_COND_ERROR(AContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
         bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, LoginInfo_, TEXT("DevClient"));
+        
+        MG_LOG(AContentLog, TEXT("PlayFab simple. bSuccess %d"), bSuccess);
     }
 
     return bSuccess;
@@ -96,7 +102,7 @@ bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
 bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
 {
     const FString FolderDir = GetGameDataSourceFilePath();
-    RETURN_ON_FAIL_BOOL(ContentLog, !FolderDir.IsEmpty());
+    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
         
     for (TTuple<FName, TUniquePtr<FBaseDescriptions>>& Descriptions : Descriptions_)
     {
@@ -108,30 +114,28 @@ bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
         FText* FailReason = nullptr;
         if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
         {
-            MG_ERROR(ContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
+            MG_ERROR(AContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
             continue;
         }
 
         bool bSuccess = Descriptions.Get<1>()->JsonToDescription(JsonString, FailReason);
-        if (!bSuccess)
-        {
-            MG_ERROR(ContentLog, TEXT("Failed to convert Json to description: %s"), *FailReason->ToString());
-            continue;
-        }
+        MG_COND_ERROR(AContentLog, !bSuccess, TEXT("Failed to convert Json to description: %s"), *FailReason->ToString());
+        MG_COND_LOG(AContentLog, bSuccess, TEXT("Description has been read: %s"), *DescriptionName.ToString());
     }
+    
     return true;
 }
 
 bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description)
 {
     const FString FolderDir = GetGameDataSourceFilePath();
-    RETURN_ON_FAIL_BOOL(ContentLog, !FolderDir.IsEmpty());
+    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
     const FString FileName = DescriptionName.ToString() + TEXT(".json");
     const FString DescriptionJsonPath = FPaths::Combine(FolderDir, FileName);
 
     FString JsonString;
     const bool bOk = Description.DescriptionToJson(JsonString);
-    RETURN_ON_FAIL_BOOL_T(ContentLog, bOk, TEXT("Failed to JSON convert"));
+    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to JSON convert"));
 
     if (!FFileHelper::SaveStringToFile(JsonString, *DescriptionJsonPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
     {
@@ -144,7 +148,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource_Internal(const F
 
 bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
 
     bool bAllOk = true;
 
@@ -170,24 +174,24 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
 
 bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InDescriptionName)
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
-    RETURN_ON_FAIL_BOOL(ContentLog, InDescriptionName.IsValid());
+    RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
 
     TUniquePtr<FBaseDescriptions>* Found = Descriptions_.Find(InDescriptionName);
-    RETURN_ON_FAIL_BOOL(ContentLog, Found);
+    RETURN_ON_FAIL_BOOL(AContentLog, Found);
 
     return WriteDescriptionToDataSource_Internal(InDescriptionName, *Found->Get());
 }
 
 bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
-    RETURN_ON_FAIL_BOOL(ContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
-    RETURN_ON_FAIL_BOOL(ContentLog, ServerAPI_);
-    RETURN_ON_FAIL_BOOL(ContentLog, InDescriptionName.IsValid());
+    RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(AContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
+    RETURN_ON_FAIL_BOOL(AContentLog, ServerAPI_);
+    RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
 
     const FString FolderDir = GetGameDataSourceFilePath();
-    RETURN_ON_FAIL_BOOL(ContentLog, !FolderDir.IsEmpty());
+    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
     const FName DescriptionName = InDescriptionName;
     const FString FileName = DescriptionName.ToString() + TEXT(".json");
     const FString JsonPath = FPaths::Combine(FolderDir, FileName);
@@ -195,7 +199,7 @@ bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescr
     FString JsonString;
     if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
     {
-        MG_ERROR(ContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
+        MG_ERROR(AContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
         return false;
     }
     
@@ -207,17 +211,17 @@ void UWarpPlayfabContentSubSystem::OnDescriptionSavingResult(bool bSucceeded)
 {
     if (bSucceeded && !bSaveDescriptionToPlayFabDone_)
     {
-        MG_LOG(ContentLog, TEXT("Successful description save"));
+        MG_LOG(AContentLog, TEXT("Successful description save"));
         bSaveDescriptionToPlayFabDone_ = true;
         SaveVersionsToPlayFab();
     } else if (bSucceeded && bSaveDescriptionToPlayFabDone_)
     {
-        MG_LOG(ContentLog, TEXT("Successful save"));
+        MG_LOG(AContentLog, TEXT("Successful save"));
         bSaveVersionToPlayFabDone_ = true;
     }
     else
     {
-        MG_ERROR(ContentLog, TEXT("Failed to save"));
+        MG_ERROR(AContentLog, TEXT("Failed to save"));
     }
 }
 
@@ -234,7 +238,7 @@ FDescriptionVersions UWarpPlayfabContentSubSystem::CreateVersions()
 
         if (!DescriptionName.IsValid() || Description == nullptr)
         {
-            MG_ERROR(ContentLog, TEXT("Failed to get %s"), *DescriptionName.ToString());
+            MG_ERROR(AContentLog, TEXT("Failed to get %s"), *DescriptionName.ToString());
             continue;
         }
 
@@ -251,11 +255,11 @@ FDescriptionVersions UWarpPlayfabContentSubSystem::CreateVersions()
 bool UWarpPlayfabContentSubSystem::WriteVersionsToDataSource(const FDescriptionVersions& InVersions, FString& OutJsonString)
 {
     const FString FolderDir = GetGameDataSourceFilePath();
-    RETURN_ON_FAIL_BOOL(ContentLog, !FolderDir.IsEmpty());
+    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
     const FString DescriptionJsonPath = FPaths::Combine(FolderDir, VersionsFileName);
     
     const bool bOk = InVersions.VersionsToJson(OutJsonString);
-    RETURN_ON_FAIL_BOOL_T(ContentLog, bOk, TEXT("Failed to JSON convert"));
+    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to JSON convert"));
 
     if (!FFileHelper::SaveStringToFile(OutJsonString, *DescriptionJsonPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
     {
@@ -268,14 +272,14 @@ bool UWarpPlayfabContentSubSystem::WriteVersionsToDataSource(const FDescriptionV
 
 bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
 {
-    RETURN_ON_FAIL_BOOL(ContentLog, LaunchContext_.bIsPIE);
-    RETURN_ON_FAIL_BOOL(ContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
-    RETURN_ON_FAIL_BOOL(ContentLog, ServerAPI_);
+    RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
+    RETURN_ON_FAIL_BOOL(AContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
+    RETURN_ON_FAIL_BOOL(AContentLog, ServerAPI_);
 
     FDescriptionVersions VersionsToSave = CreateVersions();
     FString JsonString;
     bool bOk = WriteVersionsToDataSource(VersionsToSave, JsonString);
-    RETURN_ON_FAIL_BOOL_T(ContentLog, bOk, TEXT("Failed to write to file"));
+    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to write to file"));
     bool bSaveRes = WarpPlayfabContent::SaveDescriptionToPlayFab(ServerAPI_, FString("DescriptionVersions"), JsonString, this);
     return bSaveRes;
 }
@@ -301,7 +305,7 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 
     if (!IFileManager::Get().DirectoryExists(*FolderDir))
     {
-        MG_ERROR(ContentLog, TEXT("GameDataSource directory does not exist: %s"), *FolderDir);
+        MG_ERROR(AContentLog, TEXT("GameDataSource directory does not exist: %s"), *FolderDir);
         return FString();
     }
 
@@ -316,18 +320,22 @@ void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppErro
 }
 
 
-void UWarpPlayfabContentSubSystem::BroadcastContentIsLoaded(bool InbIsContentLoaded)
+void UWarpPlayfabContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoaded)
 {
-    RETURN_ON_FAIL_T(ContentLog, InbIsContentLoaded, TEXT("Failed to load content"));
+    MG_COND_WARNING(AContentLog, !InContentLoaded, TEXT("Failed to load content"));
+    MG_LOG(AContentLog, TEXT("InContentLoaded: %d"), InContentLoaded);
     
     if (StateManager_)
         StateManager_ = nullptr;
     
-    if (InbIsContentLoaded)
+    if (InContentLoaded)
     {
         bool bSuccess = ReadDescriptionsFromDataSource();
-        RETURN_ON_FAIL(ContentLog, bSuccess);
-        bContentLoaded_ = true;
-        OnContentLoaded.Broadcast();
+        MG_COND_WARNING(AContentLog, !bSuccess, TEXT("Failed to read content"));
+        if (bSuccess)
+        {
+            bContentLoaded_ = true;
+            OnContentLoaded.Broadcast();
+        }
     }
 }
