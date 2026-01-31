@@ -14,6 +14,7 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/TurnBasedSystem/TurnMachine.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 
 
@@ -54,12 +55,6 @@ void ADefaultPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ADefaultPlayerController, ControlledUnit_);
 }
-
-// void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
-// {
-// 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-// 		TEXT("InMatchState: %s"), *InMatchState.ToString());
-// }
 
 void ADefaultPlayerController::BeginPlay()
 {
@@ -147,12 +142,10 @@ void ADefaultPlayerController::SetupInputComponent()
 
 void ADefaultPlayerController::ServerOrderMove_Implementation(const FVector_NetQuantize10 Target)
 {
-	if (!ControlledUnit_)
+	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
 	{
-		return;
+		TM->ServerRequestMove(Target);
 	}
-
-	ControlledUnit_->SetMoveTarget(Target);
 }
 
 void ADefaultPlayerController::OnCameraMove(const FInputActionValue& Value)

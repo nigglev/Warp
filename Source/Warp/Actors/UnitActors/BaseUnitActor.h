@@ -7,15 +7,6 @@
 #include "UnitCharacteristics/UnitSize.h"
 #include "BaseUnitActor.generated.h"
 
-UENUM()
-enum class EUnitActorState : uint8
-{
-	None = 0,
-	Playable = 1,
-	Ghost = 2,
-	MAX
-};
-
 UCLASS()
 class WARP_API ABaseUnitActor : public AActor
 {
@@ -37,9 +28,9 @@ public:
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
 	void SetMoveTarget(const FVector& InTarget);
+	bool IsMoving() const { return bHasMoveTarget_; }
 	
 protected:
-	virtual void PostNetInit() override;
 	UFUNCTION()
 	void OnRep_UnitType();
 	UFUNCTION()

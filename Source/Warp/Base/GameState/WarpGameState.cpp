@@ -13,6 +13,7 @@
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/TurnBasedSystem/TurnMachine.h"
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -26,12 +27,25 @@ void AWarpGameState::PostInitializeComponents()
 	
 }
 
+void AWarpGameState::BeginPlay()
+{
+	Super::BeginPlay();
+	if (!TurnMachine_)
+	{
+		TurnMachine_ = NewObject<UTurnMachine>(this);
+		TurnMachine_->Initialize(this);
+	}
+	TurnMachine_->Start();
+}
+
 void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	FDoRepLifetimeParams RepParams;
 	RepParams.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, CombatUnits_, RepParams);
+	DOREPLIFETIME(AWarpGameState, ActiveUnitIndex_);
+	DOREPLIFETIME(AWarpGameState, TurnPhase_);
 }
 
 void AWarpGameState::OnRep_MatchState()
@@ -39,38 +53,12 @@ void AWarpGameState::OnRep_MatchState()
 	MG_LOG(AWarpGameStateLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
 	Super::OnRep_MatchState();
-	
-	if (MatchState == MatchState::Loading)
-	{
-		HandleMatchLoading();
-	}
-	
-	// for (APlayerState* PS : PlayerArray)
-	// {
-	// 	if (PS)
-	// 	{
-	// 		if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(PS->GetPlayerController()))
-	// 		{
-	// 			PC->OnMatchStateChanged(MatchState);
-	// 		}
-	// 	}
-	// }
 }
 
-void AWarpGameState::HandleMatchLoading()
-{
-	//NOTHING AWHILE
-}
 
 void AWarpGameState::HandleMatchIsWaitingToStart()
 {
 	Super::HandleMatchIsWaitingToStart();
-	
-}
-
-void AWarpGameState::HandleMatchHasStarted()
-{
-	Super::HandleMatchHasStarted();
 	
 }
 
@@ -89,16 +77,24 @@ void AWarpGameState::AddCombatUnit(ABaseUnitActor* InCombatUnit)
 
 void AWarpGameState::SendCombatUnitsToClients()
 {
-	// if (HasAuthority())
-	// 	SetUnitsLoaded();
-	// else
-	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, CombatUnits_, this);
+	if (HasAuthority())
+		MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, CombatUnits_, this);
 }
 
 void AWarpGameState::OnRep_CombatUnits()
 {
 	SetUnitsLoaded();
+	RETURN_ON_FAIL(AWarpGameStateLog,TurnMachine_);
+	TurnMachine_->RefreshUnitsFromGameState();
 	MG_LOG(AWarpGameStateLog, TEXT("Replicated combat units; Num = %d"), CombatUnits_.Num());
+}
+
+void AWarpGameState::OnRep_TurnState()
+{
+	if (TurnMachine_)
+	{
+		TurnMachine_->OnTurnStateReplicated();
+	}
 }
 
 void AWarpGameState::SetUnitsLoaded()

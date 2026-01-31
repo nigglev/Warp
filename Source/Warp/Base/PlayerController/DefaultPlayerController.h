@@ -45,8 +45,6 @@ public:
 	void SetControllerUnit(ABaseUnitActor* InUnitActor) {ControlledUnit_ = InUnitActor;};
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
-	
-	//void OnMatchStateChanged(const FName& InMatchState);
 
 protected:
 	virtual void BeginPlay() override;

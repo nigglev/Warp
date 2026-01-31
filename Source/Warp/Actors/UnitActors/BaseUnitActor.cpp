@@ -33,12 +33,6 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget_);
 }
 
-
-void ABaseUnitActor::PostNetInit()
-{
-	Super::PostNetInit();
-}
-
 void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();

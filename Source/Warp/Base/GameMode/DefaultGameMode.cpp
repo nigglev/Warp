@@ -99,7 +99,7 @@ void ADefaultGameMode::HandleUnitCreation()
 	TArray<FUnitDataTableRows*> Rows;
 	UnitsTable_->GetAllRows(Context, Rows);
 
-	int N = 1;
+	int N = 3;
 	GetWarpGameState()->SetupCombatUnitsArray(N);
 
 	for (const FUnitDataTableRows* Row : Rows)
@@ -122,7 +122,10 @@ void ADefaultGameMode::HandleUnitCreation()
 		}
 	}
 	bUnitsCreated_ = true;
-	GetWarpGameState()->SendCombatUnitsToClients();
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+		GetWarpGameState()->SetUnitsLoaded();
+	else
+		GetWarpGameState()->SendCombatUnitsToClients();
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
