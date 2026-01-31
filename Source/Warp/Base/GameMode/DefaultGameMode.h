@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/GameModeBase.h"
+#include "Warp/CampaignMap/CampaignEnums.h"
 #include "DefaultGameMode.generated.h"
 
 class UUnitActorFactory;
@@ -26,6 +27,7 @@ class WARP_API ADefaultGameMode : public AGameMode
 public:
 	
 	ADefaultGameMode();
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 	virtual void StartPlay() override;
@@ -33,7 +35,15 @@ public:
 
 	bool StartBattle();
 	
+	EMapNodeType GetMapNode() const { return MapNodeType_; }
+	void ReturnToCampaignMap();
+
 protected:
+	
+	UPROPERTY(EditAnywhere, Category="Map") FName CampaignMap;
+
+	virtual void OnMatchStateSet() override;
+
 	struct FReadyToStartMatchError
 	{
 		FName ErrorName;
@@ -59,8 +69,7 @@ protected:
 			return FString::Printf(TEXT("%s: %s"), *ErrorName.ToString(), *ErrorDescription);
 		}
 	};
-
-	virtual void OnMatchStateSet() override;
+	
 	
 	virtual void HandleMatchLoading();
 	virtual void HandleUnitCreation();
@@ -86,6 +95,9 @@ protected:
 	
 	bool bServerContentReady_ = false;
 	bool bUnitsCreated_ = false;
+
+	EMapNodeType MapNodeType_ = EMapNodeType::Undefined;
+	FNodePosition NodePosition_ = FNodePosition::ZeroValue;
 };
 
 

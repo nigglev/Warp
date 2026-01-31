@@ -30,8 +30,35 @@ ADefaultGameMode::ADefaultGameMode()
 	bDelayedStart = true;
 }
 
+void ADefaultGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+	
+	FString MapType = UGameplayStatics::ParseOption(Options, TEXT("MapType"));
+	MG_LOG(ADefaultGameModeLog, TEXT("Options: %s"), *Options);
+	
+	if (!MapType.IsEmpty())
+	{
+		int64 iMapNodeType = StaticEnum<EMapNodeType>()->GetValueByNameString(MapType);
+		MG_COND_ERROR_SHORT(ADefaultGameModeLog, iMapNodeType == INDEX_NONE);
+		if (iMapNodeType != INDEX_NONE)
+		{
+			MapNodeType_ = static_cast<EMapNodeType>(iMapNodeType);
+		}
+	}
+	
+	FString NodePositionStr = UGameplayStatics::ParseOption(Options, TEXT("NodePosition"));
+	if (!NodePositionStr.IsEmpty())
+	{
+		bool bNodePositionParsed = NodePosition_.InitFromString(NodePositionStr);
+		MG_COND_ERROR_SHORT(ADefaultGameModeLog, !bNodePositionParsed);
+		MG_LOG(ADefaultGameModeLog, TEXT("NodePosition: %s"), *NodePosition_.ToString());
+	}
+}
+
 void ADefaultGameMode::StartPlay()
 {
+	
 	if (MatchState == MatchState::EnteringMap)
 	{
 		SetMatchState(MatchState::Loading);
@@ -265,5 +292,13 @@ AWarpGameState* ADefaultGameMode::GetWarpGameState() const
 	return GS;
 }
 
+void ADefaultGameMode::ReturnToCampaignMap()
+{
+	RETURN_ON_FAIL(ADefaultGameModeLog, MapNodeType_ != EMapNodeType::Undefined);
+	RETURN_ON_FAIL(ADefaultGameModeLog, !CampaignMap.IsNone());
+	
+	UGameplayStatics::OpenLevel(this, CampaignMap, true, 
+		 FString::Printf(TEXT("NodePosition=%s"), *NodePosition_.ToString()));
+}
 
 
