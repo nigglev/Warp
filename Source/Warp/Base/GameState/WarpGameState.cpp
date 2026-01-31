@@ -12,9 +12,7 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
-#include "Warp/CombatMap(Deprecated)/CombatMap.h"
-#include "Warp/TurnBasedSystem(Deprecated)/Manager/TurnBasedSystemManager.h"
-#include "Warp/Units(Deprecated)/UnitBase.h"
+#include "Warp/Base/PlayerState/WarpPlayerState.h"
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -33,6 +31,7 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	FDoRepLifetimeParams RepParams;
 	RepParams.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(AWarpGameState, CombatUnits_, RepParams);
 }
 
 void AWarpGameState::OnRep_MatchState()
@@ -46,17 +45,16 @@ void AWarpGameState::OnRep_MatchState()
 		HandleMatchLoading();
 	}
 	
-	//Player Controller Iteration
-	for (APlayerState* PS : PlayerArray)
-	{
-		if (PS)
-		{
-			if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(PS->GetPlayerController()))
-			{
-				PC->OnMatchStateChanged(MatchState);
-			}
-		}
-	}
+	// for (APlayerState* PS : PlayerArray)
+	// {
+	// 	if (PS)
+	// 	{
+	// 		if (ADefaultPlayerController* PC = Cast<ADefaultPlayerController>(PS->GetPlayerController()))
+	// 		{
+	// 			PC->OnMatchStateChanged(MatchState);
+	// 		}
+	// 	}
+	// }
 }
 
 void AWarpGameState::HandleMatchLoading()
@@ -76,3 +74,41 @@ void AWarpGameState::HandleMatchHasStarted()
 	
 }
 
+void AWarpGameState::SetupCombatUnitsArray(const int InNumberOfUnits)
+{
+	CombatUnits_.Empty();
+	CombatUnits_.Reserve(InNumberOfUnits);
+}
+
+void AWarpGameState::AddCombatUnit(ABaseUnitActor* InCombatUnit)
+{
+	RETURN_ON_FAIL(AWarpGameStateLog, InCombatUnit);
+	CombatUnits_.Add(InCombatUnit);
+}
+
+
+void AWarpGameState::SendCombatUnitsToClients()
+{
+	// if (HasAuthority())
+	// 	SetUnitsLoaded();
+	// else
+	MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, CombatUnits_, this);
+}
+
+void AWarpGameState::OnRep_CombatUnits()
+{
+	SetUnitsLoaded();
+	MG_LOG(AWarpGameStateLog, TEXT("Replicated combat units; Num = %d"), CombatUnits_.Num());
+}
+
+void AWarpGameState::SetUnitsLoaded()
+{
+	for (APlayerState* PS : PlayerArray)
+	{
+		if (PS)
+		{
+			AWarpPlayerState* WPS = Cast<AWarpPlayerState>(PS);
+			WPS->SetClientUnitsLoaded();
+		}
+	}
+}

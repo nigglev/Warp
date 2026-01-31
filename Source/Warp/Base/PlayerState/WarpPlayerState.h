@@ -19,13 +19,18 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void SetClientLoaded();
+	void SetClientUnitsLoaded();
 	
 	bool IsClientContentLoaded() const { return bClientLoaded; }
+	bool IsClientUnitsLoaded() const { return bIsClientUnitsLoaded; }
 	
 protected:	
 	
 	UFUNCTION(Server, Reliable)
 	void MsgToServerClientLoaded();
+	UFUNCTION(Server, Reliable)
+	void MsgToServerClientUnitsLoaded();
 	
-	bool bClientLoaded = false;	
+	bool bClientLoaded = false;
+	bool bIsClientUnitsLoaded = false;
 };

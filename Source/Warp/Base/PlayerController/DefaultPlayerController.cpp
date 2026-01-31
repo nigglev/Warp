@@ -14,7 +14,6 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
-#include "Warp/TurnBasedSystem(Deprecated)/Manager/TurnBasedSystemManager.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 
 
@@ -56,11 +55,11 @@ void ADefaultPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(ADefaultPlayerController, ControlledUnit_);
 }
 
-void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
-{
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
-		TEXT("InMatchState: %s"), *InMatchState.ToString());
-}
+// void ADefaultPlayerController::OnMatchStateChanged(const FName& InMatchState)
+// {
+// 	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::DefaultPlayerController),
+// 		TEXT("InMatchState: %s"), *InMatchState.ToString());
+// }
 
 void ADefaultPlayerController::BeginPlay()
 {

@@ -7,7 +7,6 @@
 #include "DefaultWarpHUD.generated.h"
 
 class UEndTurnWidget;
-class UCombatUIWidget;
 class AWarpGameState;
 class UTurnBasedSystemManager;
 class UUnitSpawnWidget;
@@ -24,8 +23,6 @@ class WARP_API ADefaultWarpHUD : public AHUD
 public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	UCombatUIWidget* GetCombatUI() const;
 	
 protected:
 	APlayerController* Init() const;

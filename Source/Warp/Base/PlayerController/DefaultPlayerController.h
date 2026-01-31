@@ -9,7 +9,6 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Warp/Units(Deprecated)/UnitBase.h"
 #include "DefaultPlayerController.generated.h"
 
 class ADefaultGameMode;
@@ -47,7 +46,7 @@ public:
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 	
-	void OnMatchStateChanged(const FName& InMatchState);
+	//void OnMatchStateChanged(const FName& InMatchState);
 
 protected:
 	virtual void BeginPlay() override;

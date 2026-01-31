@@ -30,34 +30,42 @@ public:
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
-	FUnitSize GetUnitActorSize() const {return UnitActorSize;}
-	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize = InSize;}
+	FName GetUnitType() const {return UnitType_;}
+	void SetUnitType(const FName InUnitType) {UnitType_ = InUnitType;}	
+	
+	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
+	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
 	void SetMoveTarget(const FVector& InTarget);
 	
 protected:
 	virtual void PostNetInit() override;
 	UFUNCTION()
+	void OnRep_UnitType();
+	UFUNCTION()
 	void OnRep_UnitActorSize();
+
+	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
+	FName UnitType_ = FName("Unit");
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
-	FUnitSize UnitActorSize = FUnitSize::None();
+	FUnitSize UnitActorSize_ = FUnitSize::None();
 	
 	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float MoveSpeed = 600.f;
+	float MoveSpeed_ = 600.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float AcceptanceRadius = 25.f;
+	float AcceptanceRadius_ = 25.f;
 
 	UPROPERTY(Replicated)
-	FVector_NetQuantize10 MoveTarget = FVector::ZeroVector;
+	FVector_NetQuantize10 MoveTarget_ = FVector::ZeroVector;
 
 	UPROPERTY(Replicated)
-	bool bHasMoveTarget = false;
+	bool bHasMoveTarget_ = false;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	TObjectPtr<USceneComponent> Root;
+	TObjectPtr<USceneComponent> Root_;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	TObjectPtr<UStaticMeshComponent> Mesh;
+	TObjectPtr<UStaticMeshComponent> Mesh_;
 };

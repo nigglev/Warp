@@ -78,16 +78,17 @@ protected:
 	FString GetGameDataSourceFilePath() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
-	UPROPERTY()
-	UPlayFabStateManager* StateManager_ = nullptr;
-
-	FLaunchContext LaunchContext_;
 	
 	UPROPERTY()
 	UPlayFabLoginInfo* LoginInfo_ = nullptr;
 	PlayFabClientPtr ClientAPI_ = nullptr;
 	PlayFabServerPtr ServerAPI_ = nullptr;
+	
+	UPROPERTY()
+	UPlayFabStateManager* StateManager_ = nullptr;
 
+	FLaunchContext LaunchContext_;
+	
 	FString VersionsFileName = TEXT("DescriptionVersions.json");
 
 	bool bSaveDescriptionToPlayFabDone_ = false;

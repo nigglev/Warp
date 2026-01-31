@@ -34,18 +34,6 @@ public:
 	bool StartBattle();
 	
 protected:
-
-	virtual void OnMatchStateSet() override;
-	
-	virtual void HandleMatchLoading();
-	virtual bool CheckPlayersAndServerContentLoaded();
-
-	virtual void HandleUnitCreation();
-	virtual bool CheckUnitCreation();
-	
-	virtual void HandleMatchHasStarted() override;
-	virtual void HandleMatchIsWaitingToStart() override;
-
 	struct FReadyToStartMatchError
 	{
 		FName ErrorName;
@@ -72,13 +60,23 @@ protected:
 		}
 	};
 
+	virtual void OnMatchStateSet() override;
+	
+	virtual void HandleMatchLoading();
+	virtual void HandleUnitCreation();
+	
+	virtual void HandleMatchHasStarted() override;
+	virtual void HandleMatchIsWaitingToStart() override;
+	
+	void CheckServerContentLoaded();
+	virtual bool CheckPlayersAndServerContentLoaded();
 	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerContentLoadValue() const;
 	
-	UFUNCTION()
-	void CheckServerContentLoaded();
-
+	virtual bool CheckServerUnitCreation();
+	virtual bool CheckPlayersAndServerUnitCreation();
+	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerUnitCreationValue() const;
+	
 	AWarpGameState* GetWarpGameState() const;
-
 	UUnitActorFactory* CreateUnitsFactory();
 
 	UPROPERTY(EditDefaultsOnly, Category="Data")

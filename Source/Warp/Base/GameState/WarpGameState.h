@@ -5,17 +5,12 @@
 #include "CoreMinimal.h"
 #include "MGLogTypes.h"
 #include "GameFramework/GameState.h"
-#include "GameFramework/GameStateBase.h"
-#include "Warp/Actors/UnitActors/BaseUnitActor.h"
-#include "Warp/CombatMap(Deprecated)/CombatMap.h"
 #include "WarpGameState.generated.h"
 
+class ABaseUnitActor;
 struct FUnitDefinition;
 struct FUnitRecordDTO;
 struct FUnitRecord;
-class UTurnBasedSystemManager;
-class UUnitBase;
-class UCombatMap;
 class AWarpGameState;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnWarpGameStateValid, AWarpGameState*);
@@ -35,6 +30,10 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 
+	void SetupCombatUnitsArray(const int InNumberOfUnits);
+	void AddCombatUnit(ABaseUnitActor* InCombatUnit);
+	void SendCombatUnitsToClients();
+
 	FOnWarpGameStateValid OnWarpGameStateValid;
 	
 protected:
@@ -44,6 +43,16 @@ protected:
 	virtual void HandleMatchIsWaitingToStart() override;
 	virtual void HandleMatchHasStarted() override;
 
+	UFUNCTION()
+	void OnRep_CombatUnits();
+
+	void SetUnitsLoaded();
+
 	bool bClientValidState_ = false;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_CombatUnits)
+	TArray<ABaseUnitActor*> CombatUnits_;
+	
 };
+
 

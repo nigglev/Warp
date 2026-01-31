@@ -8,9 +8,6 @@
 #include "Blueprint/UserWidget.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
-#include "Warp/CombatMap(Deprecated)/CombatMap.h"
-#include "Warp/TurnBasedSystem(Deprecated)/Manager/TurnBasedSystemManager.h"
-#include "Warp/UI/CombatUI(Deprecated)/CombatUIWidget.h"
 DEFINE_LOG_CATEGORY_STATIC(ADefaultWarpHUDLog, Log, All);
 
 void ADefaultWarpHUD::BeginPlay()

@@ -16,20 +16,21 @@ ABaseUnitActor::ABaseUnitActor()
 	bReplicates = true;
 	AActor::SetReplicateMovement(true);
 
-	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	SetRootComponent(Root);
+	Root_ = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root_);
 
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	Mesh->SetupAttachment(Root);
+	Mesh_ = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Mesh_->SetupAttachment(Root_);
 }
 
 void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABaseUnitActor, UnitActorSize);
-	DOREPLIFETIME(ABaseUnitActor, MoveTarget);
-	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget);
+	DOREPLIFETIME(ABaseUnitActor, UnitType_);
+	DOREPLIFETIME(ABaseUnitActor, UnitActorSize_);
+	DOREPLIFETIME(ABaseUnitActor, MoveTarget_);
+	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget_);
 }
 
 
@@ -47,24 +48,24 @@ void ABaseUnitActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!HasAuthority() || !bHasMoveTarget)
+	if (!HasAuthority() || !bHasMoveTarget_)
 	{
 		return;
 	}
 
 	FVector Current = GetActorLocation();
-	FVector ToTarget = FVector(MoveTarget.X - Current.X, MoveTarget.Y - Current.Y, 0.f);
+	FVector ToTarget = FVector(MoveTarget_.X - Current.X, MoveTarget_.Y - Current.Y, 0.f);
 
 	const float DistSq = ToTarget.SizeSquared();
-	if (DistSq <= FMath::Square(AcceptanceRadius))
+	if (DistSq <= FMath::Square(AcceptanceRadius_))
 	{
-		bHasMoveTarget = false;
+		bHasMoveTarget_ = false;
 		ForceNetUpdate();
 		return;
 	}
 
 	const FVector Dir = ToTarget.GetSafeNormal();
-	FVector NewLoc = Current + Dir * MoveSpeed * DeltaSeconds;
+	FVector NewLoc = Current + Dir * MoveSpeed_ * DeltaSeconds;
 	NewLoc.Z = Current.Z;
 
 	SetActorLocation(NewLoc, true);
@@ -78,15 +79,20 @@ void ABaseUnitActor::SetMoveTarget(const FVector& InTarget)
 		return;
 	}
 
-	MoveTarget = FVector(InTarget.X, InTarget.Y, GetActorLocation().Z);
-	bHasMoveTarget = true;
+	MoveTarget_ = FVector(InTarget.X, InTarget.Y, GetActorLocation().Z);
+	bHasMoveTarget_ = true;
 
 	ForceNetUpdate();
 }
 
 
-
 void ABaseUnitActor::OnRep_UnitActorSize()
 {
 
+}
+
+
+void ABaseUnitActor::OnRep_UnitType()
+{
+	
 }

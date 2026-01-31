@@ -9,41 +9,24 @@
 
 DEFINE_LOG_CATEGORY_STATIC(UnitFactoryLog, Log, All);
 
-void UUnitActorFactory::Init(UWarpPlayfabContentSubSystem* InContent, const FUnitActorFactoryConfig& InConfig)
+ABaseUnitActor* UUnitActorFactory::CreateByDTData(const FUnitDataTableRows& InRow, const FTransform& InTransform, AActor* InOwnerActor)
 {
-	Content_ = InContent;
-	Config_ = InConfig;
-}
-
-ABaseUnitActor* UUnitActorFactory::CreateFromRow(const FUnitDataTableRows& InRow, const FTransform& InTransform, AActor* InOwnerActor)
-{
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, Content_);
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, Config_.UnitsTable);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, !InRow.UnitType.IsNone());
-
-	const FUnitDescription& Desc = Content_->GetDescription<FUnitDescription>(InRow.UnitType);
-
-	TSubclassOf<ABaseUnitActor> UnitClass = ResolveClass(InRow);
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitClass);
-
-	return Create(UnitClass, Desc, InTransform, InOwnerActor);
-}
-
-ABaseUnitActor* UUnitActorFactory::Create(TSubclassOf<ABaseUnitActor> InUnitClass, const FUnitDescription& InDesc, const FTransform& InTransform, AActor* InOwnerActor)
-{
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, *InUnitClass);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, GetWorld());
 	
 	UWorld* World = GetWorld();
-
+	
+	TSubclassOf<ABaseUnitActor> UnitClass = ResolveClass(InRow);
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitClass);
+	
 	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = Config_.CollisionHandling;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	Params.Owner = InOwnerActor;
 
-	ABaseUnitActor* UnitActor = World->SpawnActor<ABaseUnitActor>(InUnitClass, InTransform, Params);
+	ABaseUnitActor* UnitActor = World->SpawnActor<ABaseUnitActor>(UnitClass, InTransform, Params);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActor);
 
-	ApplyDescription(*UnitActor, InDesc);
+	UnitActor->SetUnitType(InRow.UnitType);
 	return UnitActor;
 }
 
@@ -53,10 +36,4 @@ TSubclassOf<ABaseUnitActor> UUnitActorFactory::ResolveClass(const FUnitDataTable
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, Loaded);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, Loaded->IsChildOf(ABaseUnitActor::StaticClass()));
 	return Loaded;
-}
-
-void UUnitActorFactory::ApplyDescription(ABaseUnitActor& Actor, const FUnitDescription& Desc)
-{
-	FUnitSize Size(Desc.UnitSize);
-	Actor.SetUnitActorSize(Size);
 }

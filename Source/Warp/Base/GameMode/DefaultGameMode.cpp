@@ -15,7 +15,6 @@
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/ContentManagement/UnitStaticData/UnitDataTableRows.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
-#include "Warp/Units(Deprecated)/UnitBase.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultGameModeLog, Log, All);
@@ -53,14 +52,19 @@ void ADefaultGameMode::Tick(float DeltaSeconds)
 	{
 		if (CheckPlayersAndServerContentLoaded())
 		{
-			UE_LOG(LogGameMode, Log, TEXT("GameMode returned Loaded"));
 			SetMatchState(MatchState::UnitCreation);
 		}
-		if (CheckUnitCreation())
+	}
+	if (MS == MatchState::UnitCreation)
+	{
+		if (CheckPlayersAndServerUnitCreation())
 		{
-			UE_LOG(LogGameMode, Log, TEXT("Units Created"));
 			SetMatchState(MatchState::WaitingToStart);
 		}
+	}
+	if (GetMatchState() == MatchState::WaitingToStart && GetWarpGameState()->GetMatchState() == MatchState::WaitingToStart)
+	{
+		StartBattle();
 	}
 }
 
@@ -95,6 +99,9 @@ void ADefaultGameMode::HandleUnitCreation()
 	TArray<FUnitDataTableRows*> Rows;
 	UnitsTable_->GetAllRows(Context, Rows);
 
+	int N = 1;
+	GetWarpGameState()->SetupCombatUnitsArray(N);
+
 	for (const FUnitDataTableRows* Row : Rows)
 	{
 		if (!Row)
@@ -103,14 +110,19 @@ void ADefaultGameMode::HandleUnitCreation()
 			continue;
 		}
 		
-		ABaseUnitActor* UnitActor = Factory->CreateFromRow(*Row, FTransform::Identity);
-		if (!UnitActor)
+		for(int i = 0; i < N; i++)
 		{
-			MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
+			ABaseUnitActor* UnitActor = Factory->CreateByDTData(*Row, FTransform::Identity);
+			if (!UnitActor)
+			{
+				MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
+			}
+
+			GetWarpGameState()->AddCombatUnit(UnitActor);
 		}
 	}
-
 	bUnitsCreated_ = true;
+	GetWarpGameState()->SendCombatUnitsToClients();
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
@@ -121,7 +133,6 @@ void ADefaultGameMode::HandleMatchHasStarted()
 void ADefaultGameMode::HandleMatchIsWaitingToStart()
 {
 	Super::HandleMatchIsWaitingToStart();
-	StartBattle();
 }
 
 bool ADefaultGameMode::StartBattle()
@@ -132,6 +143,13 @@ bool ADefaultGameMode::StartBattle()
 }
 
 #pragma region GameLoading
+
+namespace ReadyToStartMatchErrors
+{
+	const FName NoServerContentReady = FName("NoServerContentReady");
+	const FName PlayerArrayIsEmpty = FName("PlayerArrayIsEmpty");
+	const FName PlayerIsNotReady = FName("PlayerIsNotReady");
+}
 
 void ADefaultGameMode::CheckServerContentLoaded()
 {
@@ -167,13 +185,6 @@ bool ADefaultGameMode::CheckPlayersAndServerContentLoaded()
 	return false;
 }
 
-namespace ReadyToStartMatchErrors
-{
-	const FName NoServerContentReady = FName("NoServerContentReady");
-	const FName PlayerArrayIsEmpty = FName("PlayerArrayIsEmpty");
-	const FName PlayerIsNotReady = FName("PlayerIsNotReady");
-}
-
 TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::PlayersAndServerContentLoadValue() const
 {
 	if (!bServerContentReady_)
@@ -194,24 +205,53 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	return MakeValue();
 }
 
-bool ADefaultGameMode::CheckUnitCreation()
+bool ADefaultGameMode::CheckServerUnitCreation()
 {
 	return bUnitsCreated_;
+}
+
+
+bool ADefaultGameMode::CheckPlayersAndServerUnitCreation()
+{
+	TValueOrError<void, FReadyToStartMatchError> ReadyValue = PlayersAndServerUnitCreationValue();
+	if (ReadyValue.HasValue())
+		return true;
+
+	if (LastPlayersAndServerLoadError_ != ReadyValue.GetError())
+	{
+		LastPlayersAndServerLoadError_ = ReadyValue.GetError();
+		MG_LOG(ADefaultGameModeLog, TEXT("%s"), *LastPlayersAndServerLoadError_.ToString());
+	}
+
+	return false;
+}
+
+TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::
+PlayersAndServerUnitCreationValue() const
+{
+	if (!bUnitsCreated_)
+		return MakeError(ReadyToStartMatchErrors::NoServerContentReady);
+	if (GameState->PlayerArray.Num() == 0)
+		return MakeError(ReadyToStartMatchErrors::PlayerArrayIsEmpty);
+	
+	for (APlayerState* PS : GameState->PlayerArray)
+	{	
+		if (AWarpPlayerState* WPS = Cast<AWarpPlayerState>(PS))
+		{
+			if (!WPS->IsClientUnitsLoaded())
+			{
+				return MakeError(ReadyToStartMatchErrors::PlayerIsNotReady, WPS->GetName());
+			}
+		}
+	}
+	return MakeValue();
 }
 
 #pragma endregion
 
 UUnitActorFactory* ADefaultGameMode::CreateUnitsFactory()
-{
-	auto Content =	UWarpPlayfabContentSubSystem::Get(this);
-	RETURN_ON_FAIL_NULL(ADefaultGameModeLog, Content);
-	RETURN_ON_FAIL_NULL(ADefaultGameModeLog, UnitsTable_);
-	
+{	
 	UUnitActorFactory* Factory = NewObject<UUnitActorFactory>(this);
-	FUnitActorFactoryConfig Cfg;
-	Cfg.UnitsTable = UnitsTable_;
-	Cfg.CollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	Factory->Init(Content, Cfg);
 	return Factory;
 }
 
