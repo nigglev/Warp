@@ -344,6 +344,19 @@ namespace HexMath
 				return InCol * ColBasis<OffsetType>(InCircularRadius) + InRow * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InRow) * ParityShift<OffsetType>(InCircularRadius);
 			}
 		}
+		
+		template<EHexOffsetLayout OffsetType>
+		FOffsetRealCoord GetHexOffsetPos(const FOffsetCoord InOffsetCoord, float InCircularRadius)
+		{
+			if constexpr (bIsFlat<OffsetType>)
+			{
+				return InOffsetCoord.Right * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Up * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Right) * ParityShift<OffsetType>(InCircularRadius);
+			}
+			else
+			{
+				return InOffsetCoord.Right * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Up * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Up) * ParityShift<OffsetType>(InCircularRadius);
+			}
+		}
 	
 		template<EHexOffsetLayout OffsetType>
 		FOffsetRealCoord WorldSize(uint32 NumCols, uint32 NumRows, float R)
@@ -465,9 +478,10 @@ namespace HexMath
 			{
 				for (uint32 Col = 0; Col < InHexLength; ++Col)
 				{
-					FOffsetRealCoord FC = GetHexOffsetPos<OffsetType>(Col, Row, InCircularRadius);
+					FOffsetCoord OC(Col, Row);
+					FOffsetRealCoord FC = GetHexOffsetPos<OffsetType>(OC, InCircularRadius);
 					const FVector Loc = HexToWorldSnapped<OffsetType>(FC, InCircularRadius, InZOffset);
-					InHandler(FOffsetCoord(Col, Row), Loc);
+					InHandler(OC, Loc);
 				}
 			}
 		}	

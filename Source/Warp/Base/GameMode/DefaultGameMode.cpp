@@ -3,6 +3,7 @@
 
 #include "DefaultGameMode.h"
 
+#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,7 @@
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/ContentManagement/UnitStaticData/UnitDataTableRows.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
+#include "Warp/Utils/RepAxialCoord.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultGameModeLog, Log, All);
@@ -139,13 +141,20 @@ void ADefaultGameMode::HandleUnitCreation()
 		
 		for(int i = 0; i < N; i++)
 		{
-			ABaseUnitActor* UnitActor = Factory->CreateByDTData(*Row, FTransform::Identity);
-			if (!UnitActor)
+			HexMath::FAxialCoord AC(0, i * 3);
+			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC);
+			if (PosOpt.IsSet())
 			{
-				MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
+				const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
+				
+				ABaseUnitActor* UnitActor = Factory->CreateByDTData(*Row, Tr);
+				if (!UnitActor)
+				{
+					MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
+				}
+				GetWarpGameState()->AddCombatUnit(UnitActor);
 			}
 
-			GetWarpGameState()->AddCombatUnit(UnitActor);
 		}
 	}
 	bUnitsCreated_ = true;

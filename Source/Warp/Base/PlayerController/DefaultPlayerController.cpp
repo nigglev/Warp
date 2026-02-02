@@ -212,7 +212,21 @@ void ADefaultPlayerController::OnSelectAction(const FInputActionValue& Value)
 				GridWorldSubsystem->SelectCell(P);
 			}
 		}
-		ServerOrderMove(P);
+		
+		TOptional<HexMath::FAxialCoord> AxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
+		if (AxialCoordOpt.IsSet())
+		{
+			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AxialCoordOpt.GetValue());
+		
+			if (AxialCoordOpt.IsSet())
+			{
+				FVector CenteredP = PosOpt.GetValue();
+				DrawDebugSphere(GetWorld(), CenteredP, 12.f, 16, FColor::Red, false, 1.0f);
+				DrawDebugLine(GetWorld(), CenteredP, CenteredP+ FVector(0, 0, 50.f), FColor::Red, false, 1.0f, 0, 1.5f);
+				
+				ServerOrderMove(CenteredP);
+			}
+		}
 	}
 }
 

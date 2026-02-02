@@ -7,8 +7,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridLog, Log, Log);
 
-#define HEX_LAYOUT HexMath::EHexOffsetLayout::FlatTopOddQ
-
 void UHexagonChunkGrid::OnChangeObserverPosition(const FVector& InNewPosition)
 {
 	CreateNewChunks(InNewPosition);	

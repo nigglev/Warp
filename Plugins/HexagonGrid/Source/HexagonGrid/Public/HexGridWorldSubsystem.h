@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ECellType.h"
+#include "HexMath.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "HexGridWorldSubsystem.generated.h"
 
@@ -26,6 +27,9 @@ public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
+
+	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
+	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);
 	
 private:
 	

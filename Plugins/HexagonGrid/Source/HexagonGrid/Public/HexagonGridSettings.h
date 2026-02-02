@@ -4,6 +4,8 @@
 #include "Engine/DeveloperSettings.h"
 #include "HexagonGridSettings.generated.h"
 
+#define HEX_LAYOUT HexMath::EHexOffsetLayout::FlatTopOddQ
+
 class AHexGridISMActor;
 /**
  *
