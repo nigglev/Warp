@@ -8,6 +8,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
 #include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(AContentLog, Log, All);
 
@@ -35,8 +37,10 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     Super::Initialize(InCollection);
     LaunchContext_ = BuildLaunchContext(GetWorld());
     MG_LOG(AContentLog, TEXT("%s"), *LaunchContext_.ToString());
-    
+
+    Descriptions_.Add(FGameplayDescription::DescrName, MakeUnique<FGameplayDescriptions>());
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
+    
     
     bool bLoginAttemptSuccess = LoginToPlayFab();
     RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
@@ -178,6 +182,9 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InD
     RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
 
     TUniquePtr<FBaseDescriptions>* Found = Descriptions_.Find(InDescriptionName);
+    if (Found->Get()->AreItemsEmpty())
+        Found->Get()->EmplaceNewItem();
+    
     RETURN_ON_FAIL_BOOL(AContentLog, Found);
 
     return WriteDescriptionToDataSource_Internal(InDescriptionName, *Found->Get());

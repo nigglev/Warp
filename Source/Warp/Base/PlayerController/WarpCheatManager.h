@@ -16,4 +16,6 @@ class WARP_API UWarpCheatManager : public UCheatManager
 	
 	UFUNCTION(Exec)
 	void SaveDescriptionToPlayFab(const FString& InDescriptionName);
+	UFUNCTION(Exec)
+	void WriteDescriptionToSource(const FString& InDescriptionName);
 };

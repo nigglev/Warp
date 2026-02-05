@@ -1,0 +1,70 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "EUnitSize.h"
+#include "JsonObjectConverter.h"
+#include "WarpDescriptionBase.h"
+#include "UObject/Object.h"
+#include "WarpUnitDescriptions.generated.h"
+
+/**
+ * 
+ */
+USTRUCT(BlueprintType)
+struct FUnitDescription : public FBaseDescription
+{
+	GENERATED_BODY()
+
+	static inline const FName DescrName = TEXT("UnitDescriptions");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EUnitSize UnitSize = EUnitSize::Medium;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 UnitSpeed = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 UnitMaxAP = 2;
+};
+
+USTRUCT(BlueprintType)
+struct FUnitDescriptions : public FBaseDescriptions
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FUnitDescription> Items;
+
+	virtual bool AreItemsEmpty() override
+	{
+		return Items.IsEmpty();
+	}
+
+	virtual void EmplaceNewItem() override
+	{
+		Items.Emplace();
+	}
+
+	virtual FBaseDescription* Find(FName InDescrName) override
+	{
+		return Items.FindByPredicate([InDescrName](const FUnitDescription& InDescr) { return InDescr.Name == InDescrName; } );
+	}
+	
+	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) override
+	{
+		if (!ensure(!InJsonString.IsEmpty()))
+			return false;
+		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this,0,0,false, OutFailReason);
+		return bOk;
+	}
+
+	virtual bool DescriptionToJson(FString& OutJsonString) override
+	{
+		OutJsonString.Empty();
+		
+		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(*this, OutJsonString, 0, 0, 0, nullptr, true);
+		return bOk;
+	}
+};

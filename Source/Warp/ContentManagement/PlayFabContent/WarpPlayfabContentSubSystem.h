@@ -8,7 +8,8 @@
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
-#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpDescriptionBase.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 #include "Warp/Utils/WarpUtils.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
 
@@ -32,6 +33,7 @@ public:
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
+	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
 	void OnDescriptionSavingResult(bool bSucceeded);
 	
 	UFUNCTION()
@@ -40,6 +42,7 @@ public:
 	void OnContentCheckedAndLoaded(bool InContentLoaded);
 	
 	FOnUnitsLoaded OnContentLoaded;
+	
 
 	template<typename Descr>
 	const Descr& GetDescription(FName InDescriptionName)
@@ -66,7 +69,6 @@ protected:
 	bool ReadDescriptionsFromDataSource();
 	
 	bool WriteDescriptionsToDataSource();
-	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
 	bool WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description);
 
 	FDescriptionVersions CreateVersions();
