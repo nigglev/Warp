@@ -118,7 +118,6 @@ void UPlayFabStateManager::HandleDownloadingVersions(FPlayFabStateManagerData& I
 		SetState(EPlayFabContentStates::UpdateFailed, InData);
 	}
 	FAnyPlayFabPtr AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
-	AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
 	InData.Versions->ReadFromPlayFab(AnyApi, this);
 }
 	
