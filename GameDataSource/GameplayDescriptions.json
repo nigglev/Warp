@@ -1,0 +1,11 @@
+{
+	"items": [
+		{
+			"campaignMapLayerCount": 4,
+			"campaignMapNodeInLayerCountMin": 1,
+			"campaignMapNodeInLayerCountMax": 5,
+			"name": "GameplayDescriptions"
+		}
+	],
+	"version": 3
+}

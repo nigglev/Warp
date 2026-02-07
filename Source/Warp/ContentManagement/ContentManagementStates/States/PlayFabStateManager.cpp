@@ -8,7 +8,7 @@
 #include "Algo/ForEach.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayFabContentExtension.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
-#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(PFStateLog, Log, All);
 
@@ -118,7 +118,6 @@ void UPlayFabStateManager::HandleDownloadingVersions(FPlayFabStateManagerData& I
 		SetState(EPlayFabContentStates::UpdateFailed, InData);
 	}
 	FAnyPlayFabPtr AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
-	AnyApi = FAnyPlayFabPtr(TInPlaceType<PlayFabClientPtr>(), ClientAPI_);
 	InData.Versions->ReadFromPlayFab(AnyApi, this);
 }
 	

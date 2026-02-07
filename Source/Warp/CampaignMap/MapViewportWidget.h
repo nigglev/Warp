@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MapViewportWidget.generated.h"
 
+struct FGameplayDescription;
 class UButton;
 class UShipIconWidget;
 class UImage;
@@ -35,6 +36,8 @@ protected:
 	UFUNCTION() FEventReply OnCatcherMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION()	FEventReply OnCatcherMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION()	FEventReply OnCatcherMouseUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+
+	void BuildMap();
 	
 	void SpawnNodes();
 	UMapNodeWidget* SpawnNode(FNodePosition InNodePosition, const FVector2D& InPos);	
@@ -68,7 +71,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") TSubclassOf<UImage> LineSegmentClass;
 	
 	UPROPERTY(EditAnywhere, Category="MapViewport|Edges") TSubclassOf<UShipIconWidget> ShipIconWidgetClass;
-	UPROPERTY() TObjectPtr<UShipIconWidget> ShipIconWidget_;	
+	UPROPERTY() TObjectPtr<UShipIconWidget> ShipIconWidget_;
 	
 	void BuildEdges();
 	void GenerateEdges();
@@ -85,6 +88,8 @@ protected:
 	void OnSelectNode(bool bSelect);
 	
 	void DropSelection();
+
+	FGameplayDescription GetGameplayDescriptions();
 
 	float MaxX_ = 0;
 	

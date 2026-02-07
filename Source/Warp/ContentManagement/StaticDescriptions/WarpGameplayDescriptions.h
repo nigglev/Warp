@@ -1,0 +1,64 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "JsonObjectConverter.h"
+#include "WarpDescriptionBase.h"
+#include "UObject/Object.h"
+#include "WarpGameplayDescriptions.generated.h"
+
+/**
+ * 
+ */
+USTRUCT(BlueprintType)
+struct FGameplayDescription : public FBaseDescription
+{
+	GENERATED_BODY()
+
+	static inline const FName DescrName = TEXT("GameplayDescriptions");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapLayerCount = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMin = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMax = 4;
+};
+
+USTRUCT(BlueprintType)
+struct FGameplayDescriptions : public FBaseDescriptions
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FGameplayDescription> Items;
+
+	virtual bool AreItemsEmpty() override
+	{
+		return Items.IsEmpty();
+	}
+
+	virtual void EmplaceNewItem() override
+	{
+		Items.Emplace();
+	}
+
+	virtual FBaseDescription* Find(FName InDescrName) override
+	{
+		return Items.FindByPredicate([InDescrName](const FGameplayDescription& InDescr) { return InDescr.Name == InDescrName; } );
+	}
+	
+	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) override
+	{
+		if (!ensure(!InJsonString.IsEmpty()))
+			return false;
+		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this,0,0,false, OutFailReason);
+		return bOk;
+	}
+
+	virtual bool DescriptionToJson(FString& OutJsonString) override
+	{
+		OutJsonString.Empty();
+		
+		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(*this, OutJsonString, 0, 0, 0, nullptr, true);
+		return bOk;
+	}
+};

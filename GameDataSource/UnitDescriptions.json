@@ -1,1 +1,11 @@
-{"version":4,"items":[{"name":"Corvette","unitSize":"Small","unitSpeed":1,"unitMaxAP":4}]}
+{
+	"items": [
+		{
+			"unitSize": "Small",
+			"unitSpeed": 1,
+			"unitMaxAP": 4,
+			"name": "Corvette"
+		}
+	],
+	"version": 4
+}

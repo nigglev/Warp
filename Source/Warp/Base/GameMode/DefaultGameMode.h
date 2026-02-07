@@ -10,7 +10,6 @@
 
 class UUnitActorFactory;
 class ABaseUnitActor;
-struct FUnitDescription;
 class UWarpPlayfabContentSubSystem;
 class ADefaultPlayerController;
 class ACombatMapManager;

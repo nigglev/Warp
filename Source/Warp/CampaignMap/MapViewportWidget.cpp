@@ -13,6 +13,8 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(AMapViewportWidgetLog, Log, All);
@@ -24,6 +26,11 @@ void UMapViewportWidget::NativeConstruct()
 	RETURN_ON_FAIL(AMapViewportWidgetLog, InputCatcher);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapBorder);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapContentRoot);
+
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
+
+	Content->OnContentLoaded.AddUObject(this, &UMapViewportWidget::BuildMap);
 	
 	InputCatcher->OnMouseButtonDownEvent.BindUFunction(this,
 		GET_FUNCTION_NAME_CHECKED(UMapViewportWidget, OnCatcherMouseDown));
@@ -40,12 +47,6 @@ void UMapViewportWidget::NativeConstruct()
 	{
 		CapturedNodePosition_ = GM->GetNodePosition();
 	}
-	
-	SpawnNodes();
-	
-	BuildEdges();
-	
-	CreateShipIcon();
 	
 	APlayerController* PC = GetOwningPlayer();
 	RETURN_ON_FAIL(AMapViewportWidgetLog, PC != nullptr);
@@ -134,6 +135,18 @@ FEventReply UMapViewportWidget::OnCatcherMouseUp(FGeometry Geo, const FPointerEv
 	FEventReply Reply(true);
 	Reply.NativeReply = FReply::Handled().ReleaseMouseCapture();
 	return Reply;
+}
+
+void UMapViewportWidget::BuildMap()
+{
+	FGameplayDescription GameplayDescriptions = GetGameplayDescriptions();
+	LayerCount_ = GameplayDescriptions.CampaignMapLayerCount;
+	NodeInLayerCountMin_ = GameplayDescriptions.CampaignMapNodeInLayerCountMin;
+	NodeInLayerCountMax_ = GameplayDescriptions.CampaignMapNodeInLayerCountMax;
+	
+	SpawnNodes();
+	BuildEdges();
+	CreateShipIcon();
 }
 
 void UMapViewportWidget::SpawnNodes()
@@ -484,6 +497,16 @@ void UMapViewportWidget::DropSelection()
 	
 	SelectedNodePosition_ = UnselectedNodePosition;
 	OnSelectNode(false);
+}
+
+FGameplayDescription UMapViewportWidget::GetGameplayDescriptions()
+{
+	//RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, GetWorld());
+
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	//RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
+	FGameplayDescription Descr = Content->GetDescription<FGameplayDescription>(FName("GameplayDescriptions"));
+	return Descr;
 }
 
 void UMapViewportWidget::OnSelectNode(bool bSelect)

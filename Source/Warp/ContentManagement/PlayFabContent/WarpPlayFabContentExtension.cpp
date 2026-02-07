@@ -3,7 +3,8 @@
 
 #include "DescriptionReader.hpp"
 #include "WarpPlayfabContentSubSystem.h"
-#include "Warp/ContentManagement/StaticDescriptions/UnitDescription.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 namespace WarpPlayfabContent
 {
@@ -11,6 +12,7 @@ namespace WarpPlayfabContent
 	{
 		static TMap<FName, FReaderFactory> ReaderFactories = {
 			{ TEXT("UnitDescriptions"), [](){ return MakeUnique<FUStructDescriptionReader<FUnitDescriptions>>(); } },
+{			 TEXT("GameplayDescriptions"), [](){ return MakeUnique<FUStructDescriptionReader<FGameplayDescriptions>>(); } },
 		};
 		return ReaderFactories;
 	}
