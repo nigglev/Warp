@@ -9,6 +9,7 @@
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpDescriptionBase.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 #include "Warp/Utils/WarpUtils.h"
 #include "WarpPlayfabContentSubSystem.generated.h"
@@ -45,22 +46,40 @@ public:
 	
 
 	template<typename Descr>
-	const Descr& GetDescription(FName InDescriptionName)
+	const Descr* GetDescription(FName InDescriptionName)
 	{
 		const TUniquePtr<FBaseDescriptions>* BucketPtr = Descriptions_.Find(Descr::DescrName);
-		checkf(BucketPtr && BucketPtr->IsValid(), TEXT("Descriptions bucket '%s' is missing or null."),
+		ensureMsgf(BucketPtr && BucketPtr->IsValid(), TEXT("Descriptions bucket '%s' is missing or null."),
 			*Descr::DescrName.ToString());
 
 		const FBaseDescription* BaseDescr = (*BucketPtr)->Find(InDescriptionName);
-		checkf(BaseDescr, TEXT("Description '%s' not found in bucket '%s'."),
+		ensureMsgf(BaseDescr, TEXT("Description '%s' not found in bucket '%s'."),
 			*InDescriptionName.ToString(), *Descr::DescrName.ToString());
 		
 		
 		const Descr* D = static_cast<const Descr*>(BaseDescr);
-		checkf(D, TEXT("Type mismatch for '%s' in bucket '%s'."),
+		ensureMsgf(D, TEXT("Type mismatch for '%s' in bucket '%s'."),
 			*InDescriptionName.ToString(), *Descr::DescrName.ToString());
 
-		return *D;
+		return D;
+	}
+	
+	template<typename Descr>
+	const FGameplayDescription* GetFirstDescription()
+	{
+		const TUniquePtr<FBaseDescriptions>* BucketPtr = Descriptions_.Find(Descr::DescrName);
+		ensureMsgf(BucketPtr && BucketPtr->IsValid(), TEXT("Descriptions bucket '%s' is missing or null."),
+			*Descr::DescrName.ToString());
+
+		ensureMsgf((*BucketPtr)->Num() == 1, TEXT("Descriptions bucket '%s' must have one record."),
+			*Descr::DescrName.ToString());
+		
+		const FBaseDescription* BaseDescr = (*BucketPtr)->At(0);
+		const Descr* D = static_cast<const Descr*>(BaseDescr);
+		ensureMsgf(D, TEXT("Type mismatch for the first record in bucket '%s'."),
+			*Descr::DescrName.ToString());
+
+		return D;
 	}
 
 protected:

@@ -8,19 +8,6 @@
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "UnitDataTableRows.generated.h"
 
-
-USTRUCT(BlueprintType)
-struct FUnitDataTableRows : public FTableRowBase
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere)
-	FName UnitType = NAME_None;
-	
-	UPROPERTY(EditAnywhere)
-	TSoftClassPtr<ABaseUnitActor> UnitActor;
-};
-
 USTRUCT(BlueprintType)
 struct FUnitActorsTableRows : public FTableRowBase
 {

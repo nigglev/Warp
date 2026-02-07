@@ -52,6 +52,24 @@ struct FUnitDescriptions : public FBaseDescriptions
 		return Items.FindByPredicate([InDescrName](const FUnitDescription& InDescr) { return InDescr.Name == InDescrName; } );
 	}
 	
+	virtual int32 Num() const override { return Items.Num(); }
+	
+	virtual FBaseDescription* At(int32 InIndex) override
+	{
+		if (!Items.IsValidIndex(InIndex))
+			return nullptr;
+		
+		return &Items[InIndex];
+	}
+	
+	virtual const FBaseDescription* At(int32 InIndex) const override
+	{
+		if (!Items.IsValidIndex(InIndex))
+			return nullptr;
+		
+		return &Items[InIndex];
+	}
+	
 	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) override
 	{
 		if (!ensure(!InJsonString.IsEmpty()))

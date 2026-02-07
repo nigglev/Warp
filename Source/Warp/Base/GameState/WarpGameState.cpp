@@ -4,17 +4,23 @@
 #include "WarpGameState.h"
 
 #include "EngineUtils.h"
+#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Actors/UnitActors/UnitActorFactory.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/ContentManagement/GameAssets.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Utils/RepAxialCoord.h"
 
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
@@ -67,7 +73,29 @@ void AWarpGameState::HandleUnitCreation()
 	UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(AWarpGameStateLog, PlayfabContentSubSystem);
 	
-	//PlayfabContentSubSystem->GetDescription<>();
+	const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
+	RETURN_ON_FAIL(AWarpGameStateLog, Descr);
+	
+	for(int i = 0; i < 3; i++)
+	{
+		HexMath::FAxialCoord AC(0, i * 3);
+		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC);
+		if (PosOpt.IsSet())
+		{
+			const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
+			ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitType, Tr);
+			CombatUnits_.Add(Unit);
+		}
+	}
+	
+	bUnitsCreated_ = true;
+	
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+		SetUnitsLoaded();
+	else
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, CombatUnits_, this);
+	}
 }
 
 
@@ -75,25 +103,6 @@ void AWarpGameState::HandleMatchIsWaitingToStart()
 {
 	Super::HandleMatchIsWaitingToStart();
 	
-}
-
-void AWarpGameState::SetupCombatUnitsArray(const int InNumberOfUnits)
-{
-	CombatUnits_.Empty();
-	CombatUnits_.Reserve(InNumberOfUnits);
-}
-
-void AWarpGameState::AddCombatUnit(ABaseUnitActor* InCombatUnit)
-{
-	RETURN_ON_FAIL(AWarpGameStateLog, InCombatUnit);
-	CombatUnits_.Add(InCombatUnit);
-}
-
-
-void AWarpGameState::SendCombatUnitsToClients()
-{
-	if (HasAuthority())
-		MARK_PROPERTY_DIRTY_FROM_NAME(AWarpGameState, CombatUnits_, this);
 }
 
 void AWarpGameState::OnRep_CombatUnits()

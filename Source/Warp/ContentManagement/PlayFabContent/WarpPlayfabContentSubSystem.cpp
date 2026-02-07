@@ -180,13 +180,19 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InD
 {
     RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
     RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
+    
+    if (InDescriptionName.IsNone())
+    {
+        WriteDescriptionsToDataSource();
+        return true;
+    }
 
     TUniquePtr<FBaseDescriptions>* Found = Descriptions_.Find(InDescriptionName);
+    RETURN_ON_FAIL_BOOL_T(AContentLog, Found, TEXT("Description not found: %s"), *InDescriptionName.ToString());
+    
     if (Found->Get()->AreItemsEmpty())
         Found->Get()->EmplaceNewItem();
     
-    RETURN_ON_FAIL_BOOL(AContentLog, Found);
-
     return WriteDescriptionToDataSource_Internal(InDescriptionName, *Found->Get());
 }
 

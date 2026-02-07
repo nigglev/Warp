@@ -80,20 +80,15 @@ protected:
 	virtual bool CheckPlayersAndServerContentLoaded();
 	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerContentLoadValue() const;
 	
-	virtual bool CheckServerUnitCreation();
+	virtual bool CheckServerUnitCreation() const;
 	virtual bool CheckPlayersAndServerUnitCreation();
 	TValueOrError<void, FReadyToStartMatchError> PlayersAndServerUnitCreationValue() const;
 	
 	AWarpGameState* GetWarpGameState() const;
-	UUnitActorFactory* CreateUnitsFactory();
-
-	UPROPERTY(EditDefaultsOnly, Category="Data")
-	UDataTable* UnitsTable_ = nullptr;
 
 	FReadyToStartMatchError LastPlayersAndServerLoadError_;
 	
 	bool bServerContentReady_ = false;
-	bool bUnitsCreated_ = false;
 
 	EMapNodeType MapNodeType_ = EMapNodeType::Undefined;
 	FNodePosition NodePosition_ = FNodePosition::ZeroValue;

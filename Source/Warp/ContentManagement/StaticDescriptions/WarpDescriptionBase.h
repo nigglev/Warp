@@ -29,7 +29,13 @@ struct FBaseDescriptions
 
 	virtual void EmplaceNewItem() PURE_VIRTUAL(FBaseDescriptions::EmplaceNewItem);
 	virtual bool AreItemsEmpty() PURE_VIRTUAL(FBaseDescriptions::AreItemsEmpty, return true;);
+	
 	virtual FBaseDescription* Find(FName InDescrName) PURE_VIRTUAL(FBaseDescriptions::Find, return nullptr;);
+	
+	virtual int32 Num() const PURE_VIRTUAL(FBaseDescriptions::Num, return INDEX_NONE;);
+	virtual FBaseDescription* At(int32 InIndex) PURE_VIRTUAL(FBaseDescriptions::At, return nullptr;);
+	virtual const FBaseDescription* At(int32 InIndex) const PURE_VIRTUAL(FBaseDescriptions::At, return nullptr;);
+	
 	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, return false;);
 	virtual bool DescriptionToJson(FString& OutJsonString) PURE_VIRTUAL(FBaseDescriptions::JsonToDescription, return false;);
 };

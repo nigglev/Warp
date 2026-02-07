@@ -26,6 +26,6 @@ public:
 	TSubclassOf<ABaseUnitActor> GetUnitActorClass(const FName& InUnitType) const;
 	
 protected:
-	UPROPERTY(EditDefaultsOnly, Category="Data")
-	UDataTable* UnitActorsTable_ = nullptr;
+	UPROPERTY(Config, EditAnywhere, Category="Data")
+	TSoftObjectPtr<UDataTable> UnitActorsTable_;
 };

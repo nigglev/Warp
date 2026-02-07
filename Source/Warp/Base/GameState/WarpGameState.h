@@ -38,10 +38,9 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
-	void SetupCombatUnitsArray(const int InNumberOfUnits);
-	void AddCombatUnit(ABaseUnitActor* InCombatUnit);
-	void SendCombatUnitsToClients();
 	void SetUnitsLoaded();
+	
+	bool IsUnitsCreated() const { return bUnitsCreated_; }
 
 	UTurnMachine* GetTurnMachine() const { return TurnMachine_; }
 	TArray<ABaseUnitActor*> GetCombatUnits() const { return CombatUnits_; }
@@ -71,6 +70,8 @@ protected:
 	void OnRep_TurnState();
 
 	bool bClientValidState_ = false;
+	
+	bool bUnitsCreated_ = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTurnMachine> TurnMachine_;

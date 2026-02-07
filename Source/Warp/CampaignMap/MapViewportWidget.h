@@ -89,7 +89,7 @@ protected:
 	
 	void DropSelection();
 
-	FGameplayDescription GetGameplayDescriptions();
+	const FGameplayDescription* GetGameplayDescriptions();
 
 	float MaxX_ = 0;
 	

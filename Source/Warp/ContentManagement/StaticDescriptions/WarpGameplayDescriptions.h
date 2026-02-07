@@ -17,6 +17,8 @@ struct FGameplayDescription : public FBaseDescription
 	GENERATED_BODY()
 
 	static inline const FName DescrName = TEXT("GameplayDescriptions");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FName DefaultPlayerUnitType = TEXT("Corvette");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapLayerCount = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMin = 3;
@@ -44,6 +46,24 @@ struct FGameplayDescriptions : public FBaseDescriptions
 	virtual FBaseDescription* Find(FName InDescrName) override
 	{
 		return Items.FindByPredicate([InDescrName](const FGameplayDescription& InDescr) { return InDescr.Name == InDescrName; } );
+	}
+	
+	virtual int32 Num() const override { return Items.Num(); }
+	
+	virtual FBaseDescription* At(int32 InIndex) override
+	{
+		if (!Items.IsValidIndex(InIndex))
+			return nullptr;
+		
+		return &Items[InIndex];
+	}
+	
+	virtual const FBaseDescription* At(int32 InIndex) const override
+	{
+		if (!Items.IsValidIndex(InIndex))
+			return nullptr;
+		
+		return &Items[InIndex];
 	}
 	
 	virtual bool JsonToDescription(const FString& InJsonString, FText* OutFailReason) override

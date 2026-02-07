@@ -139,10 +139,12 @@ FEventReply UMapViewportWidget::OnCatcherMouseUp(FGeometry Geo, const FPointerEv
 
 void UMapViewportWidget::BuildMap()
 {
-	FGameplayDescription GameplayDescriptions = GetGameplayDescriptions();
-	LayerCount_ = GameplayDescriptions.CampaignMapLayerCount;
-	NodeInLayerCountMin_ = GameplayDescriptions.CampaignMapNodeInLayerCountMin;
-	NodeInLayerCountMax_ = GameplayDescriptions.CampaignMapNodeInLayerCountMax;
+	const FGameplayDescription* GameplayDescriptions = GetGameplayDescriptions();
+	RETURN_ON_FAIL(AMapViewportWidgetLog, GameplayDescriptions);
+	
+	LayerCount_ = GameplayDescriptions->CampaignMapLayerCount;
+	NodeInLayerCountMin_ = GameplayDescriptions->CampaignMapNodeInLayerCountMin;
+	NodeInLayerCountMax_ = GameplayDescriptions->CampaignMapNodeInLayerCountMax;
 	
 	SpawnNodes();
 	BuildEdges();
@@ -499,14 +501,13 @@ void UMapViewportWidget::DropSelection()
 	OnSelectNode(false);
 }
 
-FGameplayDescription UMapViewportWidget::GetGameplayDescriptions()
+const FGameplayDescription* UMapViewportWidget::GetGameplayDescriptions()
 {
 	//RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, GetWorld());
 
 	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
 	//RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
-	FGameplayDescription Descr = Content->GetDescription<FGameplayDescription>(FName("GameplayDescriptions"));
-	return Descr;
+	return Content->GetDescription<FGameplayDescription>(FName("GameplayDescriptions"));
 }
 
 void UMapViewportWidget::OnSelectNode(bool bSelect)

@@ -16,7 +16,8 @@ UGameAssets::UGameAssets(const FObjectInitializer& ObjectInitializer)
 
 TSubclassOf<ABaseUnitActor> UGameAssets::GetUnitActorClass(const FName& InUnitType) const
 {
-	RETURN_ON_FAIL_NULL(AGameAssetsLog, UnitActorsTable_ != nullptr);
+	UDataTable* DT = UnitActorsTable_.LoadSynchronous();
+	RETURN_ON_FAIL_NULL(AGameAssetsLog, DT != nullptr);
 	
 	FUnitActorsTableRows* Row = UnitActorsTable_->FindRow<FUnitActorsTableRows>(InUnitType, FString(__FUNCDNAME__));
 	RETURN_ON_FAIL_NULL_T(AGameAssetsLog, Row != nullptr, TEXT("Couldn't find Actor Class for %s"), *InUnitType.ToString());

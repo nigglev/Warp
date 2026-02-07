@@ -3,20 +3,15 @@
 
 #include "DefaultGameMode.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
-#include "MGLogTypes.h"
 #include "Kismet/GameplayStatics.h"
-#include "Warp/Actors/UnitActors/UnitActorFactory.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
-#include "Warp/ContentManagement/UnitStaticData/UnitDataTableRows.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
-#include "Warp/Utils/RepAxialCoord.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultGameModeLog, Log, All);
@@ -118,50 +113,7 @@ void ADefaultGameMode::HandleMatchLoading()
 }
 
 void ADefaultGameMode::HandleUnitCreation()
-{
-	RETURN_ON_FAIL(ADefaultGameModeLog, UnitsTable_);
-
-	UUnitActorFactory* Factory = CreateUnitsFactory();
-	RETURN_ON_FAIL(ADefaultGameModeLog, Factory);
-
-	static const FString Context(TEXT("UnitsTable"));
-	TArray<FUnitDataTableRows*> Rows;
-	UnitsTable_->GetAllRows(Context, Rows);
-
-	int N = 3;
-	GetWarpGameState()->SetupCombatUnitsArray(N);
-
-	for (const FUnitDataTableRows* Row : Rows)
-	{
-		if (!Row)
-		{
-			MG_ERROR(ADefaultGameModeLog, TEXT("Row %s not found"), *Row->UnitType.ToString());
-			continue;
-		}
-		
-		for(int i = 0; i < N; i++)
-		{
-			HexMath::FAxialCoord AC(0, i * 3);
-			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC);
-			if (PosOpt.IsSet())
-			{
-				const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
-				
-				ABaseUnitActor* UnitActor = Factory->CreateByDTData(*Row, Tr);
-				if (!UnitActor)
-				{
-					MG_ERROR(ADefaultGameModeLog, TEXT("Failed to create actor %s"), *Row->UnitType.ToString());
-				}
-				GetWarpGameState()->AddCombatUnit(UnitActor);
-			}
-
-		}
-	}
-	bUnitsCreated_ = true;
-	if (GetWorld()->GetNetMode() == NM_Standalone)
-		GetWarpGameState()->SetUnitsLoaded();
-	else
-		GetWarpGameState()->SendCombatUnitsToClients();
+{	
 }
 
 void ADefaultGameMode::HandleMatchHasStarted()
@@ -246,9 +198,10 @@ TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode:
 	return MakeValue();
 }
 
-bool ADefaultGameMode::CheckServerUnitCreation()
+bool ADefaultGameMode::CheckServerUnitCreation() const
 {
-	return bUnitsCreated_;
+	AWarpGameState* GS = GetWarpGameState();
+	return GS == nullptr ? false : GS->IsUnitsCreated();
 }
 
 
@@ -267,10 +220,10 @@ bool ADefaultGameMode::CheckPlayersAndServerUnitCreation()
 	return false;
 }
 
-TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> ADefaultGameMode::
-PlayersAndServerUnitCreationValue() const
+TValueOrError<void, ADefaultGameMode::FReadyToStartMatchError> 
+ADefaultGameMode::PlayersAndServerUnitCreationValue() const
 {
-	if (!bUnitsCreated_)
+	if (!CheckServerUnitCreation())
 		return MakeError(ReadyToStartMatchErrors::NoServerContentReady);
 	if (GameState->PlayerArray.Num() == 0)
 		return MakeError(ReadyToStartMatchErrors::PlayerArrayIsEmpty);
@@ -289,12 +242,6 @@ PlayersAndServerUnitCreationValue() const
 }
 
 #pragma endregion
-
-UUnitActorFactory* ADefaultGameMode::CreateUnitsFactory()
-{	
-	UUnitActorFactory* Factory = NewObject<UUnitActorFactory>(this);
-	return Factory;
-}
 
 AWarpGameState* ADefaultGameMode::GetWarpGameState() const
 {
