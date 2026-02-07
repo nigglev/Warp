@@ -61,6 +61,7 @@ public:
 	
 protected:
 	virtual void OnRep_MatchState() override;
+	void HandleUnitCreation();
 	virtual void HandleMatchIsWaitingToStart() override;
 
 

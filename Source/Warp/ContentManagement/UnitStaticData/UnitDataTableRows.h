@@ -20,3 +20,12 @@ struct FUnitDataTableRows : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	TSoftClassPtr<ABaseUnitActor> UnitActor;
 };
+
+USTRUCT(BlueprintType)
+struct FUnitActorsTableRows : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<ABaseUnitActor> UnitActor;
+};

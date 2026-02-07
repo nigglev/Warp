@@ -13,7 +13,9 @@
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
+
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 
 AWarpGameState::AWarpGameState()
@@ -52,7 +54,20 @@ void AWarpGameState::OnRep_MatchState()
 {
 	MG_LOG(AWarpGameStateLog, TEXT("MatchState: %s"), *MatchState.ToString());
 	
+	if (MatchState == MatchState::UnitCreation)
+	{
+		HandleUnitCreation();
+	}
+	
 	Super::OnRep_MatchState();
+}
+
+void AWarpGameState::HandleUnitCreation()
+{
+	UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = UWarpPlayfabContentSubSystem::Get(this);
+	RETURN_ON_FAIL(AWarpGameStateLog, PlayfabContentSubSystem);
+	
+	//PlayfabContentSubSystem->GetDescription<>();
 }
 
 

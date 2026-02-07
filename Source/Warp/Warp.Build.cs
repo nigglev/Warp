@@ -31,7 +31,8 @@ public class Warp : ModuleRules
 			"DebugUtility", 
 			"PlayFab", 
 			"PlayFabCpp", 
-			"PlayFabCommon"
+			"PlayFabCommon",
+			"DeveloperSettings"
 		});
 
 		// Uncomment if you are using Slate UI
