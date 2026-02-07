@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "UnitCharacteristics/UnitSize.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
 UCLASS()
@@ -38,6 +39,9 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_ = FName("Unit");
+	
+	UPROPERTY(Replicated)
+	FRepAxialCoord AxialCoord_; 
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
 	FUnitSize UnitActorSize_ = FUnitSize::None();
