@@ -30,9 +30,9 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ABaseUnitActor, UnitType_);
 	DOREPLIFETIME(ABaseUnitActor, UnitActorSize_);
-	DOREPLIFETIME(ABaseUnitActor, MoveTarget_);
-	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget_);
+	DOREPLIFETIME(ABaseUnitActor, bOnMove_);
 	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
+	DOREPLIFETIME(ABaseUnitActor, AxialAngle_);
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -40,33 +40,66 @@ void ABaseUnitActor::BeginPlay()
 	Super::BeginPlay();
 }
 
-void ABaseUnitActor::Tick(float DeltaSeconds)
+void ABaseUnitActor::Tick(float InDelta)
 {
-	Super::Tick(DeltaSeconds);
+	Super::Tick(InDelta);
 
-	if (!HasAuthority() || Path_.IsEmpty())
+	if (!HasAuthority() || !bOnMove_)
 	{
 		return;
 	}
-
+	
 	FVector Current = GetActorLocation();
 	
-	FVector Target = Path_[0];
-	
-	FVector Dir = Target - Current;
-	float CurrentDist;
-	Dir.ToDirectionAndLength(Dir, CurrentDist);
-	
-	float ShiftLen = MoveSpeed_ * DeltaSeconds;
-	if (CurrentDist <= ShiftLen)
+	if (!Path_.IsEmpty())
 	{
-		ShiftLen = CurrentDist;
-		Path_.RemoveAt(0);
+		FVector Target = Path_[0];
+		FVector Dir = Target - Current;
+		float CurrentDist;
+		Dir.ToDirectionAndLength(Dir, CurrentDist);
+	
+		float TargetYaw  = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X));
+		
+		bRotating_ = UpdateRotation(InDelta, TargetYaw);
+		if (!bRotating_)
+		{
+			float ShiftLen = MoveSpeed_ * InDelta;
+			if (CurrentDist <= ShiftLen)
+			{
+				ShiftLen = CurrentDist;
+				Path_.RemoveAt(0);
+			}
+
+			FVector NewLoc = Current + Dir * ShiftLen;
+
+			SetActorLocation(NewLoc, true);
+		}
 	}
+	else
+	{
+		float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
+		bOnMove_ = UpdateRotation(InDelta, TargetYaw);
+	}
+}
 
-	FVector NewLoc = Current + Dir * ShiftLen;
-
-	SetActorLocation(NewLoc, true);
+bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
+{
+	float CurrentYaw = CurrentYaw = FMath::UnwindDegrees(GetActorRotation().Yaw);
+	float DeltaAngle = FMath::FindDeltaAngleDegrees(CurrentYaw, InTargetYaw);
+		
+	if (FMath::Abs(DeltaAngle) < KINDA_SMALL_NUMBER)
+	{
+		//MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f; DeltaAngle: %f"), CurrentYaw, InTargetYaw, DeltaAngle);
+		return false;
+	}
+	
+	const float NewYaw = FMath::FixedTurn(CurrentYaw, InTargetYaw, RotateSpeed_ * InDelta);
+	//MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f; NewYaw: %f"), CurrentYaw, InTargetYaw, NewYaw);
+	
+	const FRotator WorldRot(0.f, NewYaw, 0.f);
+	SetActorRotation(WorldRot);
+	
+	return true;
 }
 
 
@@ -74,6 +107,23 @@ void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 {
 	if (!HasAuthority())
 	{
+		return;
+	}
+	
+	float CurrentYaw = CurrentYaw = FMath::UnwindDegrees(GetActorRotation().Yaw);
+	
+	if (InTarget == AxialCoord_)
+	{
+		AxialAngle_ = InAxialAngle;
+		float DeltaAngle = FMath::FindDeltaAngleDegrees(CurrentYaw, AxialAngle_.GetYaw());
+		
+		bOnMove_ = FMath::Abs(DeltaAngle) > KINDA_SMALL_NUMBER;
+		
+		if (bOnMove_)
+		{
+			MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f"), CurrentYaw, AxialAngle_.GetYaw());
+		}
+		
 		return;
 	}
 	
@@ -85,19 +135,27 @@ void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 	TArray<HexMath::FAxialCoord> Path;
 	GridWorldSubsystem->SelectedFindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
 	
-	FVector Current = GetActorLocation();
-	for (HexMath::FAxialCoord AC : Path)
+	if (!Path.IsEmpty())
 	{
-		TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
-		if (TargetPosOpt.IsSet())
+		RETURN_ON_FAIL(ABaseUnitActorLog, Path.Num() > 1);
+		Path.RemoveAt(0);
+		
+		FVector Current = GetActorLocation();
+		for (HexMath::FAxialCoord AC : Path)
 		{
-			Path_.Add(TargetPosOpt.GetValue());
+			TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
+			if (TargetPosOpt.IsSet())
+			{
+				Path_.Add(TargetPosOpt.GetValue());
+			}
 		}
-	}
 	
-	if (!Path_.IsEmpty())
-	{
 		AxialCoord_ = InTarget;
+		AxialAngle_ = InAxialAngle;
+	
+		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; CurrentYaw: %f; InTargetYaw: %f"), *InTarget.ToNative().ToString(), CurrentYaw, AxialAngle_.GetYaw());
+	
+		bOnMove_ = true;
 	}
 }
 

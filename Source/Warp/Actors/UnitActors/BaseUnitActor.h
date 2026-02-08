@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "UnitCharacteristics/UnitSize.h"
+#include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
@@ -18,7 +19,7 @@ class WARP_API ABaseUnitActor : public AActor
 public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(float InDelta) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
@@ -34,36 +35,43 @@ public:
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
 	void SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
-	bool IsMoving() const { return bHasMoveTarget_; }
+	bool IsMoving() const { return !Path_.IsEmpty() || bRotating_; }
 	
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
 	UFUNCTION()
 	void OnRep_UnitActorSize();
+	
+	bool UpdateRotation(float InDelta, float InTargetYaw);
+	
+	UPROPERTY(EditDefaultsOnly, Category="Move")
+	float MoveSpeed_ = 600.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Move")
+	float RotateSpeed_ = 360;
 
+	UPROPERTY(EditDefaultsOnly, Category="Move")
+	float AcceptanceRadius_ = 25.f;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_ = FName("Unit");
 	
 	UPROPERTY(Replicated)
-	FRepAxialCoord AxialCoord_; 
+	FRepAxialCoord AxialCoord_;
+	
+	UPROPERTY(Replicated)
+	FAxialAngle AxialAngle_;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
 	FUnitSize UnitActorSize_ = FUnitSize::None();
+
+	UPROPERTY(Replicated)
+	bool bOnMove_ = false;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float MoveSpeed_ = 600.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float AcceptanceRadius_ = 25.f;
-
-	UPROPERTY(Replicated)
-	FVector_NetQuantize10 MoveTarget_ = FVector::ZeroVector;
-
-	UPROPERTY(Replicated)
-	bool bHasMoveTarget_ = false;
-
 	TArray<FVector> Path_;
+	
+	bool bRotating_ = false;	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;

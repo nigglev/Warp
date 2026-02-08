@@ -76,7 +76,7 @@ void AWarpGameState::HandleUnitCreation()
 	const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
 	RETURN_ON_FAIL(AWarpGameStateLog, Descr);
 	
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < 1; i++)
 	{
 		HexMath::FAxialCoord AC(0, i * 3);
 		ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitType, AC);
