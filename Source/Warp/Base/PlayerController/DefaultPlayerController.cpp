@@ -7,7 +7,6 @@
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "WarpCheatManager.h"
-#include "Components/InstancedStaticMeshComponent.h"
 #include "Warp/Actors/PlacePointer.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/Actors/UnitActors/UnitActorFactory.h"

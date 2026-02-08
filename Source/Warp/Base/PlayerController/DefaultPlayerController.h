@@ -46,6 +46,8 @@ public:
 	void SetControllerUnit(ABaseUnitActor* InUnitActor) {ControlledUnit_ = InUnitActor;};
 
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
+	
+	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -98,9 +100,6 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerOrderMove(const FRepAxialCoord& InTarget);
-	
-	
-	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
 	
 	template<ECellType InCellType>
 	void OnCellAction(const FInputActionValue& Value);
