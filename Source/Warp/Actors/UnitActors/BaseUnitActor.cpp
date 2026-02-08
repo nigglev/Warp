@@ -3,6 +3,7 @@
 
 #include "BaseUnitActor.h"
 
+#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "Misc/MapErrors.h"
@@ -31,6 +32,7 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	DOREPLIFETIME(ABaseUnitActor, UnitActorSize_);
 	DOREPLIFETIME(ABaseUnitActor, MoveTarget_);
 	DOREPLIFETIME(ABaseUnitActor, bHasMoveTarget_);
+	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -42,41 +44,61 @@ void ABaseUnitActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!HasAuthority() || !bHasMoveTarget_)
+	if (!HasAuthority() || Path_.IsEmpty())
 	{
 		return;
 	}
 
 	FVector Current = GetActorLocation();
-	FVector ToTarget = FVector(MoveTarget_.X - Current.X, MoveTarget_.Y - Current.Y, 0.f);
-
-	const float DistSq = ToTarget.SizeSquared();
-	if (DistSq <= FMath::Square(AcceptanceRadius_))
+	
+	FVector Target = Path_[0];
+	
+	FVector Dir = Target - Current;
+	float CurrentDist;
+	Dir.ToDirectionAndLength(Dir, CurrentDist);
+	
+	float ShiftLen = MoveSpeed_ * DeltaSeconds;
+	if (CurrentDist <= ShiftLen)
 	{
-		bHasMoveTarget_ = false;
-		ForceNetUpdate();
-		return;
+		ShiftLen = CurrentDist;
+		Path_.RemoveAt(0);
 	}
 
-	const FVector Dir = ToTarget.GetSafeNormal();
-	FVector NewLoc = Current + Dir * MoveSpeed_ * DeltaSeconds;
-	NewLoc.Z = Current.Z;
+	FVector NewLoc = Current + Dir * ShiftLen;
 
 	SetActorLocation(NewLoc, true);
 }
 
 
-void ABaseUnitActor::SetMoveTarget(const FVector& InTarget)
+void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
-
-	MoveTarget_ = FVector(InTarget.X, InTarget.Y, GetActorLocation().Z);
-	bHasMoveTarget_ = true;
-
-	ForceNetUpdate();
+	
+	MG_COND_ERROR_SHORT(ABaseUnitActorLog, !Path_.IsEmpty());
+	Path_.Reset();
+	
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	
+	TArray<HexMath::FAxialCoord> Path;
+	GridWorldSubsystem->SelectedFindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
+	
+	FVector Current = GetActorLocation();
+	for (HexMath::FAxialCoord AC : Path)
+	{
+		TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
+		if (TargetPosOpt.IsSet())
+		{
+			Path_.Add(TargetPosOpt.GetValue());
+		}
+	}
+	
+	if (!Path_.IsEmpty())
+	{
+		AxialCoord_ = InTarget;
+	}
 }
 
 

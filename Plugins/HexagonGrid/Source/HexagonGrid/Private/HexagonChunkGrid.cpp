@@ -28,6 +28,7 @@ TOptional<UHexagonChunkGrid::FHexGridActorCDODataCache> UHexagonChunkGrid::GetHe
 	Cache.BuildChunkAround = Settings->BuildChunkAround;
 	Cache.HexGridActorClass_ = Settings->HexGridActorClass_;
 	Cache.SelectRadius = Settings->SelectRadius;
+	Cache.PathfinderLog = Settings->PathfinderLog;
 	
 	return Cache;
 }
@@ -141,14 +142,7 @@ void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
 	
 	if (SelectedCells_.Num() == 2)
 	{
-		for (HexMath::FAxialCoord PFCell : PFCells_)
-			SelectCell(PFCell, CacheOpt->NumColsRows, false);
-			
-		PFCells_.Reset();
 		FindPath(SelectedCells_[0], SelectedCells_.Last(), PFCells_);
-			
-		for (HexMath::FAxialCoord PFCell : PFCells_)
-			SelectCell(PFCell, CacheOpt->NumColsRows, true);
 	}
 }
 
@@ -256,16 +250,30 @@ TOptional<HexMath::FAxialCoord> UHexagonChunkGrid::WorldToAxialCellCoord(const F
 	return CellCoord;
 }
 
-void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
+void UHexagonChunkGrid::SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
 	TArray<HexMath::FAxialCoord>& OutPath)
 {
-	UHexagonGridSettings* Settings = UHexagonGridSettings::Get();
-	if (!ensure(Settings->HexGridActorClass_ != nullptr))
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
 		return;
 	
+	for (HexMath::FAxialCoord PFCell : PFCells_)
+		SelectCell(PFCell, CacheOpt->NumColsRows, false);
+	
+	FindPath(InStart, InEnd, OutPath, CacheOpt->PathfinderLog);
+	
+	PFCells_ = OutPath;
+	
+	for (HexMath::FAxialCoord PFCell : PFCells_)
+		SelectCell(PFCell, CacheOpt->NumColsRows, true);
+}
+
+void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
+	TArray<HexMath::FAxialCoord>& OutPath, bool InLog /*= false*/) const
+{
 	OutPath.Reset();
 	
-	if (Settings->PathfinderLog)
+	if (InLog)
 	{
 		UE_LOG(HexGridLog, Log, TEXT("FindPath. InStart: %s; InEnd: %s"), *InStart.ToString(), *InEnd.ToString());
 	}
@@ -324,17 +332,10 @@ void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexM
         FOpenNode Current;
         Open.HeapPop(Current, MinHeapPred, EAllowShrinking::No);
     	
-    	if (Settings->PathfinderLog)
+    	if (InLog)
     	{
     		UE_LOG(HexGridLog, Log, TEXT("\t %u: OpenNim: %d; Coord: %s; F: %d G: %d"), Step, Open.Num(), *Current.Coord.ToString(), Current.F, Current.G);
     	}
-
-        // Отбрасываем устаревшие записи (из-за отсутствия decrease-key)
-        // const int32* BestG = GScore.Find(Current.Coord);
-        // if (!BestG || Current.G != *BestG)
-        // {
-        //     continue;
-        // }
 
         if (Current.Coord == InEnd)
         {
@@ -391,7 +392,7 @@ void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexM
                 const int32 H = AxialDistance(Neighbour, InEnd);
                 const int32 F = TentativeG + H;
 
-            	if (Settings->PathfinderLog)
+            	if (InLog)
             	{
             		UE_LOG(HexGridLog, Log, TEXT("\t\t Added Neighbour: %s; OldG: %d; TentativeG: %d; F: %d"), 
 					   *Neighbour.ToString(), OldGVal, TentativeG, F);
@@ -399,7 +400,7 @@ void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexM
             	
                 Open.HeapPush(FOpenNode{ Neighbour, F, TentativeG }, MinHeapPred);
             }
-        	else if (Settings->PathfinderLog)
+        	else if (InLog)
         	{
         		UE_LOG(HexGridLog, Log, TEXT("\t\t Missed Neighbour: %s; OldG: %d; TentativeG: %d"), 
 					*Neighbour.ToString(), OldGVal, TentativeG);

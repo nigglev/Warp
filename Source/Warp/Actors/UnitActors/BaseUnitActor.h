@@ -23,12 +23,15 @@ public:
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
 	FName GetUnitType() const {return UnitType_;}
-	void SetUnitType(const FName InUnitType) {UnitType_ = InUnitType;}	
+	void SetUnitType(const FName InUnitType) { UnitType_ = InUnitType; }
+	
+	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
+	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
 	
 	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
-	void SetMoveTarget(const FVector& InTarget);
+	void SetMoveTarget(const FRepAxialCoord& InTarget);
 	bool IsMoving() const { return bHasMoveTarget_; }
 	
 protected:
@@ -58,6 +61,7 @@ protected:
 	UPROPERTY(Replicated)
 	bool bHasMoveTarget_ = false;
 
+	TArray<FVector> Path_;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;

@@ -147,11 +147,11 @@ void ADefaultPlayerController::SetupInputComponent()
 	}
 }
 
-void ADefaultPlayerController::ServerOrderMove_Implementation(const FVector_NetQuantize10 Target)
+void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget)
 {
 	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
 	{
-		TM->ServerRequestMove(Target);
+		TM->RequestMove(InTarget);
 	}
 }
 
@@ -200,33 +200,20 @@ void ADefaultPlayerController::OnSelectAction(const FInputActionValue& Value)
 	FVector P;
 	if (GetMouseRayPlaneZIntersection(0.0f, P))
 	{
-		if (UWorld* World = GetWorld())
-		{
-			MG_LOG(ADefaultPlayerControllerLog,  TEXT("Coordinates: %s"), *P.ToString());
-			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
-			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
-			
-			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-			if (GridWorldSubsystem != nullptr)
-			{
-				GridWorldSubsystem->SelectCell(P);
-			}
-		}
+		TOptional<HexMath::FAxialCoord> TargetAxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
-		TOptional<HexMath::FAxialCoord> AxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
-		if (AxialCoordOpt.IsSet())
 		{
-			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AxialCoordOpt.GetValue());
-		
-			if (AxialCoordOpt.IsSet())
+			TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(TargetAxialCoordOpt.GetValue());
+			if (TargetPosOpt.IsSet())
 			{
-				FVector CenteredP = PosOpt.GetValue();
+				FVector CenteredP = TargetPosOpt.GetValue();
 				DrawDebugSphere(GetWorld(), CenteredP, 12.f, 16, FColor::Red, false, 1.0f);
 				DrawDebugLine(GetWorld(), CenteredP, CenteredP+ FVector(0, 0, 50.f), FColor::Red, false, 1.0f, 0, 1.5f);
-				
-				ServerOrderMove(CenteredP);
 			}
 		}
+		
+		ServerOrderMove(FRepAxialCoord(TargetAxialCoordOpt.GetValue()));		
 	}
 }
 

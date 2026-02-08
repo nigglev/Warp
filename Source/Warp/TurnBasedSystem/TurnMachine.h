@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "TurnMachine.generated.h"
 
 class ADefaultPlayerController;
@@ -27,7 +28,7 @@ public:
 	void OnTurnStateReplicated(); // optional
 
 	// Called on SERVER from PlayerController RPC
-	bool ServerRequestMove(const FVector& Target);
+	bool RequestMove(const FRepAxialCoord& InTarget);
 
 	bool CanAcceptMove() const;
 

@@ -4,6 +4,7 @@
 #include "UnitActorFactory.h"
 
 #include "BaseUnitActor.h"
+#include "HexGridWorldSubsystem.h"
 #include "Warp/ContentManagement/GameAssets.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 
@@ -27,4 +28,23 @@ ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext,
 
 	UnitActor->SetUnitType(InUnitType);
 	return UnitActor;
+}
+
+ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext, FName InUnitType,
+	const HexMath::FAxialCoord& InAxialCoord)
+{
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
+	
+	TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialCoord);
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, PosOpt.IsSet());
+	
+	const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
+	ABaseUnitActor* Unit = CreateUnitActor(InWorldContext, InUnitType, Tr);
+	
+	if (Unit != nullptr)
+	{
+		Unit->SetAxialCoord(InAxialCoord);
+	}
+	
+	return Unit;
 }

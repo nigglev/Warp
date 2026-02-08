@@ -70,6 +70,12 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
+	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 
+		TArray<HexMath::FAxialCoord>& OutPath, bool InLog = false) const;
+	
+	void SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 
+		TArray<HexMath::FAxialCoord>& OutPath);
+	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
@@ -77,9 +83,11 @@ private:
 	struct FHexGridActorCDODataCache
 	{
 		float HexSize = 0;
-		int32 NumColsRows = 0;
+		int32 NumColsRows = 0; //размеры чанка в ячейках
 		int32 BuildChunkAround = 0;
 		int32 SelectRadius = 1;
+		bool PathfinderLog = false;
+		
 		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
 	};
 	static TOptional<FHexGridActorCDODataCache> GetHexGridActorCDODataCache();
@@ -88,13 +96,12 @@ private:
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 	
+	//InNumColsRows - размеры чанка в ячейках (из настроек)
 	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, bool InSelected);
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
 	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
 	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, ECellType InCellType);
 	
-	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath);
-
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
 	UPROPERTY()

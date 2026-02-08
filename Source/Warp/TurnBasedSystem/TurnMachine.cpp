@@ -105,7 +105,7 @@ ABaseUnitActor* UTurnMachine::GetServerActiveUnit() const
     return GameState_->GetActiveUnit();
 }
 
-bool UTurnMachine::ServerRequestMove(const FVector& Target)
+bool UTurnMachine::RequestMove(const FRepAxialCoord& InTarget)
 {
     if (!GameState_.IsValid() || !GameState_->HasAuthority())
         return false;
@@ -117,7 +117,7 @@ bool UTurnMachine::ServerRequestMove(const FVector& Target)
     if (!IsValid(Active))
         return false;
 
-    Active->SetMoveTarget(Target);
+    Active->SetMoveTarget(InTarget);
 
     GameState_->SetTurnPhase(ETurnPhase::WaitingForArrival);
     GameState_->ForceNetUpdate();

@@ -9,6 +9,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultPlayerController.generated.h"
 
 class ADefaultGameMode;
@@ -95,7 +96,7 @@ protected:
 
 
 	UFUNCTION(Server, Reliable)
-	void ServerOrderMove(const FVector_NetQuantize10 Target);
+	void ServerOrderMove(const FRepAxialCoord& InTarget);
 	
 	
 	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;

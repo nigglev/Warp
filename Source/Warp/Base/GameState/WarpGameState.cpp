@@ -79,13 +79,9 @@ void AWarpGameState::HandleUnitCreation()
 	for(int i = 0; i < 3; i++)
 	{
 		HexMath::FAxialCoord AC(0, i * 3);
-		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC);
-		if (PosOpt.IsSet())
-		{
-			const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
-			ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitType, Tr);
+		ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitType, AC);
+		if (Unit != nullptr)
 			CombatUnits_.Add(Unit);
-		}
 	}
 	
 	bUnitsCreated_ = true;

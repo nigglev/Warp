@@ -35,6 +35,18 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 	ChunkGrid_->SetCellType(InPosition, InCellType);
 }
 
+void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
+	TArray<HexMath::FAxialCoord>& OutPath) const
+{
+	ChunkGrid_->FindPath(InStart, InEnd, OutPath);
+}
+
+void UHexGridWorldSubsystem::SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
+	TArray<HexMath::FAxialCoord>& OutPath) const
+{
+	ChunkGrid_->SelectedFindPath(InStart, InEnd, OutPath);
+}
+
 void UHexGridWorldSubsystem::SelectCell(const FVector& InPosition)
 {
 	ChunkGrid_->SelectCell(InPosition);
