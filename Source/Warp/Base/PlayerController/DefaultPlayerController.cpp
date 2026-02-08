@@ -8,7 +8,9 @@
 #include "MGLogTypes.h"
 #include "WarpCheatManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Warp/Actors/PlacePointer.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Actors/UnitActors/UnitActorFactory.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
@@ -140,18 +142,12 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnRotateCameraReleased);
 		EIC->BindAction(StartCameraRotateAction, ETriggerEvent::Canceled,  this, &ADefaultPlayerController::OnRotateCameraReleased);
 
-		EIC->BindAction(Action_SelectCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnSelectAction);
+		EIC->BindAction(Action_SelectCell, ETriggerEvent::Started, this, &ADefaultPlayerController::OnSelectCellStartAction);
+		EIC->BindAction(Action_SelectCell, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnSelectCellStopAction);
+		
 		EIC->BindAction(Action_CaptureCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Captured>);
 		EIC->BindAction(Action_CloseCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Closed>);
 		EIC->BindAction(Action_OpenCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Opened>);
-	}
-}
-
-void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget)
-{
-	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
-	{
-		TM->RequestMove(InTarget);
 	}
 }
 
@@ -195,25 +191,38 @@ void ADefaultPlayerController::OnCameraZoom(const FInputActionValue& Value)
 	}
 }
 
-void ADefaultPlayerController::OnSelectAction(const FInputActionValue& Value)
+void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& Value)
 {
+	MG_LOG(ADefaultPlayerControllerLog,  TEXT("Value: %s"), *Value.ToString());
+	
 	FVector P;
 	if (GetMouseRayPlaneZIntersection(0.0f, P))
 	{
 		TOptional<HexMath::FAxialCoord> TargetAxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
-		{
-			TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(TargetAxialCoordOpt.GetValue());
-			if (TargetPosOpt.IsSet())
-			{
-				FVector CenteredP = TargetPosOpt.GetValue();
-				DrawDebugSphere(GetWorld(), CenteredP, 12.f, 16, FColor::Red, false, 1.0f);
-				DrawDebugLine(GetWorld(), CenteredP, CenteredP+ FVector(0, 0, 50.f), FColor::Red, false, 1.0f, 0, 1.5f);
-			}
-		}
+		PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 		
-		ServerOrderMove(FRepAxialCoord(TargetAxialCoordOpt.GetValue()));		
+		//ServerOrderMove(FRepAxialCoord(TargetAxialCoordOpt.GetValue()));		
+	}
+}
+
+void ADefaultPlayerController::OnSelectCellStopAction(const FInputActionValue& Value)
+{
+	MG_LOG(ADefaultPlayerControllerLog,  TEXT("Value: %s"), *Value.ToString());
+	if (PlacePointer_)
+	{
+		PlacePointer_->Destroy();
+		PlacePointer_ = nullptr;
+	}
+}
+
+void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget)
+{
+	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
+	{
+		TM->RequestMove(InTarget);
 	}
 }
 

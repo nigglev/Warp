@@ -93,7 +93,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_OpenCell;
 
-
+	UPROPERTY(EditDefaultsOnly, Category="PlacePointer")
+	TSubclassOf<class APlacePointer> PlacePointerClass_;
 
 	UFUNCTION(Server, Reliable)
 	void ServerOrderMove(const FRepAxialCoord& InTarget);
@@ -104,13 +105,17 @@ protected:
 	template<ECellType InCellType>
 	void OnCellAction(const FInputActionValue& Value);
 	
-	void OnSelectAction(const FInputActionValue& Value);
+	void OnSelectCellStartAction(const FInputActionValue& Value);
+	void OnSelectCellStopAction(const FInputActionValue& Value);
 
 	UPROPERTY(Replicated)
 	TObjectPtr<ABaseUnitActor> ControlledUnit_ = nullptr;
 	
 	float MouseYawScaleDegPerUnit = 1.0f;
 	bool bRotateCamera = false;
+	
+	UPROPERTY()
+	APlacePointer* PlacePointer_;
 };
 
 

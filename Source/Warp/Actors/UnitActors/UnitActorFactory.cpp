@@ -10,23 +10,22 @@
 
 DEFINE_LOG_CATEGORY_STATIC(UnitFactoryLog, Log, All);
 
-ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext, FName InUnitType, const FTransform& InTransform, AActor* InOwnerActor)
+AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubclassOf<AActor>& InActorClass, const HexMath::FAxialCoord& InAxialCoord)
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
-
-	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameAssets::Get()->GetUnitActorClass(InUnitType);
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActorClass);
-
+	
+	TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialCoord);
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, PosOpt.IsSet());
+	
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	Params.Owner = InOwnerActor;
 
 	UWorld* World = InWorldContext->GetWorld();
 
-	ABaseUnitActor* UnitActor = World->SpawnActor<ABaseUnitActor>(UnitActorClass, InTransform, Params);
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActor);
-
-	UnitActor->SetUnitType(InUnitType);
+	FVector SpawnLocation = PosOpt.GetValue();
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+	AActor* UnitActor = World->SpawnActor(InActorClass, &SpawnLocation, &SpawnRotation, Params);
+	
 	return UnitActor;
 }
 
@@ -35,11 +34,11 @@ ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext,
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
 	
-	TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialCoord);
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, PosOpt.IsSet());
+	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameAssets::Get()->GetUnitActorClass(InUnitType);
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActorClass);
 	
-	const FTransform Tr(FRotator::ZeroRotator, PosOpt.GetValue(), FVector::One());
-	ABaseUnitActor* Unit = CreateUnitActor(InWorldContext, InUnitType, Tr);
+	ABaseUnitActor* Unit = Cast<ABaseUnitActor>(CreateActor(InWorldContext, UnitActorClass, InAxialCoord));
+	RETURN_ON_FAIL_NULL(UnitFactoryLog, Unit);
 	
 	if (Unit != nullptr)
 	{

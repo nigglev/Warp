@@ -8,6 +8,6 @@ class ABaseUnitActor;
 
 namespace UnitActorFactory
 {
-	ABaseUnitActor* CreateUnitActor(const UObject* InWorldContext, FName InUnitType, const FTransform& InTransform, AActor* InOwnerActor = nullptr);
+	AActor* CreateActor(const UObject* InWorldContext, const TSubclassOf<AActor>& InActorClass, const HexMath::FAxialCoord& InAxialCoord);
 	ABaseUnitActor* CreateUnitActor(const UObject* InWorldContext, FName InUnitType, const HexMath::FAxialCoord& InAxialCoord);
 };
