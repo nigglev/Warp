@@ -70,7 +70,7 @@ void ABaseUnitActor::Tick(float DeltaSeconds)
 }
 
 
-void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget)
+void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
 	if (!HasAuthority())
 	{

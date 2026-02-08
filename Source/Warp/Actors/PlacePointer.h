@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Warp/Utils/AxialAngle.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "PlacePointer.generated.h"
 
 UCLASS()
@@ -18,6 +19,11 @@ public:
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+	FRepAxialCoord GetAxialCoord() const { return AxialCoord_; }
+	void SetAxialCoord(const FRepAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
+	
+	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -39,4 +45,5 @@ protected:
 	TObjectPtr<UStaticMeshComponent> ArrowMesh_;
 	
 	FAxialAngle AxialAngle_;
+	FRepAxialCoord AxialCoord_;
 };

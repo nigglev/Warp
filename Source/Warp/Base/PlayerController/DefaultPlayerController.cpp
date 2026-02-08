@@ -203,7 +203,7 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 		
-		//ServerOrderMove(FRepAxialCoord(TargetAxialCoordOpt.GetValue()));		
+		PlacePointer_->SetAxialCoord(TargetAxialCoordOpt.GetValue());
 	}
 }
 
@@ -212,16 +212,18 @@ void ADefaultPlayerController::OnSelectCellStopAction(const FInputActionValue& V
 	MG_LOG(ADefaultPlayerControllerLog,  TEXT("Value: %s"), *Value.ToString());
 	if (PlacePointer_)
 	{
+		ServerOrderMove(PlacePointer_->GetAxialCoord(), PlacePointer_->GetAxialAngle());
+		
 		PlacePointer_->Destroy();
 		PlacePointer_ = nullptr;
 	}
 }
 
-void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget)
+void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
 	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
 	{
-		TM->RequestMove(InTarget);
+		TM->RequestMove(InTarget, InAxialAngle);
 	}
 }
 

@@ -8,6 +8,8 @@
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
+struct FAxialAngle;
+
 UCLASS()
 class WARP_API ABaseUnitActor : public AActor
 {
@@ -31,7 +33,7 @@ public:
 	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
-	void SetMoveTarget(const FRepAxialCoord& InTarget);
+	void SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 	bool IsMoving() const { return bHasMoveTarget_; }
 	
 protected:

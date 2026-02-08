@@ -9,6 +9,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultPlayerController.generated.h"
 
@@ -99,7 +100,7 @@ protected:
 	TSubclassOf<class APlacePointer> PlacePointerClass_;
 
 	UFUNCTION(Server, Reliable)
-	void ServerOrderMove(const FRepAxialCoord& InTarget);
+	void ServerOrderMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 	
 	template<ECellType InCellType>
 	void OnCellAction(const FInputActionValue& Value);

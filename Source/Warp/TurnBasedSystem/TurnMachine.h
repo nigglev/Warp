@@ -7,6 +7,7 @@
 #include "Warp/Utils/RepAxialCoord.h"
 #include "TurnMachine.generated.h"
 
+struct FAxialAngle;
 class ADefaultPlayerController;
 class ABaseUnitActor;
 class AWarpGameState;
@@ -28,7 +29,7 @@ public:
 	void OnTurnStateReplicated(); // optional
 
 	// Called on SERVER from PlayerController RPC
-	bool RequestMove(const FRepAxialCoord& InTarget);
+	bool RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 
 	bool CanAcceptMove() const;
 
