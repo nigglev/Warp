@@ -18,7 +18,10 @@ struct FGameplayDescription : public FBaseDescription
 
 	static inline const FName DescrName = TEXT("GameplayDescriptions");
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) FName DefaultPlayerUnitType = TEXT("Corvette");
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FName> DefaultPlayerUnitTypes = 
+	{
+		TEXT("corvette"), TEXT("corvette_black"), TEXT("corvette_blue"), TEXT("corvette_green")
+	};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapLayerCount = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMin = 3;

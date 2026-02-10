@@ -76,10 +76,11 @@ void AWarpGameState::HandleUnitCreation()
 	const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
 	RETURN_ON_FAIL(AWarpGameStateLog, Descr);
 	
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < 3; i++)
 	{
 		HexMath::FAxialCoord AC(0, i * 3);
-		ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitType, AC);
+		int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
+		ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], AC);
 		if (Unit != nullptr)
 			CombatUnits_.Add(Unit);
 	}

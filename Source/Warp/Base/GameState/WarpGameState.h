@@ -75,10 +75,13 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTurnMachine> TurnMachine_;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_CombatUnits)
 	TArray<ABaseUnitActor*> CombatUnits_;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
 	int32 ActiveUnitIndex_ = INDEX_NONE;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
 	ETurnPhase TurnPhase_ = ETurnPhase::WaitingForInput;
 	

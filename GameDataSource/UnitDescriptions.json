@@ -4,7 +4,25 @@
 			"unitSize": "Small",
 			"unitSpeed": 1,
 			"unitMaxAP": 4,
-			"name": "Corvette"
+			"name": "corvette"
+		},
+		{
+			"unitSize": "Small",
+			"unitSpeed": 1,
+			"unitMaxAP": 4,
+			"name": "corvette_black"
+		},
+		{
+			"unitSize": "Small",
+			"unitSpeed": 1,
+			"unitMaxAP": 4,
+			"name": "corvette_blue"
+		},
+		{
+			"unitSize": "Small",
+			"unitSpeed": 1,
+			"unitMaxAP": 4,
+			"name": "corvette_green"
 		}
 	],
 	"version": 4
