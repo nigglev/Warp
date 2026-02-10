@@ -14,12 +14,14 @@ void AWarpPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 
 void AWarpPlayerState::SetClientLoaded()
 {
+	MG_LOG(WarpPlayerStateLog, TEXT("%s"), *GetName());
 	bClientLoaded = true;
 	MsgToServerClientLoaded();
 }
 
 void AWarpPlayerState::SetClientUnitsLoaded()
 {
+	MG_LOG(WarpPlayerStateLog, TEXT("%s"), *GetName());
 	bIsClientUnitsLoaded = true;
 	MsgToServerClientUnitsLoaded();
 }

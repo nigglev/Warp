@@ -94,13 +94,17 @@ void ADefaultPlayerController::CheckClientLoading()
 	MG_FUNC_LABEL(ADefaultPlayerControllerLog);
 	
 	if (!IsClientLoaded())
+	{
+		MG_LOG(ADefaultPlayerControllerLog, TEXT("Client isn't Loaded"));
 		return;
+	}
+	
+	MG_LOG(ADefaultPlayerControllerLog, TEXT("Client is Loaded"));
 
 	AWarpPlayerState* PS = GetPlayerState<AWarpPlayerState>();
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, PS);
 	PS->SetClientLoaded();
 
-	MG_COND_LOG(ADefaultPlayerControllerLog, MGLogTypes::IsLogAccessed(EMGLogTypes::PlayerController), TEXT("Valid State"));
 	OnDefaultPlayerControllerValid.Broadcast(this);
 }
 

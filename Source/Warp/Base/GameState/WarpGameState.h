@@ -14,17 +14,8 @@ struct FUnitRecordDTO;
 struct FUnitRecord;
 class AWarpGameState;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnWarpGameStateValid, AWarpGameState*);
 DECLARE_MULTICAST_DELEGATE(FOnCombatStarted);
-/**
- * 
- */
-UENUM(BlueprintType)
-enum class ETurnPhase : uint8
-{
-	WaitingForInput,
-	WaitingForArrival
-};
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
 
 UCLASS()
 class WARP_API AWarpGameState : public AGameState
@@ -35,28 +26,20 @@ public:
 	AWarpGameState();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
 	virtual void PostInitializeComponents() override;
+	
 	virtual void BeginPlay() override;
 
 	void SetUnitsLoaded();
 	
 	bool IsUnitsCreated() const { return bUnitsCreated_; }
 
-	UTurnMachine* GetTurnMachine() const { return TurnMachine_; }
-	TArray<ABaseUnitActor*> GetCombatUnits() const { return CombatUnits_; }
-	
-	int32 GetActiveUnitIndex() const { return ActiveUnitIndex_; }
-	void SetActiveUnitIndex(int32 InActiveUnitIndex) {ActiveUnitIndex_ = InActiveUnitIndex;}
-	
-	ETurnPhase GetTurnPhase() const { return TurnPhase_; }
-	void SetTurnPhase(ETurnPhase InTurnPhase) {TurnPhase_ = InTurnPhase;}
-	
-	ABaseUnitActor* GetActiveUnit() const
-	{
-		return CombatUnits_.IsValidIndex(ActiveUnitIndex_) ? CombatUnits_[ActiveUnitIndex_] : nullptr;
-	}
+	const UTurnMachine* GetTurnMachine() const { return TurnMachine_; }
+	UTurnMachine* GetTurnMachine() { return TurnMachine_; }
 
-	FOnWarpGameStateValid OnWarpGameStateValid;
+	FOnUnitArrived OnUnitArrived;
 	
 protected:
 	virtual void OnRep_MatchState() override;
@@ -64,27 +47,12 @@ protected:
 	virtual void HandleMatchIsWaitingToStart() override;
 
 
-	UFUNCTION()
-	void OnRep_CombatUnits();
-	UFUNCTION()
-	void OnRep_TurnState();
-
 	bool bClientValidState_ = false;
 	
 	bool bUnitsCreated_ = false;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UTurnMachine> TurnMachine_;
-	
-	UPROPERTY(ReplicatedUsing=OnRep_CombatUnits)
-	TArray<ABaseUnitActor*> CombatUnits_;
-	
-	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
-	int32 ActiveUnitIndex_ = INDEX_NONE;
-	
-	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
-	ETurnPhase TurnPhase_ = ETurnPhase::WaitingForInput;
-	
+	UPROPERTY(Replicated)
+	TObjectPtr<UTurnMachine> TurnMachine_;	
 };
 
 

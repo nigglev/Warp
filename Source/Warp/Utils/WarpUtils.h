@@ -50,6 +50,11 @@ static FLaunchContext BuildLaunchContext(const UWorld* World)
 	return Context;
 }
 
+static FLaunchContext BuildLaunchContext(const UObject* InWorldContext)
+{
+	return BuildLaunchContext(InWorldContext->GetWorld());
+}
+
 static bool IsAuthorityLike(const FLaunchContext& Ctx)
 {
 	switch (Ctx.NetMode)
@@ -59,6 +64,36 @@ static bool IsAuthorityLike(const FLaunchContext& Ctx)
 	case ELaunchNetMode::Standalone:
 		return true;
 
+	case ELaunchNetMode::Client:
+	default:
+		return false;
+	}
+}
+
+static bool IsServerLike(const FLaunchContext& Ctx)
+{
+	switch (Ctx.NetMode)
+	{
+	case ELaunchNetMode::DedicatedServer:
+	case ELaunchNetMode::ListenServer:
+		return true;
+
+	case ELaunchNetMode::Standalone:
+	case ELaunchNetMode::Client:
+	default:
+		return false;
+	}
+}
+
+static bool IsServerClientMix(const FLaunchContext& Ctx)
+{
+	switch (Ctx.NetMode)
+	{
+	case ELaunchNetMode::Standalone:
+	case ELaunchNetMode::ListenServer:
+		return true;
+
+	case ELaunchNetMode::DedicatedServer:
 	case ELaunchNetMode::Client:
 	default:
 		return false;

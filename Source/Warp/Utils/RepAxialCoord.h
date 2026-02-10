@@ -24,6 +24,5 @@ struct FRepAxialCoord
 
 	auto operator<=>(const FRepAxialCoord& AxialCoord) const = default;
 
-	// неявно wrapper -> native
-	//operator HexMath::FAxialCoord() const { return HexMath::FAxialCoord{ Q, R }; }
+	FString ToString() const { return FString::Printf(TEXT("(%d, %d)"), Q, R); }
 };

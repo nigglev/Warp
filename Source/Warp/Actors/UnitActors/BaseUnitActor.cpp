@@ -8,6 +8,7 @@
 #include "MGLogTypes.h"
 #include "Misc/MapErrors.h"
 #include "Net/UnrealNetwork.h"
+#include "Warp/Base/GameState/WarpGameState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
@@ -79,6 +80,13 @@ void ABaseUnitActor::Tick(float InDelta)
 	{
 		float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
 		bOnMove_ = UpdateRotation(InDelta, TargetYaw);
+		
+		if (!bOnMove_)
+		{
+			auto GS = Cast<AWarpGameState>(GetWorld()->GetGameState());
+			RETURN_ON_FAIL(ABaseUnitActorLog, GS);
+			GS->OnUnitArrived.Broadcast(this);
+		}		
 	}
 }
 
@@ -105,6 +113,8 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 
 void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
+	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
+	
 	if (!HasAuthority())
 	{
 		return;

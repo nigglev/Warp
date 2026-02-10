@@ -17,4 +17,6 @@ struct FAxialAngle
 	}
 	
 	float GetYaw() const { return R * 60.f; }
+	
+	FString ToString() const { return FString::Printf(TEXT("%d"), R); }
 };
