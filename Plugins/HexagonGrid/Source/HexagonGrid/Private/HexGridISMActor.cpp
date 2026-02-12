@@ -157,7 +157,7 @@ void AHexGridISMActor::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bo
 	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
 		return;
 	
-	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
+	UE_LOG(HexGridActorLog, Verbose, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
@@ -187,7 +187,7 @@ void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, E
 	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
 		return;
 	
-	UE_LOG(HexGridActorLog, Warning, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
+	UE_LOG(HexGridActorLog, Verbose, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;

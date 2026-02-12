@@ -6,6 +6,7 @@
 #include "GameFramework/HUD.h"
 #include "DefaultWarpHUD.generated.h"
 
+class ABaseUnitActor;
 class UEndTurnWidget;
 class AWarpGameState;
 class UTurnBasedSystemManager;
@@ -25,7 +26,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 protected:
-	APlayerController* Init() const;
-	
 	AWarpGameState* GetGameState() const;
+	
+	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 };

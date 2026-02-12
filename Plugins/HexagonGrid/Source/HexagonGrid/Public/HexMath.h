@@ -278,23 +278,6 @@ namespace HexMath
 		// 	return CubeRoundAxial(Ax.X / static_cast<float>(Stride), Ax.Y / static_cast<float>(Stride));
 		// }
 	
-		// inline void BuildHexagonGrid(int32 InHexRadius, float InCircularRadius, 
-		// 	const TFunctionRef<void(int32, int32, const FVector&)>& InHandler, 
-		// 	float InZOffset = 0, bool InPointyTop = false)
-		// {
-		// 	for (int32 q = -InHexRadius; q <= InHexRadius; ++q)
-		// 	{
-		// 		const int32 r1 = FMath::Max(-InHexRadius, -q - InHexRadius);
-		// 		const int32 r2 = FMath::Min( InHexRadius, -q + InHexRadius);
-		//
-		// 		for (int32 r = r1; r <= r2; ++r)
-		// 		{
-		// 			const FVector Loc = AxialToWorld(q, r, InCircularRadius, InZOffset, InPointyTop);
-		// 			//UE_LOG(LogTemp, Warning, TEXT("%2d : %2d\t%5.2f : %2.2f"), q, r, Loc.X, Loc.Y);
-		// 			InHandler(q, r, Loc);
-		// 		}
-		// 	}
-		// }
 	}
 
 	namespace HexMathOffset

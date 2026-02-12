@@ -28,6 +28,9 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell);
+	void RemoveInfluence(uint32 InId);
+	
 	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath) const;
 	void SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath) const;
 

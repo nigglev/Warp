@@ -70,6 +70,9 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell);
+	void RemoveInfluence(uint32 InId);
+	
 	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 
 		TArray<HexMath::FAxialCoord>& OutPath, bool InLog = false) const;
 	
@@ -95,12 +98,14 @@ private:
 	void CreateNewChunks(const FVector& InNewPosition);
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
+
+	static uint32 GetColRowCountInChunk();
 	
 	//InNumColsRows - размеры чанка в ячейках (из настроек)
-	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, bool InSelected);
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, bool InSelected);
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, uint32 InNumColsRows, ECellType InCellType);
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, uint32 InNumColsRows, ECellType InCellType);
+	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, bool InSelected);
+	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType);
 	
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
@@ -113,4 +118,6 @@ private:
 	TArray<HexMath::FAxialCoord> PFCells_;
 	
 	TSet<HexMath::FAxialCoord> Obstacles_;
+	
+	TMap<uint32, TArray<HexMath::FAxialCoord>> InfluencedCells_;
 };

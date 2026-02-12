@@ -143,7 +143,7 @@ void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 	
 	TArray<HexMath::FAxialCoord> Path;
-	GridWorldSubsystem->SelectedFindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
+	GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
 	
 	if (!Path.IsEmpty())
 	{

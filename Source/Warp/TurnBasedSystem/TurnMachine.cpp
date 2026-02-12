@@ -77,12 +77,6 @@ void UTurnMachine::OnRep_CombatUnits()
     CheckLoaded();
 }
 
-void UTurnMachine::OnRep_TurnState()
-{
-    MG_LOG(ATurnMachineLog, TEXT("TurnState: %s"), *TurnState_.ToString());
-    CheckLoaded();
-}
-
 void UTurnMachine::CheckLoaded() const
 {
     RETURN_ON_FAIL(ATurnMachineLog, GetOwner());
@@ -109,6 +103,19 @@ void UTurnMachine::SetNewActiveUnit(int32 InIndex)
     if (IsServerClientMix(Context))
     {
         OnRep_TurnState();
+    }
+}
+
+void UTurnMachine::OnRep_TurnState()
+{
+    MG_LOG(ATurnMachineLog, TEXT("TurnState: %s"), *TurnState_.ToString());
+    CheckLoaded();
+    
+    if (TurnState_.Phase == ETurnPhase::WaitingForInput)
+    {
+        ABaseUnitActor* NewActiveUnit = GetActiveUnit();
+        GetOwner()->OnUnitSelected.Broadcast(NewActiveUnit, PrevActiveUnit_);
+        PrevActiveUnit_ = NewActiveUnit;
     }
 }
 

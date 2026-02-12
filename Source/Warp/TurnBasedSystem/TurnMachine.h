@@ -59,8 +59,6 @@ protected:
 	
 	AWarpGameState* GetOwner() const;
 	
-	void ServerAdvanceTurn();
-	
 	UFUNCTION()
 	void OnRep_CombatUnits();
 	UFUNCTION()
@@ -79,4 +77,7 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
 	FTurnState TurnState_;
+	
+	UPROPERTY(Transient)
+	ABaseUnitActor* PrevActiveUnit_;
 };

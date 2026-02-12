@@ -16,6 +16,7 @@ class AWarpGameState;
 
 DECLARE_MULTICAST_DELEGATE(FOnCombatStarted);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitSelected, ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 
 UCLASS()
 class WARP_API AWarpGameState : public AGameState
@@ -40,6 +41,7 @@ public:
 	UTurnMachine* GetTurnMachine() { return TurnMachine_; }
 
 	FOnUnitArrived OnUnitArrived;
+	FOnUnitSelected OnUnitSelected;
 	
 protected:
 	virtual void OnRep_MatchState() override;
