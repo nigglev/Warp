@@ -40,7 +40,8 @@ protected:
 protected:
 	void BuildHexagon(uint32 Radius);
 	
-	void SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const;
+	void SetHexColor(int32 InIndex, const FLinearColor& InColor) const;
+	void SetHexZOffset(int32 InIndex, float InZOffset) const;
 	
 	UFUNCTION(CallInEditor, Category="Grid")
 	void UpdateMPC();

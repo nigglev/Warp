@@ -96,7 +96,8 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 		const int32 Idx = BaseIndex + i;
 		FLinearColor Clr = GetColor(Idx);
 		float ZOffset = GetZOffset(Idx);
-		SetColor(Idx, Clr, ZOffset);
+		SetHexColor(Idx, Clr);
+		SetHexZOffset(Idx, ZOffset);
 	}
 	
 	UpdateMPC();
@@ -110,7 +111,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	}
 }
 
-void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const
+void AHexGridISMActor::SetHexColor(int32 InIndex, const FLinearColor& InColor) const
 {
 	if (ISM_ == nullptr)
 		return;
@@ -123,6 +124,17 @@ void AHexGridISMActor::SetColor(int32 InIndex, const FLinearColor InColor, float
 	ISM_->SetCustomDataValue(InIndex, 1, InColor.G, false);
 	ISM_->SetCustomDataValue(InIndex, 2, InColor.B, false);
 	ISM_->SetCustomDataValue(InIndex, 3, InColor.A, false);
+}
+
+void AHexGridISMActor::SetHexZOffset(int32 InIndex, float InZOffset) const
+{
+	if (ISM_ == nullptr)
+		return;
+	if (!ensure(InIndex >= 0))
+		return;
+	if (!ensure(InIndex < ISM_->GetNumInstances()))
+		return;
+	
 	ISM_->SetCustomDataValue(InIndex, 4, InZOffset, false);
 }
 
@@ -171,7 +183,8 @@ void AHexGridISMActor::SetSelectStatus(int32 InIndex, bool InSelected)
 	FLinearColor Clr = GetColor(InIndex);
 	float ZOffset = GetZOffset(InIndex);
 		
-	SetColor(InIndex, Clr, ZOffset);
+	SetHexColor(InIndex, Clr);
+	SetHexZOffset(InIndex, ZOffset);
 }
 
 void AHexGridISMActor::ChangeSelectStatus(int32 InIndex, bool InSelected)
@@ -201,7 +214,8 @@ void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType)
 	FLinearColor Clr = GetColor(InIndex);
 	float ZOffset = GetZOffset(InIndex);
 		
-	SetColor(InIndex, Clr, ZOffset);
+	SetHexColor(InIndex, Clr);
+	SetHexZOffset(InIndex, ZOffset);
 }
 
 void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType)
