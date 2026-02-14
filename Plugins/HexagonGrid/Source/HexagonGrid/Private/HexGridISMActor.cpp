@@ -10,7 +10,7 @@ using namespace HexMathOffset;
 
 AHexGridISMActor::AHexGridISMActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	auto* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
@@ -224,4 +224,24 @@ float AHexGridISMActor::GetZOffset(int32 InIndex) const
 	return Status ? Status->bSelected ? SelectedZOffset_ 
 		: ZOffsets_[static_cast<int32>(Status->BaseStatus)] 
 			: ZOffsets_[static_cast<int32>(ECellType::Opened)];
+}
+
+void AHexGridISMActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	
+	if (!ensure(MPC_))
+		return;
+
+	UWorld* World = GetWorld();
+	if (!ensure(World))
+		return;
+
+	UMaterialParameterCollectionInstance* Inst = World->GetParameterCollectionInstance(MPC_);
+	if (!ensure(Inst))
+		return;
+	
+	FVector CameraPos = World->GetFirstPlayerController()->PlayerCameraManager->GetCameraLocation();
+	
+	Inst->SetVectorParameterValue(TEXT("ObserverWorldPos"), CameraPos);
 }

@@ -32,9 +32,12 @@ public:
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
 	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
 
+	virtual void Tick(float DeltaSeconds) override;
+	
 protected:
 	virtual void BeginPlay() override;
-	
+
+protected:
 	void BuildHexagon(uint32 Radius);
 	
 	void SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const;
