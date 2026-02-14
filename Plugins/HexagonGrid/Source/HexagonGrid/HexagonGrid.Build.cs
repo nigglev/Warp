@@ -39,7 +39,8 @@ public class HexagonGrid : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"AIModule",
+				"AIModule", 
+				"ProceduralMeshComponent",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
