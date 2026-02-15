@@ -45,7 +45,7 @@ void UTurnMachine::CreateUnits()
     const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 1; i++)
     {
         HexMath::FAxialCoord AC(0, i * 3);
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
@@ -166,26 +166,23 @@ bool UTurnMachine::CanAcceptMove() const
     return TurnState_.Phase == ETurnPhase::WaitingForInput;
 }
 
-bool UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+void UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
     MG_LOG(ATurnMachineLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
     
     if (!CanAcceptMove())
-        return false;
+        return;
     
     FLaunchContext Context = BuildLaunchContext(this);
     if (!IsAuthorityLike(Context))
-        return false;
+        return;
 
     ABaseUnitActor* Active = GetActiveUnit();
     if (!IsValid(Active))
-        return false;
+        return;
 
-    Active->SetMoveTarget(InTarget, InAxialAngle);
-    
-    SetWaitingForArrival();
-    
-    return true;
+    if (Active->SetMoveTarget(InTarget, InAxialAngle))
+        SetWaitingForArrival();
 }
 
 void UTurnMachine::OnUnitArrived(ABaseUnitActor* InUnit)

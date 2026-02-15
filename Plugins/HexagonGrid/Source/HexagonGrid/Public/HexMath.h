@@ -213,6 +213,14 @@ namespace HexMath
 			{-1, +1},
 			{ 0, +1},
 		};
+		static constexpr int8 AxialNeighboursRotation[AxialNeighbourCount] = {
+			1,
+			2,
+			3,
+			-2,
+			-1,
+			0,
+		};
 		
 		inline void IterateAxialNeighbours(const FAxialCoord& InAxialCenter, int32 InHexRadius, 
 			const TFunctionRef<void(const FAxialCoord&)>& InHandler)

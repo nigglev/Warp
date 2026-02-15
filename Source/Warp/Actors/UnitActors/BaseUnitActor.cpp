@@ -111,13 +111,13 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 }
 
 
-void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
 	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
 	
 	if (!HasAuthority())
 	{
-		return;
+		return false;
 	}
 	
 	float CurrentYaw = CurrentYaw = FMath::UnwindDegrees(GetActorRotation().Yaw);
@@ -133,40 +133,41 @@ void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 		{
 			MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f"), CurrentYaw, AxialAngle_.GetYaw());
 		}
-		
-		return;
 	}
-	
-	MG_COND_ERROR_SHORT(ABaseUnitActorLog, !Path_.IsEmpty());
-	Path_.Reset();
-	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	
-	TArray<HexMath::FAxialCoord> Path;
-	GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
-	
-	if (!Path.IsEmpty())
+	else
 	{
-		RETURN_ON_FAIL(ABaseUnitActorLog, Path.Num() > 1);
-		Path.RemoveAt(0);
-		
-		FVector Current = GetActorLocation();
-		for (HexMath::FAxialCoord AC : Path)
+		MG_COND_ERROR_SHORT(ABaseUnitActorLog, !Path_.IsEmpty());
+		Path_.Reset();
+	
+		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	
+		TArray<HexMath::FAxialCoord> Path;
+		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
+	
+		if (!Path.IsEmpty())
 		{
-			TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
-			if (TargetPosOpt.IsSet())
+			RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Path.Num() > 1);
+			Path.RemoveAt(0);
+		
+			FVector Current = GetActorLocation();
+			for (HexMath::FAxialCoord AC : Path)
 			{
-				Path_.Add(TargetPosOpt.GetValue());
+				TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
+				if (TargetPosOpt.IsSet())
+				{
+					Path_.Add(TargetPosOpt.GetValue());
+				}
 			}
+	
+			AxialCoord_ = InTarget;
+			AxialAngle_ = InAxialAngle;
+	
+			MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; CurrentYaw: %f; InTargetYaw: %f"), *InTarget.ToNative().ToString(), CurrentYaw, AxialAngle_.GetYaw());
+	
+			bOnMove_ = true;
 		}
-	
-		AxialCoord_ = InTarget;
-		AxialAngle_ = InAxialAngle;
-	
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; CurrentYaw: %f; InTargetYaw: %f"), *InTarget.ToNative().ToString(), CurrentYaw, AxialAngle_.GetYaw());
-	
-		bOnMove_ = true;
 	}
+	return bOnMove_;
 }
 
 

@@ -70,7 +70,7 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation);
 	void RemoveInfluence(uint32 InId);
 	
 	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 

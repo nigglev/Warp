@@ -31,10 +31,12 @@ public:
 	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
 	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
 	
+	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	
 	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
 	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
 
-	void SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 	bool IsMoving() const { return !Path_.IsEmpty() || bRotating_; }
 	
 protected:

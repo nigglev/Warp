@@ -4,6 +4,7 @@
 #include "HexMath.h"
 #include "HexagonGridSettings.h"
 #include "HexGridISMActor.h"
+#include "HexPathfainer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridLog, Log, Log);
 
@@ -196,21 +197,25 @@ void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellT
 	});
 }
 
-void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell)
+void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation)
 {
 	RemoveInfluence(InId);
 	
 	TArray<HexMath::FAxialCoord>& Cells = InfluencedCells_.FindOrAdd(InId);
 
-	constexpr int32 HexRadius = 3;
+	constexpr uint32 HexRadius = 5;
 	HexMath::FAxialCoord HexCenterCell = InHexCell;
 	
-	HexMath::HexMathAxial::IterateAxialNeighbours(HexCenterCell, HexRadius, [&HexCenterCell, &Cells, this](const HexMath::FAxialCoord& InCell)
+	TSet<HexMath::FWaveElem> Wave;
+	
+	HexMath::FindPathZone(HexCenterCell, InRotation, HexRadius, Wave, true);
+	
+	for (const HexMath::FWaveElem& WaveElem : Wave)
 	{
-		Cells.Add(InCell);
-		float Level = HexMath::AxialDistance(HexCenterCell, InCell) / HexRadius;
-		SetCellType(InCell, ECellType::Captured, Level);
-	});
+		Cells.Add(WaveElem.Coord);
+		float Level = static_cast<float>(WaveElem.Distance) / HexRadius;
+		SetCellType(WaveElem.Coord, ECellType::Captured, Level);
+	}
 }
 
 void UHexagonChunkGrid::RemoveInfluence(uint32 InId)

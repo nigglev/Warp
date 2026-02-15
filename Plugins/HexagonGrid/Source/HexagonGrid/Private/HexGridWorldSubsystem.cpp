@@ -35,9 +35,9 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 	ChunkGrid_->SetCellType(InPosition, InCellType);
 }
 
-void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell)
+void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation)
 {
-	ChunkGrid_->SelectInfluence(InId, InHexCell);
+	ChunkGrid_->SelectInfluence(InId, InHexCell, InRotation);
 }
 
 void UHexGridWorldSubsystem::RemoveInfluence(uint32 InId)

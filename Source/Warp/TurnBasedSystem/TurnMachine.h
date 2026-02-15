@@ -51,7 +51,7 @@ public:
 	ABaseUnitActor* GetActiveUnit();
 	
 	// Called on SERVER from PlayerController RPC
-	bool RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	void RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 
 	bool CanAcceptMove() const;
 

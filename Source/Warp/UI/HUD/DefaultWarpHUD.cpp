@@ -64,7 +64,8 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	
 	uint32 UnitId = InNewActiveUnit->GetUniqueID();
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
+	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
 	
-	GridWorldSubsystem->SelectInfluence(UnitId, AC);
+	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R);
 }
 
