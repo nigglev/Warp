@@ -104,8 +104,8 @@ private:
 	//InNumColsRows - размеры чанка в ячейках (из настроек)
 	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, bool InSelected);
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel = 1);
 	
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	

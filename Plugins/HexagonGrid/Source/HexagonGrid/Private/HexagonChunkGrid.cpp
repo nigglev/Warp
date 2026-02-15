@@ -202,10 +202,14 @@ void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord&
 	
 	TArray<HexMath::FAxialCoord>& Cells = InfluencedCells_.FindOrAdd(InId);
 
-	HexMath::HexMathAxial::IterateAxialNeighbours(InHexCell, 3, [&Cells, this](const HexMath::FAxialCoord& InCell)
+	constexpr int32 HexRadius = 3;
+	HexMath::FAxialCoord HexCenterCell = InHexCell;
+	
+	HexMath::HexMathAxial::IterateAxialNeighbours(HexCenterCell, HexRadius, [&HexCenterCell, &Cells, this](const HexMath::FAxialCoord& InCell)
 	{
 		Cells.Add(InCell);
-		SetCellType(InCell, ECellType::Captured);
+		float Level = HexMath::AxialDistance(HexCenterCell, InCell) / HexRadius;
+		SetCellType(InCell, ECellType::Captured, Level);
 	});
 }
 
@@ -222,13 +226,13 @@ void UHexagonChunkGrid::RemoveInfluence(uint32 InId)
 	}
 }
 
-void UHexagonChunkGrid::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType)
+void UHexagonChunkGrid::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel)
 {
 	HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
-	SetCellType(NCell, InCellType);
+	SetCellType(NCell, InCellType, InLevel);
 }
 
-void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
+void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
 {
 	uint32 ColRowCount = GetColRowCountInChunk();
 	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, ColRowCount, ColRowCount);
@@ -238,7 +242,7 @@ void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, 
 	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
 	if (ChunkIndex != INDEX_NONE)
 	{
-		ChunksList_[ChunkIndex].ChunkActor->SetCellType(InOffsetCoord, InCellType);
+		ChunksList_[ChunkIndex].ChunkActor->SetCellType(InOffsetCoord, InCellType, InLevel);
 	}
 }
 

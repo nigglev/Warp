@@ -111,11 +111,11 @@ namespace HexMath
 		return Hash;
 	}
 	
-	inline HexInt AxialDistance(const FAxialCoord& LHS, const FAxialCoord& RHS)
+	inline HexReal AxialDistance(const FAxialCoord& LHS, const FAxialCoord& RHS)
 	{
 		const HexInt dq = LHS.Q - RHS.Q;
 		const HexInt dr = LHS.R - RHS.R;
-		return (FMath::Abs(dq) + FMath::Abs(dr) + FMath::Abs(dq + dr)) / 2;
+		return (FMath::Abs(dq) + FMath::Abs(dr) + FMath::Abs(dq + dr)) / static_cast<HexReal>(2);
 	}
 
 	namespace HexMathAxial

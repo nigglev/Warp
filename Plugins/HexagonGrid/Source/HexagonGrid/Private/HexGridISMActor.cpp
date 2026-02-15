@@ -193,7 +193,7 @@ void AHexGridISMActor::ChangeSelectStatus(int32 InIndex, bool InSelected)
 	Cache.bSelected = InSelected;
 }
 
-void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType)
+void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
 {
 	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
@@ -204,12 +204,12 @@ void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, E
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
-	SetCellType(Index, InCellType);
+	SetCellType(Index, InCellType, InLevel);
 }
 
-void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType)
+void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType, float InLevel)
 {
-	ChangeCellStatus(InIndex, InCellType);
+	ChangeCellStatus(InIndex, InCellType, InLevel);
 	
 	FLinearColor Clr = GetColor(InIndex);
 	float ZOffset = GetZOffset(InIndex);
@@ -218,17 +218,21 @@ void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType)
 	SetHexZOffset(InIndex, ZOffset);
 }
 
-void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType)
+void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel)
 {
 	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
 	Cache.BaseStatus = InCellType;
+	Cache.Level = InLevel;
 }
 
 FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
 {
 	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
 	return Status ? Status->bSelected ? SelectedColor_ 
-		: Colors_[static_cast<int32>(Status->BaseStatus)] 
+		: FLinearColor::LerpUsingHSV(
+			Colors_[static_cast<int32>(ECellType::Opened)],
+			Colors_[static_cast<int32>(Status->BaseStatus)], 
+				Status->Level) 
 			: Colors_[static_cast<int32>(ECellType::Opened)];
 }
 
