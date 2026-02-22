@@ -151,7 +151,17 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(Action_CaptureCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Captured>);
 		EIC->BindAction(Action_CloseCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Closed>);
 		EIC->BindAction(Action_OpenCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Opened>);
+		
+		EIC->BindAction(Action_ShowDebugHUD, ETriggerEvent::Triggered, this, &ADefaultPlayerController::ShowDebugHUD);
 	}
+}
+
+void ADefaultPlayerController::ShowDebugHUD(const FInputActionValue& Value)
+{
+	ADefaultWarpHUD* HUD = GetWarpHUD();
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, HUD != nullptr);
+	
+	HUD->ShowDebugHUD();
 }
 
 void ADefaultPlayerController::OnCameraMove(const FInputActionValue& Value)

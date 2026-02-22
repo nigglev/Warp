@@ -220,20 +220,32 @@ void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType, float In
 
 void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel)
 {
-	FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
-	Cache.BaseStatus = InCellType;
-	Cache.Level = InLevel;
+	if (InCellType == ECellType::Opened)
+		SelectStatus_.Remove(InIndex);
+	else
+	{
+		FSelectStatus& Cache = SelectStatus_.FindOrAdd(InIndex);
+		Cache.BaseStatus = InCellType;
+		Cache.Level = InLevel;
+	}
 }
 
 FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
 {
 	const FSelectStatus* Status = SelectStatus_.Find(InIndex);
-	return Status ? Status->bSelected ? SelectedColor_ 
-		: FLinearColor::LerpUsingHSV(
-			Colors_[static_cast<int32>(ECellType::Opened)],
-			Colors_[static_cast<int32>(Status->BaseStatus)], 
-				Status->Level) 
-			: Colors_[static_cast<int32>(ECellType::Opened)];
+	if (Status == nullptr)
+	{
+		return Colors_[static_cast<int32>(ECellType::Opened)];
+	}
+	
+	if (Status->bSelected)
+		return SelectedColor_;
+	
+	FLinearColor OpenedColor = Colors_[static_cast<int32>(ECellType::Opened)];
+	FLinearColor StatusColor = Colors_[static_cast<int32>(Status->BaseStatus)];
+	
+	return FMath::Lerp(StatusColor, OpenedColor, Status->Level);
+	//return FLinearColor::LerpUsingHSV(OpenedColor, StatusColor, Status->Level);
 }
 
 float AHexGridISMActor::GetZOffset(int32 InIndex) const

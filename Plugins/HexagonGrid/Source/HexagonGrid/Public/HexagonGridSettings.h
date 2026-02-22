@@ -34,5 +34,8 @@ public:
 	int32 SelectRadius = 1;
 	
 	UPROPERTY(EditAnywhere, Config, Category="HexGrid")
+	float PathfinderRotationCost = 1;
+	
+	UPROPERTY(EditAnywhere, Config, Category="HexGrid")
 	bool PathfinderLog = false;
 };

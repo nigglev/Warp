@@ -41,6 +41,40 @@ void ADefaultWarpHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void ADefaultWarpHUD::ShowDebugHUD()
+{
+	bShowDebugHUD_ = !bShowDebugHUD_;
+}
+
+void ADefaultWarpHUD::DrawHUD()
+{
+	Super::DrawHUD();
+	
+	if (bShowDebugHUD_)
+	{
+		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		APlayerController* PC = GetOwningPlayerController();
+		
+		for (HexMath::FAxialCoord Hex : InfluenceZone_)
+		{
+			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Hex, 0);
+			if (PosOpt.IsSet())
+			{
+				FVector2D ScreenPos;
+				const bool bOnScreen = PC->ProjectWorldLocationToScreen(PosOpt.GetValue(), ScreenPos, /*bPlayerViewportRelative*/ true);
+
+				if (bOnScreen)
+				{
+					float StrWidth;
+					float StrHeight;
+					GetTextSize(Hex.ToString(), StrWidth, StrHeight);
+					DrawText(Hex.ToString(), FLinearColor::Green, ScreenPos.X - StrWidth / 2, ScreenPos.Y - StrHeight / 2);//, GEngine->GetMediumFont(), 1.0f, false)
+				}
+			}
+		}		
+	}
+}
+
 void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit)
 {
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, InNewActiveUnit);
@@ -66,6 +100,6 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
 	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
 	
-	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R);
+	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R, 5, &InfluenceZone_);
 }
 

@@ -28,7 +28,8 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, uint32 InHexDistance, 
+		TArray<HexMath::FAxialCoord>* OutPath = nullptr);
 	void RemoveInfluence(uint32 InId);
 	
 	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath) const;

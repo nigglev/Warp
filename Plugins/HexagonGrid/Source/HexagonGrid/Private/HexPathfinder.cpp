@@ -4,18 +4,18 @@ DEFINE_LOG_CATEGORY_STATIC(HexPathfinderLog, Log, Log);
 
 FString HexMath::FWaveElem::ToString() const
 {
-	return FString::Printf(TEXT("%s[%d] D: %u"), *Coord.ToString(), Rotation, Distance);
+	return FString::Printf(TEXT("%s[%d] D: %.2f"), *Coord.ToString(), Rotation, Distance);
 }
 
-void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRotation, uint32 InMaxWave,
-	TSet<FWaveElem>& OutPath, bool InLog /*= false*/)
+void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRotation, float InMaxWave,
+	TSet<FWaveElem>& OutPath, FVector2D InStepRotationPrice, bool InLog)
 {
 	OutPath.Reset();
 	
 	if (InLog)
 	{
-		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMaxWave: %u"), 
-			*InStart.ToString(), InStartRotation, InMaxWave);
+		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMaxWave: %.2f; StepCost: %.2f; Rotation Cost: %.2f"), 
+			*InStart.ToString(), InStartRotation, InMaxWave, InStepRotationPrice.X, InStepRotationPrice.Y);
 	}
 	
 	auto IsWalkable = [](const HexMath::FAxialCoord& Coord) { return true; };// !Obstacles_.Contains(Coord); };
@@ -42,10 +42,14 @@ void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRota
 			UE_LOG(HexPathfinderLog, Log, TEXT("\t %u: OpenNum: %d; Current: %s"), Step, Open.Num(), *Current.ToString());
 		}
 		
-		for (int32 i = 0; i < HexMath::HexMathAxial::AxialNeighbourCount; ++i)
+		for (int32 i = 0; i < HexMathAxial::AxialNeighbourCount; ++i)
 		{
-			const HexMath::FAxialCoord NeighbourCoord = Current.Coord + HexMath::HexMathAxial::AxialNeighboursShifts[i];
-			const int8 AngleToNeighbour = HexMath::HexMathAxial::AxialNeighboursRotation[i];
+			const FAxialCoord NeighbourCoord = Current.Coord + HexMathAxial::AxialNeighboursShifts[i];
+			// Подставь свои проверки:
+			// if (!IsValidCoord(N)) continue;
+			if (!IsWalkable(NeighbourCoord)) continue;
+			
+			const int8 AngleToNeighbour = HexMathAxial::AxialNeighboursRotation[i];
 			
 			int RD1 = FMath::Abs(Current.Rotation - AngleToNeighbour);
 			constexpr int8 LeftLimit = -3;
@@ -58,40 +62,33 @@ void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRota
 			
 			int8 RotationDiff = FMath::Min(RD1, RD2);			
 
-			// Подставь свои проверки:
-			// if (!IsValidCoord(N)) continue;
-			if (!IsWalkable(NeighbourCoord)) continue;
-
 			// Стоимость шага: 1 (или возьми из тайла)
-			const uint32 StepCost = 1 + RotationDiff;// GetTraversalCost(Current.Coord, Neighbour);
-			const uint32 TentativeDistance = Current.Distance + StepCost;
+			const float StepCost = InStepRotationPrice.X + RotationDiff * InStepRotationPrice.Y;// GetTraversalCost(Current.Coord, Neighbour);
+			const float TentativeDistance = Current.Distance + StepCost;
 			
 			if (TentativeDistance > InMaxWave)
 			{
 				if (InLog)
 				{
-					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Too far! NeighbourCoord: %s; TentativeDistance: %u"), 
+					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Too far! NeighbourCoord: %s; TentativeDistance: %.2f"), 
 					   *NeighbourCoord.ToString(), TentativeDistance);
 				}
 				continue;
 			}		
 
-			FWaveElem& Neighbour = OutPath.FindOrAdd(FWaveElem{ NeighbourCoord, AngleToNeighbour, TNumericLimits<uint32>::Max() });
+			FWaveElem& Neighbour = OutPath.FindOrAdd(FWaveElem{ NeighbourCoord, AngleToNeighbour, TNumericLimits<float>::Max() });
 
 			if (TentativeDistance < Neighbour.Distance)
 			{
 				Neighbour.Distance = TentativeDistance;
-				bool bMaxDist = Neighbour.Distance == InMaxWave;
+				Neighbour.Rotation = AngleToNeighbour;
 
 				if (InLog)
 				{
-					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Added Neighbour: %s; bMaxDist: %d"), *Neighbour.ToString(), bMaxDist);
+					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Added Neighbour: %s"), *Neighbour.ToString());
 				}
             	
-				if (!bMaxDist)
-				{
-					Open.HeapPush(Neighbour, MinHeapPred);
-				}
+				Open.HeapPush(Neighbour, MinHeapPred);
 			}
 			else if (InLog)
 			{

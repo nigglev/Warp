@@ -6,9 +6,9 @@ namespace HexMath
 {
 	struct FWaveElem
 	{
-		HexMath::FAxialCoord Coord;
+		FAxialCoord Coord;
 		int8 Rotation;
-		uint32 Distance;
+		float Distance;
 		
 		FString ToString() const;
 	};
@@ -21,6 +21,6 @@ namespace HexMath
 	inline bool operator==(const FWaveElem& LHS, const FWaveElem& RHS) { return LHS.Coord == RHS.Coord; }
 	inline bool operator!=(const FWaveElem& LHS, const FWaveElem& RHS) { return LHS.Coord != RHS.Coord; }
 
-	void FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRotation, uint32 InMaxWave,
-		TSet<FWaveElem>& OutPath, bool InLog /*= false*/);
+	void FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRotation, float InMaxWave,
+		TSet<FWaveElem>& OutPath, FVector2D InStepRotationPrice, bool InLog);
 }

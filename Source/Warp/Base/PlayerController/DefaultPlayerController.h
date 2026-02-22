@@ -95,6 +95,8 @@ protected:
 	class UInputAction* Action_CloseCell;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_OpenCell;
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* Action_ShowDebugHUD;
 
 	UPROPERTY(EditDefaultsOnly, Category="PlacePointer")
 	TSubclassOf<class APlacePointer> PlacePointerClass_;
@@ -107,6 +109,8 @@ protected:
 	
 	void OnSelectCellStartAction(const FInputActionValue& Value);
 	void OnSelectCellStopAction(const FInputActionValue& Value);
+	
+	void ShowDebugHUD(const FInputActionValue& Value);
 
 	UPROPERTY(Replicated)
 	TObjectPtr<ABaseUnitActor> ControlledUnit_ = nullptr;

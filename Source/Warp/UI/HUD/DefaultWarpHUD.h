@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultWarpHUD.generated.h"
 
 class ABaseUnitActor;
@@ -25,8 +26,16 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
+	void ShowDebugHUD();
+
+	virtual void DrawHUD() override;
+
 protected:
 	AWarpGameState* GetGameState() const;
 	
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
+	
+	bool bShowDebugHUD_ = false;
+	
+	TArray<HexMath::FAxialCoord> InfluenceZone_;
 };
