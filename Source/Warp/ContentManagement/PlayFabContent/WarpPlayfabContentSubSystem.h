@@ -20,7 +20,18 @@ enum class EPlayFabContentStates : uint8;
  * 
  */
 
+UENUM()
+enum class ERoleType : uint8
+{
+	NotSet = -1,
+	Developer = 0,
+	Server,
+	Client
+};
+
 DECLARE_MULTICAST_DELEGATE(FOnUnitsLoaded);
+
+
 
 UCLASS()
 class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
@@ -32,6 +43,8 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
+
+	ERoleType GetRoleType() const {return RoleType_;}
 	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
@@ -84,6 +97,7 @@ public:
 
 protected:
 	bool LoginToPlayFab();
+	void InitializeDescriptions();
 
 	bool ReadDescriptionsFromDataSource();
 	
@@ -98,8 +112,13 @@ protected:
 	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	FString GetGameDataSourceFilePath() const;
+
+	ERoleType GetCurrentRoleType() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
+	
+	ERoleType RoleType_ = ERoleType::NotSet;
+	bool bAreDescriptionsRead_ = false;
 	
 	UPROPERTY()
 	UPlayFabLoginInfo* LoginInfo_ = nullptr;

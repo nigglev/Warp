@@ -38,9 +38,14 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     LaunchContext_ = BuildLaunchContext(GetWorld());
     MG_LOG(AContentLog, TEXT("%s"), *LaunchContext_.ToString());
 
-    Descriptions_.Add(FGameplayDescription::DescrName, MakeUnique<FGameplayDescriptions>());
-    Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
+    RoleType_ = GetCurrentRoleType();
+    InitializeDescriptions();
+    if (RoleType_ == ERoleType::Client || RoleType_ == ERoleType::Server)
+    {
+        //Update cache files
+    }
     
+    bAreDescriptionsRead_ = ReadDescriptionsFromDataSource();
     
     bool bLoginAttemptSuccess = LoginToPlayFab();
     RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
@@ -101,6 +106,12 @@ bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
     }
 
     return bSuccess;
+}
+
+void UWarpPlayfabContentSubSystem::InitializeDescriptions()
+{
+    Descriptions_.Add(FGameplayDescription::DescrName, MakeUnique<FGameplayDescriptions>());
+    Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
 }
 
 bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
@@ -298,22 +309,20 @@ bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
 }
 
 FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
-{
+{   
     FString FolderDir;
-    if (IsAuthorityLike(LaunchContext_))
+    if (RoleType_ == ERoleType::NotSet)
+    {
+        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
+        MG_ERROR(AContentLog, TEXT("RoleType_ is not set; Reading from cache"));
+    }
+    if (RoleType_ == ERoleType::Developer)
     {
         FolderDir = FPaths::Combine(FPaths::ProjectDir(), TEXT("GameDataSource"));
     }
-    else
+    else if (RoleType_ == ERoleType::Client || RoleType_ == ERoleType::Server)
     {
-        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientPIE)
-        {
-            FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
-        }
-        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientGame)
-        {
-            FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
-        }
+        FolderDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("GameDataSource"));
     }
 
     if (!IFileManager::Get().DirectoryExists(*FolderDir))
@@ -324,6 +333,19 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 
     return FolderDir;
     
+}
+
+ERoleType UWarpPlayfabContentSubSystem::GetCurrentRoleType() const
+{
+    if (LaunchContext_.bIsPIE)
+    {
+        return ERoleType::Developer;
+    }
+    if (LaunchContext_.NetMode == ELaunchNetMode::Client)
+    {
+        return ERoleType::Client;
+    }
+    return ERoleType::Server;
 }
 
 void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult)
