@@ -3,6 +3,7 @@
 
 #include "TurnMachine.h"
 
+#include "Algo/AllOf.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
@@ -51,7 +52,9 @@ void UTurnMachine::CreateUnits()
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
         ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], AC);
         if (Unit != nullptr)
+        {
             CombatUnits_.Add(Unit);
+        }
     }
 
     FLaunchContext Context = BuildLaunchContext(this);
@@ -77,12 +80,16 @@ void UTurnMachine::OnRep_CombatUnits()
     CheckLoaded();
 }
 
-void UTurnMachine::CheckLoaded() const
+void UTurnMachine::CheckLoaded()
 {
     RETURN_ON_FAIL(ATurnMachineLog, GetOwner());
     if (IsValidState())
     {
         GetOwner()->SetUnitsLoaded();
+    }
+    else
+    {
+        GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UTurnMachine::CheckLoaded));
     }
 }
 
@@ -139,7 +146,15 @@ void UTurnMachine::SetWaitingForArrival()
 
 bool UTurnMachine::IsValidState() const
 {
-    return !CombatUnits_.IsEmpty() && TurnState_.ActiveUnitIndex != INDEX_NONE;
+    if (TurnState_.ActiveUnitIndex == INDEX_NONE)
+        return false;
+    
+    if (CombatUnits_.IsEmpty())
+        return false;
+    
+    bool AllLoaded = Algo::AllOf(CombatUnits_, [](const ABaseUnitActor* Unit) { return Unit && Unit->IsLoaded(); });
+    
+    return AllLoaded;
 }
 
 const ABaseUnitActor* UTurnMachine::GetActiveUnit() const

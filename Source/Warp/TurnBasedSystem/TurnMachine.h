@@ -64,7 +64,7 @@ protected:
 	UFUNCTION()
 	void OnRep_TurnState();
 	
-	void CheckLoaded() const;
+	void CheckLoaded();
 	bool IsValidState() const;
 	
 	void SetNewActiveUnit(int32 InIndex);

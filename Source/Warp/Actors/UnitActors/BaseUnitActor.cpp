@@ -9,6 +9,8 @@
 #include "Misc/MapErrors.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/GameState/WarpGameState.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
@@ -30,10 +32,14 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseUnitActor, UnitType_);
-	DOREPLIFETIME(ABaseUnitActor, UnitActorSize_);
 	DOREPLIFETIME(ABaseUnitActor, bOnMove_);
 	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
 	DOREPLIFETIME(ABaseUnitActor, AxialAngle_);
+}
+
+bool ABaseUnitActor::IsLoaded() const
+{
+	return UnitType_ != NAME_None;
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -170,12 +176,13 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 	return bOnMove_;
 }
 
-
-void ABaseUnitActor::OnRep_UnitActorSize()
+const FUnitDescription* ABaseUnitActor::GetDescription() const
 {
+	RETURN_ON_FAIL_NULL(ABaseUnitActorLog, !UnitType_.IsNone());
 
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	return Content->GetDescription<FUnitDescription>(UnitType_);
 }
-
 
 void ABaseUnitActor::OnRep_UnitType()
 {

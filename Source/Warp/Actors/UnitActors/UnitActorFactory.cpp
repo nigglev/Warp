@@ -42,6 +42,7 @@ ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext,
 	
 	if (Unit != nullptr)
 	{
+		Unit->SetUnitType(InUnitType);
 		Unit->SetAxialCoord(InAxialCoord);
 	}
 	

@@ -70,8 +70,8 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, uint32 InHexDistance, 
-		TArray<HexMath::FAxialCoord>* OutPath = nullptr);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
+		float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FAxialCoord>* OutPath = nullptr);
 	
 	void RemoveInfluence(uint32 InId);
 	
@@ -92,7 +92,6 @@ private:
 		int32 BuildChunkAround = 0;
 		int32 SelectRadius = 1;
 		bool PathfinderLog = false;
-		float PathfinderRotationCost = 1;
 		
 		TSubclassOf<AHexGridISMActor> HexGridActorClass_ = nullptr;
 	};

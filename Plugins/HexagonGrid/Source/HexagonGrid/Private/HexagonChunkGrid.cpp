@@ -30,8 +30,7 @@ TOptional<UHexagonChunkGrid::FHexGridActorCDODataCache> UHexagonChunkGrid::GetHe
 	Cache.HexGridActorClass_ = Settings->HexGridActorClass_;
 	Cache.SelectRadius = Settings->SelectRadius;
 	Cache.PathfinderLog = Settings->PathfinderLog;
-	Cache.PathfinderRotationCost = Settings->PathfinderRotationCost;
-	
+
 	return Cache;
 }
 
@@ -198,8 +197,8 @@ void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellT
 	});
 }
 
-void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, uint32 InHexDistance,
-	TArray<HexMath::FAxialCoord>* OutPath)
+void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
+	float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FAxialCoord>* OutPath)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -212,13 +211,13 @@ void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord&
 	HexMath::FAxialCoord HexCenterCell = InHexCell;
 	
 	TSet<HexMath::FWaveElem> Wave;
-	FVector2D Costs(1, CacheOpt->PathfinderRotationCost);
+	FVector2D Costs(InMoveCost, InRotationCost);
 	HexMath::FindPathZone(HexCenterCell, InRotation, InHexDistance, Wave, Costs, CacheOpt->PathfinderLog);
 	
 	for (const HexMath::FWaveElem& WaveElem : Wave)
 	{
 		Cells.Add(WaveElem.Coord);
-		float Level = static_cast<float>(WaveElem.Distance) / (InHexDistance + 1);
+		float Level = static_cast<float>(WaveElem.Distance) / (InHexDistance + InMoveCost);
 		SetCellType(WaveElem.Coord, ECellType::Captured, Level);
 		if (OutPath)
 			OutPath->Add(WaveElem.Coord);

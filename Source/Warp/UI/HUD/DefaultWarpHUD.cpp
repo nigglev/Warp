@@ -5,14 +5,30 @@
 
 #include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
+#include "GameFramework/GameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
+#include "Warp/TurnBasedSystem/TurnMachine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultWarpHUDLog, Log, All);
 
 AWarpGameState* ADefaultWarpHUD::GetGameState() const
 {
 	return GetWorld() ? GetWorld()->GetGameState<AWarpGameState>() : nullptr;
+}
+
+void ADefaultWarpHUD::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	AWarpGameState* GS = GetGameState();
+	MG_COND_ERROR(ADefaultWarpHUDLog, GS == nullptr, TEXT("Warp Game State Invalid"));
+	if (GS != nullptr)
+	{
+		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
+		GS->OnMatchStateChanged.AddUObject(this, &ADefaultWarpHUD::OnMatchStateChanged);
+	}
 }
 
 void ADefaultWarpHUD::BeginPlay()
@@ -26,13 +42,6 @@ void ADefaultWarpHUD::BeginPlay()
 		FInputModeGameAndUI Mode;
 		Mode.SetHideCursorDuringCapture(false);
 		PC->SetInputMode(Mode);
-	}
-	
-	AWarpGameState* GS = GetGameState();
-	MG_COND_ERROR(ADefaultWarpHUDLog, GS == nullptr, TEXT("Warp Game State Invalid"));
-	if (GS != nullptr)
-	{
-		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
 	}
 }
 
@@ -75,9 +84,36 @@ void ADefaultWarpHUD::DrawHUD()
 	}
 }
 
+void ADefaultWarpHUD::OnMatchStateChanged(FName InMatchState)
+{
+	MG_LOG(ADefaultWarpHUDLog, TEXT("%s"), *InMatchState.ToString());
+	
+	if (InMatchState != MatchState::InProgress)
+	{
+		return;
+	}
+	
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
+	
+	UTurnMachine* TM = GS->GetTurnMachine();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, TM);
+	
+	ABaseUnitActor* Unit = TM->GetActiveUnit();
+	OnUnitSelected(Unit, nullptr);
+}
+
 void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit)
 {
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, InNewActiveUnit);
+	
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
+	
+	if (GS->GetMatchState() != MatchState::InProgress)
+	{
+		return;
+	}
 	
 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 	
@@ -100,6 +136,13 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
 	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
 	
-	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R, 5, &InfluenceZone_);
+	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
+	
+	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R, 
+		UnitDescription->MaxRoundDistance, 
+		UnitDescription->MoveCost, 
+		UnitDescription->RotationCost, 
+		&InfluenceZone_);
 }
 

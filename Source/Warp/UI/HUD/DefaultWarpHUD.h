@@ -23,6 +23,7 @@ class WARP_API ADefaultWarpHUD : public AHUD
 
 	
 public:
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -33,6 +34,7 @@ public:
 protected:
 	AWarpGameState* GetGameState() const;
 	
+	void OnMatchStateChanged(FName InMatchState);
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 	
 	bool bShowDebugHUD_ = false;

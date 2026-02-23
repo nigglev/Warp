@@ -56,6 +56,8 @@ void AWarpGameState::OnRep_MatchState()
 	}
 	
 	Super::OnRep_MatchState();
+	
+	OnMatchStateChanged.Broadcast(MatchState);
 }
 
 void AWarpGameState::HandleUnitCreation()

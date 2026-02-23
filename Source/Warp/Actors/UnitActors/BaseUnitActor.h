@@ -9,6 +9,7 @@
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
+struct FUnitDescription;
 struct FAxialAngle;
 
 UCLASS()
@@ -21,6 +22,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float InDelta) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	bool IsLoaded() const;
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
@@ -33,17 +36,14 @@ public:
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 	
-	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
-	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
-
 	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 	bool IsMoving() const { return !Path_.IsEmpty() || bRotating_; }
+	
+	const FUnitDescription* GetDescription() const;
 	
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
-	UFUNCTION()
-	void OnRep_UnitActorSize();
 	
 	bool UpdateRotation(float InDelta, float InTargetYaw);
 	
@@ -57,7 +57,7 @@ protected:
 	float AcceptanceRadius_ = 25.f;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
-	FName UnitType_ = FName("Unit");
+	FName UnitType_;
 	
 	UPROPERTY(Replicated)
 	FRepAxialCoord AxialCoord_;
@@ -65,9 +65,6 @@ protected:
 	UPROPERTY(Replicated)
 	FAxialAngle AxialAngle_;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
-	FUnitSize UnitActorSize_ = FUnitSize::None();
-
 	UPROPERTY(Replicated)
 	bool bOnMove_ = false;
 	
