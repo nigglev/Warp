@@ -8,6 +8,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
 #include "Warp/ContentManagement/ContentManagementStates/States/PlayFabStateManager.h"
+#include "Warp/ContentManagement/FSM/ContentFSM.h"
+#include "Warp/ContentManagement/FSM/LoginState.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
@@ -16,6 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(AContentLog, Log, All);
 UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 {   
     LoginInfo_ = CreateDefaultSubobject<UPlayFabLoginInfo>(TEXT("LoginInfo"));
+
+    ContentFSM_ = CreateDefaultSubobject<UContentFSM>(TEXT("ContentFSM"));
 }
 
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
@@ -38,17 +42,20 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     LaunchContext_ = BuildLaunchContext(GetWorld());
     MG_LOG(AContentLog, TEXT("%s"), *LaunchContext_.ToString());
 
-    RoleType_ = GetCurrentRoleType();
+    //RoleType_ = GetCurrentRoleType();
+    RoleType_ = ERoleType::Server;
     InitializeDescriptions();
+    if (RoleType_ == ERoleType::Developer)
+    {
+        OnContentCheckedAndLoaded(true);
+    }
     if (RoleType_ == ERoleType::Client || RoleType_ == ERoleType::Server)
     {
-        //Update cache files
+        UpdateCachedGameData();
     }
     
-    bAreDescriptionsRead_ = ReadDescriptionsFromDataSource();
-    
-    bool bLoginAttemptSuccess = LoginToPlayFab();
-    RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
+    // bool bLoginAttemptSuccess = LoginToPlayFab();
+    // RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
 }
 
 void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
@@ -335,6 +342,12 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
     
 }
 
+bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
+{
+    ContentFSM_->Switch(NewObject<ULoginState>(this), nullptr);
+    return true;   
+}
+
 ERoleType UWarpPlayfabContentSubSystem::GetCurrentRoleType() const
 {
     if (LaunchContext_.bIsPIE)
@@ -362,15 +375,13 @@ void UWarpPlayfabContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoade
     
     if (StateManager_)
         StateManager_ = nullptr;
-    
-    if (InContentLoaded)
+
+    bool bSuccess = ReadDescriptionsFromDataSource();
+    MG_COND_WARNING(AContentLog, !bSuccess, TEXT("Failed to read content"));
+    if (bSuccess)
     {
-        bool bSuccess = ReadDescriptionsFromDataSource();
-        MG_COND_WARNING(AContentLog, !bSuccess, TEXT("Failed to read content"));
-        if (bSuccess)
-        {
-            bContentLoaded_ = true;
-            OnContentLoaded.Broadcast();
-        }
+        bContentLoaded_ = true;
+        OnContentLoaded.Broadcast();
     }
+
 }

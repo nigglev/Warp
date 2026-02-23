@@ -8,6 +8,7 @@
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
 #include "Core/PlayFabClientDataModels.h"
+#include "Warp/ContentManagement/FSM/ContentFSM.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpDescriptionBase.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
@@ -23,11 +24,12 @@ enum class EPlayFabContentStates : uint8;
 UENUM()
 enum class ERoleType : uint8
 {
-	NotSet = -1,
-	Developer = 0,
+	NotSet = 0,
+	Developer,
 	Server,
 	Client
 };
+
 
 DECLARE_MULTICAST_DELEGATE(FOnUnitsLoaded);
 
@@ -44,6 +46,7 @@ public:
 	
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 
+	UContentFSM* GetContentFSM() const {return ContentFSM_;}
 	ERoleType GetRoleType() const {return RoleType_;}
 	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
@@ -113,10 +116,13 @@ protected:
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	FString GetGameDataSourceFilePath() const;
 
+	bool UpdateCachedGameData();
 	ERoleType GetCurrentRoleType() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
-	
+
+	UPROPERTY()
+	UContentFSM* ContentFSM_ = nullptr;
 	ERoleType RoleType_ = ERoleType::NotSet;
 	bool bAreDescriptionsRead_ = false;
 	

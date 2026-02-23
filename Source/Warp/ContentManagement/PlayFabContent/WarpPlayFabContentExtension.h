@@ -41,6 +41,7 @@ protected:
 };
 
 class FDescriptionReaderBase;
+
 namespace WarpPlayfabContent
 {
     using FReaderFactory = TFunction<TUniquePtr<FDescriptionReaderBase>()>;
