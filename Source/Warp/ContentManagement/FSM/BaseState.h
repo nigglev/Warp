@@ -14,13 +14,11 @@ class UPlayFabLoginInfo;
 
 struct WARP_API UWarpSwitchData : public UContentFSMSwitchData
 {
-	UPlayFabLoginInfo* LoginInfo = nullptr;
 	PlayFabClientPtr ClientAPI = nullptr;
 	PlayFabServerPtr ServerAPI = nullptr;
 	
 	virtual ~UWarpSwitchData() override
 	{
-		LoginInfo = nullptr;
 		ClientAPI = nullptr;
 		ServerAPI = nullptr;
 	};

@@ -13,7 +13,6 @@ DEFINE_LOG_CATEGORY_STATIC(ALoginState, Log, All);
 void ULoginState::OnEnter(UContentFSMState* InPrevState, UContentFSMSwitchData* InSwitchData)
 {
 	Super::OnEnter(InPrevState, InSwitchData);
-	LoginInfo_ = NewObject<UPlayFabLoginInfo>();
 	LoginToPlayFab();
 }
 
@@ -25,7 +24,6 @@ bool ULoginState::OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* I
 
 bool ULoginState::LoginToPlayFab()
 {
-	LoginInfo_->OnLoginResult.AddUObject(this, &ULoginState::OnLoginResult);
 	ERoleType Role = GetPlayfabContentSubsystem()->GetRoleType();
 	bool bSuccess;
 	TOptional<FString> SecretKey = WarpPlayfabContent::ReadSecret();
@@ -36,7 +34,7 @@ bool ULoginState::LoginToPlayFab()
 		Settings->DeveloperSecretKey = SecretKey.GetValue();
 		ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
 		MG_COND_ERROR(ALoginState, ServerAPI_ == nullptr, TEXT("Server API missing"));
-		bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FServerTag>(ServerAPI_, LoginInfo_, TEXT("DedicatedServer"));
+		bSuccess = LoginWithCustomId<FServerTag>(ServerAPI_, TEXT("DedicatedServer"));
 	
 		MG_LOG(ALoginState, TEXT("PlayFab under secret set. bSuccess %d"), bSuccess);
 	}
@@ -44,7 +42,7 @@ bool ULoginState::LoginToPlayFab()
 	{
 		ClientAPI_ = IPlayFabModuleInterface::Get().GetClientAPI();
 		MG_COND_ERROR(ALoginState, ClientAPI_ == nullptr, TEXT("Client API missing"));
-		bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, LoginInfo_, TEXT("DevClient"));
+		bSuccess = LoginWithCustomId<FClientTag>(ClientAPI_, TEXT("DevClient"));
         
 		MG_LOG(ALoginState, TEXT("PlayFab simple. bSuccess %d"), bSuccess);
 	}
@@ -60,10 +58,9 @@ void ULoginState::OnLoginResult(bool InResult)
 		UContentFSM* FSM = GetPlayfabContentSubsystem()->GetContentFSM();
 		RETURN_ON_FAIL(ALoginState, FSM);
 		UWarpSwitchData WarpSwitchData;
-		WarpSwitchData.LoginInfo = LoginInfo_;
 		WarpSwitchData.ServerAPI = ServerAPI_;
 		WarpSwitchData.ClientAPI = ClientAPI_;
-		FSM->Switch(NewObject<UUpdateState>(), &WarpSwitchData);
+		FSM->Switch(NewObject<UUpdateState>(GetPlayfabContentSubsystem()), &WarpSwitchData);
 		
 	}
 

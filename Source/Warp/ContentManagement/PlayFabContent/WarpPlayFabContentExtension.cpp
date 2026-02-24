@@ -5,6 +5,7 @@
 #include "WarpPlayfabContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
+DEFINE_LOG_CATEGORY_STATIC(AWarpPlayfabContentExt, Log, All);
 
 namespace WarpPlayfabContent
 {
@@ -68,12 +69,47 @@ namespace WarpPlayfabContent
 		ErrorDelegate.BindWeakLambda(InContentSubSystem, [InContentSubSystem](const PlayFab::FPlayFabCppError& InError)
 		{
 			InContentSubSystem->OnDescriptionSavingResult(false);
-			MG_ERROR(DescriptionReaderLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
+			MG_ERROR(AWarpPlayfabContentExt, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
 		});
 
 		bool bOk = InPlayFabAPI->SetTitleData(Request, SuccessDelegate, ErrorDelegate);
-		MG_COND_ERROR(DescriptionReaderLog, !bOk, TEXT("InPlayFabAPI->SetTitleData was failed!"));
+		MG_COND_ERROR(AWarpPlayfabContentExt, !bOk, TEXT("InPlayFabAPI->SetTitleData was failed!"));
 
 		return bOk;
 	}
+
+	// bool DownloadVersionsFromPlayFab(const PlayFabClientPtr& InPlayFabAPI, FDescriptionVersions& OutVersions)
+	// {
+	// 	RETURN_ON_FAIL_BOOL(DescriptionReaderLog, InPlayFabAPI != nullptr);
+	// 	
+	// 	PlayFab::ClientModels::FGetTitleDataRequest Request;
+	// 	Request.Keys.Add(TEXT("DescriptionVersions"));
+	//
+	// 	const bool bOk = InPlayFabAPI->GetTitleData(Request,
+	// 		PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateLambda([&OutVersions](const PlayFab::ClientModels::FGetTitleDataResult& Result)
+	// 			{
+	// 			  const FString* Value = Result.Data.Find(TEXT("DescriptionVersions"));
+	// 			  if (!Value)
+	// 			  {
+	// 				  MG_ERROR(AWarpPlayfabContentExt, TEXT("GetTitleData: DescriptionVersions not found"));
+	// 				  return;
+	// 			  }
+	//
+	// 			  FDescriptionVersions Versions;
+	// 			  const bool bParsed = FJsonObjectConverter::JsonObjectStringToUStruct(*Value, &OutVersions);
+	// 			  if (!bParsed)
+	// 			  {
+	// 				  MG_ERROR(AWarpPlayfabContentExt, TEXT("GetTitleData: failed to parse DescriptionVersions JSON: %s"), **Value);
+	// 				  return;
+	// 			  }
+	// 			}
+	// 	),
+	// 	PlayFab::FPlayFabErrorDelegate::CreateLambda([](const PlayFab::FPlayFabCppError& ErrorResult)
+	// 		{
+	// 		  MG_ERROR(AWarpPlayfabContentExt, TEXT("GetTitleData failed: %s"), *ErrorResult.GenerateErrorReport());
+	// 		}
+	// 	));
+	//
+	// 	return bOk;
+	// }
 }

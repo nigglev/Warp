@@ -53,72 +53,40 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     {
         UpdateCachedGameData();
     }
-    
-    // bool bLoginAttemptSuccess = LoginToPlayFab();
-    // RETURN_ON_FAIL(AContentLog, bLoginAttemptSuccess)
-}
-
-void UWarpPlayfabContentSubSystem::OnLoginResult(const bool InLoginRes)
-{
-    RETURN_ON_FAIL_T(AContentLog, InLoginRes, TEXT("Failed to Login"));
-    MG_FUNC_LABEL(AContentLog);
-
-    if (IsAuthorityLike(LaunchContext_))
-    {
-        OnContentCheckedAndLoaded(true);
-    }
-    else
-    {
-        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientPIE)
-        {
-            StateManager_ = NewObject<UPlayFabStateManager>(this);
-            StateManager_->SetClientAPI(ClientAPI_);
-            StateManager_->Start();
-        }
-        if (GetClientEnv(LaunchContext_) == EClientEnv::ClientGame)
-        {
-            StateManager_ = NewObject<UPlayFabStateManager>(this);
-            StateManager_->SetClientAPI(ClientAPI_);
-            StateManager_->Start();
-        }
-    }
-}
-
-bool UWarpPlayfabContentSubSystem::LoginToPlayFab()
-{
-    MG_FUNC_LABEL(AContentLog);
-    
-    LoginInfo_->OnLoginResult.AddUObject(this, &UWarpPlayfabContentSubSystem::OnLoginResult);
-    ENetMode NetMode = GetWorld()->GetNetMode();
-    bool bSuccess;
-    TOptional<FString> SecretKey = WarpPlayfabContent::ReadSecret();
-    if (SecretKey.IsSet() && NetMode != NM_Client)
-    {
-        UPlayFabRuntimeSettings* Settings = GetMutableDefault<UPlayFabRuntimeSettings>();
-        RETURN_ON_FAIL_BOOL(AContentLog, Settings != nullptr);
-        Settings->DeveloperSecretKey = SecretKey.GetValue();
-        ServerAPI_ = IPlayFabModuleInterface::Get().GetServerAPI();
-        MG_COND_ERROR(AContentLog, ServerAPI_ == nullptr, TEXT("Server API missing"));
-        bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FServerTag>(ServerAPI_, LoginInfo_, TEXT("DedicatedServer"));
-
-        MG_LOG(AContentLog, TEXT("PlayFab under secret set. bSuccess %d"), bSuccess);
-    }
-    else
-    {
-        ClientAPI_ = IPlayFabModuleInterface::Get().GetClientAPI();
-        MG_COND_ERROR(AContentLog, ClientAPI_ == nullptr, TEXT("Client API missing"));
-        bSuccess = WarpPlayfabContent::LoginWithCustomId<WarpPlayfabContent::FClientTag>(ClientAPI_, LoginInfo_, TEXT("DevClient"));
-        
-        MG_LOG(AContentLog, TEXT("PlayFab simple. bSuccess %d"), bSuccess);
-    }
-
-    return bSuccess;
 }
 
 void UWarpPlayfabContentSubSystem::InitializeDescriptions()
 {
     Descriptions_.Add(FGameplayDescription::DescrName, MakeUnique<FGameplayDescriptions>());
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
+}
+
+FDescriptionVersions UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource()
+{
+    FDescriptionVersions Versions;
+    const FString FolderDir = GetGameDataSourceFilePath();
+    if (FolderDir.IsEmpty())
+    {
+        MG_ERROR(AContentLog, TEXT("Folder with game version does not exist"));
+        return Versions;
+    }
+        
+    const FString JsonPath = FPaths::Combine(FolderDir, VersionsFileName);
+    FString JsonString;
+    FText* FailReason = nullptr;
+    if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
+    {
+        MG_ERROR(AContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
+        return Versions;
+    }
+    
+    bool bOk = Versions.JsonToVersions(JsonString, FailReason);
+    if (!bOk)
+    {
+        MG_ERROR(AContentLog, TEXT("Failed to convert Json to versions: %s"), *FailReason->ToString());
+        return Versions;
+    }
+    return Versions;
 }
 
 bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
@@ -244,7 +212,7 @@ void UWarpPlayfabContentSubSystem::OnDescriptionSavingResult(bool bSucceeded)
     {
         MG_LOG(AContentLog, TEXT("Successful description save"));
         bSaveDescriptionToPlayFabDone_ = true;
-        SaveVersionsToPlayFab();
+        
     } else if (bSucceeded && bSaveDescriptionToPlayFabDone_)
     {
         MG_LOG(AContentLog, TEXT("Successful save"));
@@ -254,65 +222,6 @@ void UWarpPlayfabContentSubSystem::OnDescriptionSavingResult(bool bSucceeded)
     {
         MG_ERROR(AContentLog, TEXT("Failed to save"));
     }
-}
-
-FDescriptionVersions UWarpPlayfabContentSubSystem::CreateVersions()
-{
-    if (Descriptions_.Num() == 0)
-        return FDescriptionVersions();
-    
-    FDescriptionVersions Versions;
-    for (TTuple<FName, TUniquePtr<FBaseDescriptions>>& DescriptionPair : Descriptions_)
-    {
-        const FName DescriptionName = DescriptionPair.Get<0>();
-        const FBaseDescriptions* Description = DescriptionPair.Get<1>().Get();
-
-        if (!DescriptionName.IsValid() || Description == nullptr)
-        {
-            MG_ERROR(AContentLog, TEXT("Failed to get %s"), *DescriptionName.ToString());
-            continue;
-        }
-
-        FDescriptionVersion VersionInfo;
-        VersionInfo.DescriptionName = DescriptionName.ToString();
-        VersionInfo.Version = Description->Version;
-
-        Versions.Items.Add(VersionInfo);
-    }
-    Versions.UpdateVersion();
-    return Versions;
-}
-
-bool UWarpPlayfabContentSubSystem::WriteVersionsToDataSource(const FDescriptionVersions& InVersions, FString& OutJsonString)
-{
-    const FString FolderDir = GetGameDataSourceFilePath();
-    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
-    const FString DescriptionJsonPath = FPaths::Combine(FolderDir, VersionsFileName);
-    
-    const bool bOk = InVersions.VersionsToJson(OutJsonString);
-    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to JSON convert"));
-
-    if (!FFileHelper::SaveStringToFile(OutJsonString, *DescriptionJsonPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
-    {
-        MG_ERROR(DescriptionReaderLog, TEXT("Failed to write to file: %s"), *DescriptionJsonPath);
-        return false;
-    }
-
-    return true;
-}
-
-bool UWarpPlayfabContentSubSystem::SaveVersionsToPlayFab()
-{
-    RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
-    RETURN_ON_FAIL_BOOL(AContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
-    RETURN_ON_FAIL_BOOL(AContentLog, ServerAPI_);
-
-    FDescriptionVersions VersionsToSave = CreateVersions();
-    FString JsonString;
-    bool bOk = WriteVersionsToDataSource(VersionsToSave, JsonString);
-    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to write to file"));
-    bool bSaveRes = WarpPlayfabContent::SaveDescriptionToPlayFab(ServerAPI_, FString("DescriptionVersions"), JsonString, this);
-    return bSaveRes;
 }
 
 FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
@@ -344,7 +253,7 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 
 bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
 {
-    ContentFSM_->Switch(NewObject<ULoginState>(this), nullptr);
+    ContentFSM_->Switch(NewObject<ULoginState>(ContentFSM_), nullptr);
     return true;   
 }
 

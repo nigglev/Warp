@@ -48,6 +48,7 @@ public:
 
 	UContentFSM* GetContentFSM() const {return ContentFSM_;}
 	ERoleType GetRoleType() const {return RoleType_;}
+	FDescriptionVersions GetGameVersionFromDataSource();
 	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
@@ -99,20 +100,15 @@ public:
 	}
 
 protected:
-	bool LoginToPlayFab();
 	void InitializeDescriptions();
 
+	
+	
 	bool ReadDescriptionsFromDataSource();
 	
 	bool WriteDescriptionsToDataSource();
 	bool WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description);
-
-	FDescriptionVersions CreateVersions();
-	bool WriteVersionsToDataSource(const FDescriptionVersions& InVersions, FString& OutJsonString);
-	bool SaveVersionsToPlayFab();
 	
-	UFUNCTION()
-	void OnLoginResult(const bool InLoginRes);
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	FString GetGameDataSourceFilePath() const;
 
@@ -125,6 +121,8 @@ protected:
 	UContentFSM* ContentFSM_ = nullptr;
 	ERoleType RoleType_ = ERoleType::NotSet;
 	bool bAreDescriptionsRead_ = false;
+
+	int32 GameVersion_ = -1;
 	
 	UPROPERTY()
 	UPlayFabLoginInfo* LoginInfo_ = nullptr;

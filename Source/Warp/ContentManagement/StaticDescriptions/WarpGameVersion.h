@@ -54,6 +54,14 @@ struct FDescriptionVersions
 		bool bOk = FJsonObjectConverter::UStructToJsonObjectString(*this, OutJsonString, 0, 0, 0, nullptr, true);
 		return bOk;
 	}
+
+	bool JsonToVersions(const FString& InJsonString, FText* OutFailReason)
+	{
+		if (!ensure(!InJsonString.IsEmpty()))
+			return false;
+		const bool bOk = FJsonObjectConverter::JsonObjectStringToUStruct(InJsonString, this,0,0,false, OutFailReason);
+		return bOk;
+	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version = 0;
