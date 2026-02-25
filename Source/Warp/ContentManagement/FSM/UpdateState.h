@@ -8,8 +8,8 @@
 #include "PlayFabClientDataModels.h"
 #include "PlayFabError.h"
 #include "UObject/Object.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 #include "UpdateState.generated.h"
-
 /**
  * 
  */
@@ -24,9 +24,16 @@ public:
 	virtual bool OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* InSwitchData) override;
 
 protected:
-	bool DownloadVersions(UContentFSMSwitchData* InSwitchData);
-	void OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
-	void OnGetTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult);
+	bool DownloadVersions();
+	void OnGetGameVersionTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
+	void OnGetGameVersionTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult);
 
-	void GetNewContentFromPlayFab(const TArray<FDescriptionVersion>& InDescriptions);
+	void OnGetContentTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result);
+	void OnGetContentTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult);
+
+	TArray<FString> GetContentToUpdate(const TArray<FDescriptionVersion>& InCurrentDescriptions, const TArray<FDescriptionVersion>& InPlayFabDescriptions);
+	bool UpdateContent(const TArray<FString>& InContentToUpdate);
+
+	PlayFabClientPtr ClientAPI_ = nullptr;
+	FDescriptionVersions PlayFabVersion_;
 };

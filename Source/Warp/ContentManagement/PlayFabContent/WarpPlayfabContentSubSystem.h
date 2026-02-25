@@ -49,10 +49,10 @@ public:
 	UContentFSM* GetContentFSM() const {return ContentFSM_;}
 	ERoleType GetRoleType() const {return RoleType_;}
 	FDescriptionVersions GetGameVersionFromDataSource();
-	
-	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
+
+	bool WriteGameVersionToDataSource(const FDescriptionVersions& InGameVersion);
+	bool WriteDescriptionToDataSourceFromJson(const FString& InDescriptionName, const FString& InDescriptionJson);
 	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
-	void OnDescriptionSavingResult(bool bSucceeded);
 	
 	UFUNCTION()
 	bool IsContentLoaded() const { return bContentLoaded_; }
@@ -101,9 +101,6 @@ public:
 
 protected:
 	void InitializeDescriptions();
-
-	
-	
 	bool ReadDescriptionsFromDataSource();
 	
 	bool WriteDescriptionsToDataSource();
@@ -121,23 +118,8 @@ protected:
 	UContentFSM* ContentFSM_ = nullptr;
 	ERoleType RoleType_ = ERoleType::NotSet;
 	bool bAreDescriptionsRead_ = false;
-
-	int32 GameVersion_ = -1;
-	
-	UPROPERTY()
-	UPlayFabLoginInfo* LoginInfo_ = nullptr;
-	PlayFabClientPtr ClientAPI_ = nullptr;
-	PlayFabServerPtr ServerAPI_ = nullptr;
-	
-	UPROPERTY()
-	UPlayFabStateManager* StateManager_ = nullptr;
-
-	FLaunchContext LaunchContext_;
 	
 	FString VersionsFileName = TEXT("DescriptionVersions.json");
-
-	bool bSaveDescriptionToPlayFabDone_ = false;
-	bool bSaveVersionToPlayFabDone_ = false;
 	bool bContentLoaded_ = false;
 };
 

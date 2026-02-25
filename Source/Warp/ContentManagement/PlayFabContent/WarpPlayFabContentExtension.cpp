@@ -61,14 +61,14 @@ namespace WarpPlayfabContent
 		PlayFab::UPlayFabServerAPI::FSetTitleDataDelegate SuccessDelegate;
 		SuccessDelegate.BindWeakLambda(InContentSubSystem, [InContentSubSystem](const PlayFab::ServerModels::FSetTitleDataResult& InResult)
 		{
-			InContentSubSystem->OnDescriptionSavingResult(true);
+			//InContentSubSystem->OnDescriptionSavingResult(true);
 			MG_LOG(DescriptionReaderLog, TEXT("PlayFab login success!"));
 		});
 
 		PlayFab::FPlayFabErrorDelegate ErrorDelegate;
 		ErrorDelegate.BindWeakLambda(InContentSubSystem, [InContentSubSystem](const PlayFab::FPlayFabCppError& InError)
 		{
-			InContentSubSystem->OnDescriptionSavingResult(false);
+			//InContentSubSystem->OnDescriptionSavingResult(false);
 			MG_ERROR(AWarpPlayfabContentExt, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
 		});
 

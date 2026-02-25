@@ -13,7 +13,11 @@ DEFINE_LOG_CATEGORY_STATIC(AUpdateState, Log, All);
 void UUpdateState::OnEnter(UContentFSMState* InPrevState, UContentFSMSwitchData* InSwitchData)
 {
 	Super::OnEnter(InPrevState, InSwitchData);
-	DownloadVersions(InSwitchData);
+	RETURN_ON_FAIL(AUpdateState, InSwitchData != nullptr);
+	UWarpSwitchData* SwitchData = static_cast<UWarpSwitchData*>(InSwitchData);
+	RETURN_ON_FAIL(AUpdateState, SwitchData->ClientAPI != nullptr);
+	ClientAPI_ = SwitchData->ClientAPI;
+	DownloadVersions();
 }
 
 bool UUpdateState::OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* InSwitchData)
@@ -21,30 +25,25 @@ bool UUpdateState::OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* 
 	return Super::OnExit(InNextState, InSwitchData);
 }
 
-bool UUpdateState::DownloadVersions(UContentFSMSwitchData* InSwitchData)
+bool UUpdateState::DownloadVersions()
 {
-	RETURN_ON_FAIL_BOOL(AUpdateState, InSwitchData != nullptr);
-	UWarpSwitchData* SwitchData = static_cast<UWarpSwitchData*>(InSwitchData);
-	RETURN_ON_FAIL_BOOL(AUpdateState, SwitchData->ClientAPI != nullptr);
-	
-
+	RETURN_ON_FAIL_BOOL(AUpdateState, ClientAPI_ != nullptr);
 	PlayFab::ClientModels::FGetTitleDataRequest Request;
 	Request.Keys.Add(TEXT("DescriptionVersions"));
 
-	const bool bOk = SwitchData->ClientAPI->GetTitleData(
+	const bool bOk =ClientAPI_->GetTitleData(
 	   Request,
-	   PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateUObject(this, &UUpdateState::OnGetTitleDataSuccess),
-	   PlayFab::FPlayFabErrorDelegate::CreateUObject(this, &UUpdateState::OnGetTitleDataError)
+	   PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateUObject(this, &UUpdateState::OnGetGameVersionTitleDataSuccess),
+	   PlayFab::FPlayFabErrorDelegate::CreateUObject(this, &UUpdateState::OnGetGameVersionTitleDataError)
    );
 	
 	return bOk;
 }
 
-void UUpdateState::OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result)
+void UUpdateState::OnGetGameVersionTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result)
 {
 	const FString* Value = Result.Data.Find(TEXT("DescriptionVersions"));
-	FDescriptionVersions Versions;
-	const bool bParsed = FJsonObjectConverter::JsonObjectStringToUStruct(*Value, &Versions);
+	const bool bParsed = FJsonObjectConverter::JsonObjectStringToUStruct(*Value, &PlayFabVersion_);
 	if (!Value)
 	{
 		MG_ERROR(AUpdateState, TEXT("GetTitleData: DescriptionVersions not found"));
@@ -59,32 +58,96 @@ void UUpdateState::OnGetTitleDataSuccess(const PlayFab::ClientModels::FGetTitleD
 	}
 
 	FDescriptionVersions CurrentVersion = GetPlayfabContentSubsystem()->GetGameVersionFromDataSource();
-	if (CurrentVersion.Version <= 0)
+	if (CurrentVersion.Version < 0)
 	{
 		MG_ERROR(AUpdateState, TEXT("Could not get current game version"));
 		GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
 		return;
 	}
-	if (CurrentVersion.Version == Versions.Version)
+	if (CurrentVersion.Version == PlayFabVersion_.Version)
 	{
 		GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(true);
 	}
 	else
 	{
-		GetNewContentFromPlayFab(CurrentVersion.Items);
+		TArray<FString> OutdatedContent = GetContentToUpdate(CurrentVersion.Items, PlayFabVersion_.Items);
+		bool bOk = UpdateContent(OutdatedContent);
+		if (!bOk)
+			GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
 	}
 }
 
-void UUpdateState::OnGetTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult)
+void UUpdateState::OnGetGameVersionTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult)
 {
 	MG_ERROR(AUpdateState, TEXT("GetTitleData failed: %s"), *ErrorResult.GenerateErrorReport());
 	GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
 }
 
 
-void UUpdateState::GetNewContentFromPlayFab(const TArray<FDescriptionVersion>& InDescriptions)
+TArray<FString> UUpdateState::GetContentToUpdate(const TArray<FDescriptionVersion>& InCurrentDescriptions,
+                                                 const TArray<FDescriptionVersion>& InPlayFabDescriptions)
 {
+	TMap<FString, decltype(FDescriptionVersion::Version)> CurrentVersionByName;
+	CurrentVersionByName.Reserve(InCurrentDescriptions.Num());
+
+	for (const FDescriptionVersion& Cur : InCurrentDescriptions)
+	{
+		CurrentVersionByName.Add(Cur.DescriptionName, Cur.Version);
+	}
 	
+	TSet<FString> OutdatedSet;
+	OutdatedSet.Reserve(InPlayFabDescriptions.Num());
+
+	for (const FDescriptionVersion& Remote : InPlayFabDescriptions)
+	{
+		const auto* LocalVersion = CurrentVersionByName.Find(Remote.DescriptionName);
+		
+		if (!LocalVersion || *LocalVersion != Remote.Version)
+		{
+			OutdatedSet.Add(Remote.DescriptionName);
+		}
+	}
+	
+	TArray<FString> OutdatedDescriptions = OutdatedSet.Array();
+	return OutdatedDescriptions;
 }
 
+bool UUpdateState::UpdateContent(const TArray<FString>& InContentToUpdate)
+{
+	RETURN_ON_FAIL_BOOL(AUpdateState, !InContentToUpdate.IsEmpty());
+	RETURN_ON_FAIL_BOOL(AUpdateState, ClientAPI_ != nullptr);
 
+	PlayFab::ClientModels::FGetTitleDataRequest Request;
+	for (int i = 0; i < InContentToUpdate.Num(); ++i)
+	{
+		Request.Keys.Add(InContentToUpdate[i]);
+	}
+
+	return ClientAPI_->GetTitleData(
+		Request,
+		PlayFab::UPlayFabClientAPI::FGetTitleDataDelegate::CreateUObject(
+			this, &UUpdateState::OnGetContentTitleDataSuccess),
+		PlayFab::FPlayFabErrorDelegate::CreateUObject(
+			this, &UUpdateState::OnGetContentTitleDataError)
+	);
+}
+
+void UUpdateState::OnGetContentTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result)
+{
+	MG_FUNC_LABEL(AUpdateState);
+	
+	for (auto It = Result.Data.CreateConstIterator(); It; ++It)
+	{
+		const FString& Key = It.Key();
+		const FString& Value = It.Value();
+		GetPlayfabContentSubsystem()->WriteDescriptionToDataSourceFromJson(Key, Value);
+	}
+	GetPlayfabContentSubsystem()->WriteGameVersionToDataSource(PlayFabVersion_);
+	GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(true);
+}
+
+void UUpdateState::OnGetContentTitleDataError(const PlayFab::FPlayFabCppError& ErrorResult)
+{
+	MG_ERROR(AUpdateState, TEXT("GetTitleData failed: %s"), *ErrorResult.GenerateErrorReport());
+	GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
+}
