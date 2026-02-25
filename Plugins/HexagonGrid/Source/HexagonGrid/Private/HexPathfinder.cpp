@@ -2,39 +2,82 @@
 
 DEFINE_LOG_CATEGORY_STATIC(HexPathfinderLog, Log, Log);
 
-FString HexMath::FWaveElem::ToString() const
+FString HexMath::FPathNode::ToString() const
 {
 	return FString::Printf(TEXT("%s[%d] D: %.2f"), *Coord.ToString(), Rotation, Distance);
 }
 
-void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRotation, float InMaxWave,
-	TSet<FWaveElem>& OutPath, FVector2D InStepRotationPrice, bool InLog)
+namespace HexMath
+{
+	int8 GetRotationDiff(int8 A, int8 B)
+	{
+		int RD1 = FMath::Abs(A - B);
+		constexpr int8 LeftLimit = -3;
+		constexpr int8 RightLimit = 3;
+		int RD2 = 0; 
+		if (B > A)
+			RD2 = A - LeftLimit + RightLimit - B;
+		else if (B < A)
+			RD2 = B - LeftLimit + RightLimit - A;
+			
+		int8 RotationDiff = FMath::Min(RD1, RD2);
+		return RotationDiff;
+	}
+	
+	struct FOpenNode
+	{
+		FPathNode Step;
+		float F = TNumericLimits<float>::Max();   // FWaveElem.Distance + h
+
+		FOpenNode() = default;
+		FOpenNode(const FAxialCoord& InCoord, int8 InRotation) : Step(InCoord, InRotation) {}
+		FOpenNode(const FPathNode& InStep, float InF) : Step(InStep), F(InF) {}
+	};
+	
+	// Min-heap по F: меньший F должен быть "наверху".
+	// В UE heap-алгоритмах часто нужно инвертировать сравнение для min-heap.
+	bool OpenHeapPred(const FOpenNode& A, const FOpenNode& B)
+	{
+		return A.F < B.F; // меньше F = выше приоритет
+	};
+	
+	uint32 GetTypeHash(const FOpenNode& Key)
+	{
+		return GetTypeHash(Key.Step.Coord);
+	}
+	
+	inline bool operator==(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord == RHS.Step.Coord; }
+	inline bool operator!=(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord != RHS.Step.Coord; }
+}
+
+void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, float InMaxDistance,
+	TSet<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog)
 {
 	OutPath.Reset();
 	
 	if (InLog)
 	{
-		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMaxWave: %.2f; StepCost: %.2f; Rotation Cost: %.2f"), 
-			*InStart.ToString(), InStartRotation, InMaxWave, InStepRotationPrice.X, InStepRotationPrice.Y);
+		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMaxDistance: %.2f; InMoveCost: %.2f; RInRotationCost: %.2f"), 
+			*InStart.ToString(), InStartRotation, InMaxDistance, InMoveCost, InRotationCost);
 	}
 	
-	auto IsWalkable = [](const HexMath::FAxialCoord& Coord) { return true; };// !Obstacles_.Contains(Coord); };
+	auto IsWalkable = [](const FAxialCoord& Coord) { return true; };// !Obstacles_.Contains(Coord); };
 	
-	auto MinHeapPred = [](const FWaveElem& A, const FWaveElem& B)
+	auto MinHeapPred = [](const FPathNode& A, const FPathNode& B)
 	{
 		return A.Distance < B.Distance;
 	};
 	
-	TArray<FWaveElem> Open;
+	TArray<FPathNode> Open;
 	Open.Reserve(256);
-	Open.HeapPush(FWaveElem{ InStart, InStartRotation, 0 }, MinHeapPred);
+	Open.HeapPush(FPathNode{ InStart, InStartRotation, 0 }, MinHeapPred);
 	
 	uint32 Step = 0;
 	while (Open.Num() > 0)
 	{
 		Step++;
     	
-		FWaveElem Current;
+		FPathNode Current;
 		Open.HeapPop(Current, MinHeapPred, EAllowShrinking::No);
     	
 		if (InLog)
@@ -51,22 +94,13 @@ void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRota
 			
 			const int8 AngleToNeighbour = HexMathAxial::AxialNeighboursRotation[i];
 			
-			int RD1 = FMath::Abs(Current.Rotation - AngleToNeighbour);
-			constexpr int8 LeftLimit = -3;
-			constexpr int8 RightLimit = 3;
-			int RD2 = 0; 
-			if (AngleToNeighbour > Current.Rotation)
-				RD2 = Current.Rotation - LeftLimit + RightLimit - AngleToNeighbour;
-			else if (AngleToNeighbour < Current.Rotation)
-				RD2 = AngleToNeighbour - LeftLimit + RightLimit - Current.Rotation;
-			
-			int8 RotationDiff = FMath::Min(RD1, RD2);			
+			int8 RotationDiff = GetRotationDiff(Current.Rotation, AngleToNeighbour);			
 
 			// Стоимость шага: 1 (или возьми из тайла)
-			const float StepCost = InStepRotationPrice.X + RotationDiff * InStepRotationPrice.Y;// GetTraversalCost(Current.Coord, Neighbour);
+			const float StepCost = InMoveCost + RotationDiff * InRotationCost;// GetTraversalCost(Current.Coord, Neighbour);
 			const float TentativeDistance = Current.Distance + StepCost;
 			
-			if (TentativeDistance > InMaxWave)
+			if (TentativeDistance > InMaxDistance)
 			{
 				if (InLog)
 				{
@@ -76,7 +110,7 @@ void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRota
 				continue;
 			}		
 
-			FWaveElem& Neighbour = OutPath.FindOrAdd(FWaveElem{ NeighbourCoord, AngleToNeighbour, TNumericLimits<float>::Max() });
+			FPathNode& Neighbour = OutPath.FindOrAdd(FPathNode(NeighbourCoord, AngleToNeighbour, TNumericLimits<float>::Max()));
 
 			if (TentativeDistance < Neighbour.Distance)
 			{
@@ -97,4 +131,130 @@ void HexMath::FindPathZone(const HexMath::FAxialCoord& InStart, int8 InStartRota
 		}
 	}
 
+}
+
+bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const FAxialCoord& InEnd, TOptional<int8> InEndRotation, 
+	float InMaxDistance, TArray<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog)
+{
+	OutPath.Reset();
+	
+	if (InLog)
+	{
+		int8 EndRotationValue = InEndRotation.IsSet() ? InEndRotation.GetValue() : TNumericLimits<int8>::Max();
+		UE_LOG(HexPathfinderLog, Log, TEXT("FindPath. InStart: %s; InStartRotation: %d; InEnd: %s; EndRotationValue: %d, InMaxDistance: %.2f; InMoveCost: %.2f; InRotationCost: %.2f"), 
+			*InStart.ToString(), InStartRotation, *InEnd.ToString(), EndRotationValue, InMaxDistance, InMoveCost, InRotationCost);
+	}
+	
+	// Быстрые случаи
+	if (InStart == InEnd && (!InEndRotation.IsSet() || InEndRotation.GetValue() == InStartRotation))
+	{
+		OutPath.Add(FPathNode{ InStart, InStartRotation, 0 });
+		return true;
+	}
+	
+	auto IsWalkable = [](const FAxialCoord& Coord) { return true; };// !Obstacles_.Contains(Coord); };
+	
+	if (!IsWalkable(InStart) || !IsWalkable(InEnd)) return false;
+	
+	TArray<FOpenNode> Open;
+	Open.Reserve(256);
+
+	TMap<FAxialCoord, FPathNode> CameFrom;
+	CameFrom.Reserve(256);
+
+	TSet<FOpenNode> Passed;
+	Passed.Reserve(256);
+	
+	{
+		float H = AxialDistance(InStart, InEnd) * InMoveCost;
+		Open.HeapPush(FOpenNode(FPathNode(InStart, InStartRotation, 0), H), OpenHeapPred);
+	}
+	
+	uint32 Step = 0;
+	while (Open.Num() > 0)
+	{
+		Step++;
+    	
+		FOpenNode Current;
+		Open.HeapPop(Current, OpenHeapPred, EAllowShrinking::No);
+    	
+		if (InLog)
+		{
+			UE_LOG(HexPathfinderLog, Log, TEXT("\t %u: OpenNim: %d; Step: %s; F: %.2f"), Step, Open.Num(), *Current.Step.ToString(), Current.F);
+		}
+		
+		if (Current.Step.Coord == InEnd)
+		{
+			// Восстановление пути
+			FPathNode C = Current.Step;
+			OutPath.Add(C);
+
+			while (C.Coord != InStart)
+			{
+				FPathNode* Parent = CameFrom.Find(C.Coord);
+				if (Parent == nullptr)
+				{
+					UE_LOG(HexPathfinderLog, Error, TEXT("Return back Path was broken!"));
+					OutPath.Reset();
+					return false;
+				}
+				C = *Parent;
+				OutPath.Add(C);
+			}
+
+			Algo::Reverse(OutPath);
+			return true;
+		}
+		
+		for (int32 i = 0; i < HexMathAxial::AxialNeighbourCount; ++i)
+		{
+			const FAxialCoord NeighbourCoord = Current.Step.Coord + HexMathAxial::AxialNeighboursShifts[i];
+			if (!IsWalkable(NeighbourCoord)) continue;
+			
+			const int8 AngleToNeighbour = HexMathAxial::AxialNeighboursRotation[i];
+			
+			int8 RotationDiff = GetRotationDiff(Current.Step.Rotation, AngleToNeighbour);			
+
+			// Стоимость шага: 1 (или возьми из тайла)
+			const float StepCost = InMoveCost + RotationDiff * InRotationCost;// GetTraversalCost(Current.Coord, Neighbour);
+			const float TentativeDistance = Current.Step.Distance + StepCost;
+			
+			if (TentativeDistance > InMaxDistance)
+			{
+				if (InLog)
+				{
+					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Too far! NeighbourCoord: %s; TentativeDistance: %.2f"), 
+					   *NeighbourCoord.ToString(), TentativeDistance);
+				}
+				continue;
+			}
+			
+			const int32 H = AxialDistance(NeighbourCoord, InEnd) * InMoveCost;
+			const float TentativeF = TentativeDistance + H;
+
+			FOpenNode& Neighbour = Passed.FindOrAdd(FOpenNode(NeighbourCoord, AngleToNeighbour));
+
+			if (TentativeF < Neighbour.F)
+			{
+				Neighbour.Step.Rotation = AngleToNeighbour;
+				Neighbour.Step.Distance = TentativeDistance;
+				Neighbour.F = TentativeF;
+
+				if (InLog)
+				{
+					UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Added Neighbour: %s; Neighbour F: %.2f"), 
+						*Neighbour.Step.ToString(), Neighbour.F);
+				}
+            	
+				Open.HeapPush(Neighbour, OpenHeapPred);
+				CameFrom.Add(Neighbour.Step.Coord, Current.Step);
+			}
+			else if (InLog)
+			{
+				UE_LOG(HexPathfinderLog, Log, TEXT("\t\t Missed Neighbour: %s; Neighbour F: %.2f"), 
+					*Neighbour.Step.ToString(), Neighbour.F);
+			}
+		}
+	}
+	return false;
 }

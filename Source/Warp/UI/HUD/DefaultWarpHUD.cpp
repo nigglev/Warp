@@ -64,9 +64,9 @@ void ADefaultWarpHUD::DrawHUD()
 		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 		APlayerController* PC = GetOwningPlayerController();
 		
-		for (HexMath::FAxialCoord Hex : InfluenceZone_)
+		for (HexMath::FPathNode Hex : InfluenceZone_)
 		{
-			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Hex, 0);
+			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Hex.Coord, 0);
 			if (PosOpt.IsSet())
 			{
 				FVector2D ScreenPos;

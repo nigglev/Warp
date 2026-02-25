@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
 #include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
@@ -20,8 +21,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	FRepAxialCoord GetAxialCoord() const { return AxialCoord_; }
-	void SetAxialCoord(const FRepAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
+	HexMath::FPathNode GetPathNode() const { return PathNode_; }
+	void SetPathNode(const HexMath::FPathNode& InPathNode) { PathNode_ = InPathNode; }
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 
@@ -45,5 +46,6 @@ protected:
 	TObjectPtr<UStaticMeshComponent> ArrowMesh_;
 	
 	FAxialAngle AxialAngle_;
-	FRepAxialCoord AxialCoord_;
+	
+	HexMath::FPathNode PathNode_;
 };

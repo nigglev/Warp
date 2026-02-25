@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HexPathfainer.h"
 #include "GameFramework/HUD.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultWarpHUD.generated.h"
@@ -39,5 +40,5 @@ protected:
 	
 	bool bShowDebugHUD_ = false;
 	
-	TArray<HexMath::FAxialCoord> InfluenceZone_;
+	TArray<HexMath::FPathNode> InfluenceZone_;
 };

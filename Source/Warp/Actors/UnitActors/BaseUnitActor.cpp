@@ -4,6 +4,7 @@
 #include "BaseUnitActor.h"
 
 #include "HexGridWorldSubsystem.h"
+#include "HexPathfainer.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "Misc/MapErrors.h"
@@ -146,9 +147,13 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 		Path_.Reset();
 	
 		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		
+		const FUnitDescription* Descr = GetDescription();
+		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
-		TArray<HexMath::FAxialCoord> Path;
-		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
+		TArray<HexMath::FPathNode> Path;
+		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), AxialAngle_.R, InTarget.ToNative(), InAxialAngle.R, 
+			Descr->MaxRoundDistance, Path, Descr->MoveCost, Descr->RotationCost, false);
 	
 		if (!Path.IsEmpty())
 		{
@@ -156,9 +161,9 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 			Path.RemoveAt(0);
 		
 			FVector Current = GetActorLocation();
-			for (HexMath::FAxialCoord AC : Path)
+			for (HexMath::FPathNode AC : Path)
 			{
-				TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
+				TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC.Coord, Current.Z);
 				if (TargetPosOpt.IsSet())
 				{
 					Path_.Add(TargetPosOpt.GetValue());

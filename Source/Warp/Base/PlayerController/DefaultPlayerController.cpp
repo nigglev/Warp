@@ -15,6 +15,7 @@
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 
@@ -211,13 +212,30 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 	FVector P;
 	if (GetMouseRayPlaneZIntersection(0.0f, P))
 	{
+		ABaseUnitActor* Unit = GetActiveUnit();
+		if (!IsValid(Unit))
+			return;
+		
+		const FUnitDescription* UnitDescr = Unit->GetDescription();
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, UnitDescr != nullptr);
+		
+		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+		
 		TOptional<HexMath::FAxialCoord> TargetAxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
-		PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
-		RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
+		TArray<HexMath::FPathNode> Path;
+		GridWorldSubsystem->FindPath(Unit->GetAxialCoord(), Unit->GetAxialAngle().R, TargetAxialCoordOpt.GetValue(), {}, 
+			UnitDescr->MaxRoundDistance, Path, UnitDescr->MoveCost, UnitDescr->RotationCost, true);
+				
+		if (!Path.IsEmpty())
+		{
+			PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
+			RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 		
-		PlacePointer_->SetAxialCoord(TargetAxialCoordOpt.GetValue());
+			PlacePointer_->SetPathNode(Path.Last());
+		}
 	}
 }
 
@@ -226,10 +244,15 @@ void ADefaultPlayerController::OnSelectCellStopAction(const FInputActionValue& V
 	MG_LOG(ADefaultPlayerControllerLog,  TEXT("Value: %s"), *Value.ToString());
 	if (PlacePointer_)
 	{
-		ServerOrderMove(PlacePointer_->GetAxialCoord(), PlacePointer_->GetAxialAngle());
+		ServerOrderMove(PlacePointer_->GetPathNode().Coord, PlacePointer_->GetAxialAngle());
 		
 		PlacePointer_->Destroy();
 		PlacePointer_ = nullptr;
+		
+		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+		
+		GridWorldSubsystem->DropPathSelections();
 	}
 }
 
@@ -323,3 +346,14 @@ ADefaultWarpHUD* ADefaultPlayerController::GetWarpHUD() const
 	return nullptr;
 }
 
+ABaseUnitActor* ADefaultPlayerController::GetActiveUnit() const
+{
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL_NULL(ADefaultPlayerControllerLog, GS);
+	
+	UTurnMachine* TM = GS->GetTurnMachine();
+	RETURN_ON_FAIL_NULL(ADefaultPlayerControllerLog, TM);
+	
+	ABaseUnitActor* Unit = TM->GetActiveUnit();
+	return Unit;
+}

@@ -36,7 +36,7 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 }
 
 void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
-	float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FAxialCoord>* OutPath)
+	float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FPathNode>* OutPath)
 {
 	ChunkGrid_->SelectInfluence(InId, InHexCell, InRotation, InHexDistance, InMoveCost, InRotationCost, OutPath);
 }
@@ -46,16 +46,15 @@ void UHexGridWorldSubsystem::RemoveInfluence(uint32 InId)
 	ChunkGrid_->RemoveInfluence(InId);
 }
 
-void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
-                                      TArray<HexMath::FAxialCoord>& OutPath) const
+void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
+		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes) const
 {
-	ChunkGrid_->FindPath(InStart, InEnd, OutPath);
+	ChunkGrid_->FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, OutPath, InMoveCost, InRotationCost, InDrawHexes);
 }
 
-void UHexGridWorldSubsystem::SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
-	TArray<HexMath::FAxialCoord>& OutPath) const
+void UHexGridWorldSubsystem::DropPathSelections()
 {
-	ChunkGrid_->SelectedFindPath(InStart, InEnd, OutPath);
+	ChunkGrid_->DropPathSelections();
 }
 
 void UHexGridWorldSubsystem::SelectCell(const FVector& InPosition)

@@ -111,6 +111,8 @@ protected:
 	void OnSelectCellStopAction(const FInputActionValue& Value);
 	
 	void ShowDebugHUD(const FInputActionValue& Value);
+	
+	ABaseUnitActor* GetActiveUnit() const;
 
 	UPROPERTY(Replicated)
 	TObjectPtr<ABaseUnitActor> ControlledUnit_ = nullptr;
