@@ -63,8 +63,8 @@ void UPlayFabStateManager::OnStateSet(FPlayFabStateManagerData& InData)
 void UPlayFabStateManager::Start()
 {
 	MG_FUNC_LABEL(PFStateLog);
-	ContextData_.Versions = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
-	ContextData_.OldVersions = MakeUnique<FUStructDescriptionReader<FDescriptionVersions>>();
+	ContextData_.Versions = MakeUnique<FUStructDescriptionReader<FGameVersion>>();
+	ContextData_.OldVersions = MakeUnique<FUStructDescriptionReader<FGameVersion>>();
 	ContextData_.CurrentDescriptionReader = MakeUnique<FDescriptionReaderBase>();
 	SetState(EPlayFabContentStates::CheckUpdate, ContextData_);
 }
@@ -227,8 +227,8 @@ void UPlayFabStateManager::HandleFinished(FPlayFabStateManagerData& InData)
 }
 
 
-void UPlayFabStateManager::GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions,
-                                                   const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated)
+void UPlayFabStateManager::GetOutdatedDescriptions(const FGameVersion& LatestVersions,
+                                                   const FGameVersion& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated)
 {
 	OutOutdated.Reset();
 	OutOutdated.Reserve(LatestVersions.Items.Num());

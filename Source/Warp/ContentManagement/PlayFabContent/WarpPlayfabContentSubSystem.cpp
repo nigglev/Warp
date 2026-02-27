@@ -17,7 +17,7 @@ DEFINE_LOG_CATEGORY_STATIC(AContentLog, Log, All);
 
 UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
 {   
-    ContentFSM_ = CreateDefaultSubobject<UContentFSM>(TEXT("ContentFSM"));
+   
 }
 
 UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
@@ -38,8 +38,8 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
 {
     Super::Initialize(InCollection);
 
-    //RoleType_ = GetCurrentRoleType();
-    RoleType_ = ERoleType::Server;
+    RoleType_ = GetCurrentRoleType();
+    RoleType_ = ERoleType::Client;
     InitializeDescriptions();
     bool bSuccess = ReadDescriptionsFromDataSource();
     RETURN_ON_FAIL(AContentLog, bSuccess);
@@ -60,9 +60,9 @@ void UWarpPlayfabContentSubSystem::InitializeDescriptions()
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
 }
 
-FDescriptionVersions UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource()
+FGameVersion UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource()
 {
-    FDescriptionVersions Versions;
+    FGameVersion Versions;
     const FString FolderDir = GetGameDataSourceFilePath();
     if (FolderDir.IsEmpty())
     {
@@ -70,7 +70,7 @@ FDescriptionVersions UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource(
         return Versions;
     }
         
-    const FString JsonPath = FPaths::Combine(FolderDir, VersionsFileName);
+    const FString JsonPath = FPaths::Combine(FolderDir, GameVersionFileName);
 
     if (!FPaths::FileExists(JsonPath))
     {
@@ -134,11 +134,11 @@ bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
 }
 
 
-bool UWarpPlayfabContentSubSystem::WriteGameVersionToDataSource(const FDescriptionVersions& InGameVersion)
+bool UWarpPlayfabContentSubSystem::WriteGameVersionToDataSource(const FGameVersion& InGameVersion)
 {
     const FString FolderDir = GetGameDataSourceFilePath();
     RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
-    const FString DescriptionJsonPath = FPaths::Combine(FolderDir, VersionsFileName);;
+    const FString DescriptionJsonPath = FPaths::Combine(FolderDir, GameVersionFileName);;
 
     FString JsonString;
     const bool bOk = InGameVersion.VersionsToJson(JsonString);
@@ -231,47 +231,48 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InD
 }
 
 
-// bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
-// {
-//     RETURN_ON_FAIL_BOOL(AContentLog, LaunchContext_.bIsPIE);
-//     RETURN_ON_FAIL_BOOL(AContentLog, GetClientEnv(LaunchContext_) == EClientEnv::NotAClient);
-//     RETURN_ON_FAIL_BOOL(AContentLog, ServerAPI_);
-//     RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
-//
-//     const FString FolderDir = GetGameDataSourceFilePath();
-//     RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
-//     const FName DescriptionName = InDescriptionName;
-//     const FString FileName = DescriptionName.ToString() + TEXT(".json");
-//     const FString JsonPath = FPaths::Combine(FolderDir, FileName);
-//     
-//     FString JsonString;
-//     if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
-//     {
-//         MG_ERROR(AContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
-//         return false;
-//     }
-//     
-//     bool bSaveRes = WarpPlayfabContent::SaveDescriptionToPlayFab(ServerAPI_, InDescriptionName.ToString(), JsonString, this);
-//     return bSaveRes;
-// }
-//
-// void UWarpPlayfabContentSubSystem::OnDescriptionSavingResult(bool bSucceeded)
-// {
-//     if (bSucceeded && !bSaveDescriptionToPlayFabDone_)
-//     {
-//         MG_LOG(AContentLog, TEXT("Successful description save"));
-//         bSaveDescriptionToPlayFabDone_ = true;
-//         
-//     } else if (bSucceeded && bSaveDescriptionToPlayFabDone_)
-//     {
-//         MG_LOG(AContentLog, TEXT("Successful save"));
-//         bSaveVersionToPlayFabDone_ = true;
-//     }
-//     else
-//     {
-//         MG_ERROR(AContentLog, TEXT("Failed to save"));
-//     }
-// }
+bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
+{
+    RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
+    RETURN_ON_FAIL_BOOL(AContentLog, RoleType_ == ERoleType::Developer);
+    if (ContentFSM_ == nullptr)
+        ContentFSM_ = NewObject<UContentFSM>(this);
+    else
+    {
+        MG_WARNING(AContentLog, TEXT("ContentFSM_ already exist"));
+    }
+    RETURN_ON_FAIL_BOOL(AContentLog, ContentFSM_);
+
+    const FString FolderDir = GetGameDataSourceFilePath();
+    RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
+    const FName DescriptionName = InDescriptionName;
+    const FString FileName = DescriptionName.ToString() + TEXT(".json");
+    const FString JsonPath = FPaths::Combine(FolderDir, FileName);
+    
+    FString DescriptionJsonString;
+    if (!FFileHelper::LoadFileToString(DescriptionJsonString, *JsonPath))
+    {
+        MG_ERROR(AContentLog, TEXT("Could not load file %s to Json string"), *JsonPath);
+        return false;
+    }
+
+    bSaveContentToPlayFab_ = true;
+    DataToSaveJson_.Add(DescriptionName, DescriptionJsonString);
+
+    int32 Version = 0;
+    FText* FailReason = nullptr;
+    bool bOk = TryGetVersionFromJson(DescriptionJsonString, Version, FailReason);
+    RETURN_ON_FAIL_BOOL_T(AContentLog, bOk, TEXT("Failed to convert Json to version: %s"), *FailReason->ToString());
+    RETURN_ON_FAIL_BOOL_T(AContentLog, Version > 0, TEXT("Version is bad"));
+        
+    FGameVersion Versions = UpdateGameVersion(DescriptionName, Version);
+    FString GameVersionJsonString;
+    Versions.VersionsToJson(GameVersionJsonString);
+    DataToSaveJson_.Add(FName("DescriptionVersions"), GameVersionJsonString);
+    
+    ContentFSM_->Switch(NewObject<ULoginState>(ContentFSM_), nullptr);
+    return true;  
+}
 
 FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
 {   
@@ -300,10 +301,61 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
     
 }
 
+FGameVersion UWarpPlayfabContentSubSystem::UpdateGameVersion(FName InNewDescriptionName, int32 InNewDescriptionVersion)
+{
+    FGameVersion Versions = GetGameVersionFromDataSource();
+    Versions.UpdateContentDescriptionVersion(InNewDescriptionName.ToString(), InNewDescriptionVersion);
+    WriteGameVersionToDataSource(Versions);
+    return Versions;
+}
+
 bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
 {
+    ContentFSM_ = NewObject<UContentFSM>(this);
+    RETURN_ON_FAIL_BOOL(AContentLog, ContentFSM_);
     ContentFSM_->Switch(NewObject<ULoginState>(ContentFSM_), nullptr);
     return true;   
+}
+
+
+bool UWarpPlayfabContentSubSystem::TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason)
+{
+    OutVersion = 0;
+    
+    if (InJson.IsEmpty())
+    {
+        if (OutFailReason)
+            *OutFailReason = FText::FromString(TEXT("JSON string is empty."));
+        return false;
+    }
+
+    TSharedPtr<FJsonObject> RootObj;
+    const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(InJson);
+
+    if (!FJsonSerializer::Deserialize(Reader, RootObj) || !RootObj.IsValid())
+    {
+        if (OutFailReason)
+            *OutFailReason = FText::FromString(TEXT("Failed to parse JSON into an object."));
+        return false;
+    }
+    
+    double VersionNumber = 0.0;
+    if (RootObj->TryGetNumberField(TEXT("Version"), VersionNumber))
+    {
+        OutVersion = static_cast<int32>(VersionNumber);
+        return true;
+    }
+    
+    FString VersionString;
+    if (RootObj->TryGetStringField(TEXT("Version"), VersionString))
+    {
+        OutVersion = FCString::Atoi(*VersionString);
+        return true;
+    }
+
+    if (OutFailReason)
+        *OutFailReason = FText::FromString(TEXT("Field 'Version' not found or not a number/string."));
+    return false;
 }
 
 ERoleType UWarpPlayfabContentSubSystem::GetCurrentRoleType() const
@@ -339,4 +391,16 @@ void UWarpPlayfabContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoade
     
     bContentLoaded_ = true;
     OnContentLoaded.Broadcast();
+}
+
+
+void UWarpPlayfabContentSubSystem::OnSaveDone(bool InSaveSuccess)
+{
+	MG_LOG(AContentLog, TEXT("OnSaveDone: %d"), InSaveSuccess);
+
+    bSaveContentToPlayFab_ = false;
+    DataToSaveJson_.Empty();
+
+    if (ContentFSM_)
+        ContentFSM_ = nullptr;
 }

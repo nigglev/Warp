@@ -16,11 +16,13 @@ struct WARP_API UWarpSwitchData : public UContentFSMSwitchData
 {
 	PlayFabClientPtr ClientAPI = nullptr;
 	PlayFabServerPtr ServerAPI = nullptr;
+	TMap<FName, FString> DescriptionsToSaveJson;
 	
 	virtual ~UWarpSwitchData() override
 	{
 		ClientAPI = nullptr;
 		ServerAPI = nullptr;
+		DescriptionsToSaveJson.Empty();
 	};
 };
 

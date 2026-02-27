@@ -57,7 +57,7 @@ void UUpdateState::OnGetGameVersionTitleDataSuccess(const PlayFab::ClientModels:
 		return;
 	}
 
-	FDescriptionVersions CurrentVersion = GetPlayfabContentSubsystem()->GetGameVersionFromDataSource();
+	FGameVersion CurrentVersion = GetPlayfabContentSubsystem()->GetGameVersionFromDataSource();
 	if (CurrentVersion.Version < 0)
 	{
 		MG_ERROR(AUpdateState, TEXT("Could not get current game version"));

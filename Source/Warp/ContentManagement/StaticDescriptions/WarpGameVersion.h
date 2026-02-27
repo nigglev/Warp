@@ -20,11 +20,11 @@ struct FDescriptionVersion
 };
 
 USTRUCT(BlueprintType)
-struct FDescriptionVersions
+struct FGameVersion
 {
 	GENERATED_BODY()
 
-	void UpdateVersions(const FString& InDescriptionName, int32 InVersion)
+	void UpdateContentDescriptionVersion(const FString& InDescriptionName, int32 InVersion)
 	{
 		FDescriptionVersion* Item = Items.FindByPredicate([InDescriptionName](const FDescriptionVersion& It){return It.DescriptionName == InDescriptionName;});
 		if (!ensure(Item != nullptr))
@@ -32,10 +32,10 @@ struct FDescriptionVersions
 		
 		Item->Version = InVersion;
 
-		UpdateVersion();
+		UpdateGameVersion();
 	};
 
-	void UpdateVersion()
+	void UpdateGameVersion()
 	{
 		int32 Sum = 0;
 		for (const FDescriptionVersion& It : Items)

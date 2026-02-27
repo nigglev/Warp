@@ -9,7 +9,7 @@
 #include "PlayFab.h"
 #include "WarpPlayFabContentExtension.generated.h"
 
-struct FDescriptionVersions;
+struct FGameVersion;
 class UWarpPlayfabContentSubSystem;
 class UPlayFabStateManager;
 DEFINE_LOG_CATEGORY_STATIC(WarpPlayfabContentLog, Log, All);
@@ -51,7 +51,7 @@ namespace WarpPlayfabContent
     bool SaveDescriptionToPlayFab(const PlayFabServerPtr& InPlayFabAPI, const FString& InKey, const FString& InJsonToSave, UWarpPlayfabContentSubSystem* InContentSubSystem);
     bool SaveVersionsToPlayFab(const PlayFabServerPtr& InPlayFabAPI);
 
-    bool DownloadVersionsFromPlayFab(const PlayFabClientPtr& InPlayFabAPI, FDescriptionVersions& OutVersions);
+    bool DownloadVersionsFromPlayFab(const PlayFabClientPtr& InPlayFabAPI, FGameVersion& OutVersions);
     
     struct FServerTag
     {

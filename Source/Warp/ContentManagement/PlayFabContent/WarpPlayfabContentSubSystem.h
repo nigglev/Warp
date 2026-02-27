@@ -48,19 +48,21 @@ public:
 
 	UContentFSM* GetContentFSM() const {return ContentFSM_;}
 	ERoleType GetRoleType() const {return RoleType_;}
-	FDescriptionVersions GetGameVersionFromDataSource();
+	TMap<FName, FString> GetDataToSaveJson() const {return DataToSaveJson_;}
+	bool IsSaveContentToPlayFab() const {return bSaveContentToPlayFab_;}
+	FGameVersion GetGameVersionFromDataSource();
 
-	bool WriteGameVersionToDataSource(const FDescriptionVersions& InGameVersion);
+	bool WriteGameVersionToDataSource(const FGameVersion& InGameVersion);
 	bool WriteDescriptionToDataSourceFromJson(const FString& InDescriptionName, const FString& InDescriptionJson);
 	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
+
+	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 	
 	UFUNCTION()
 	bool IsContentLoaded() const { return bContentLoaded_; }
-
 	void OnContentCheckedAndLoaded(bool InContentLoaded);
-	
+	void OnSaveDone(bool InSaveSuccess);
 	FOnUnitsLoaded OnContentLoaded;
-	
 
 	template<typename Descr>
 	const Descr* GetDescription(FName InDescriptionName)
@@ -109,17 +111,24 @@ protected:
 	void OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult);
 	FString GetGameDataSourceFilePath() const;
 
+	FGameVersion UpdateGameVersion(FName InNewDescriptionName, int32 InNewDescriptionVersion);
 	bool UpdateCachedGameData();
+
+	static bool TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason = nullptr); 
 	ERoleType GetCurrentRoleType() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
+	TMap<FName, FString> DataToSaveJson_;
 
 	UPROPERTY()
 	UContentFSM* ContentFSM_ = nullptr;
 	ERoleType RoleType_ = ERoleType::NotSet;
-	bool bAreDescriptionsRead_ = false;
-	
-	FString VersionsFileName = TEXT("DescriptionVersions.json");
+
+	bool bSaveContentToPlayFab_ = false;
 	bool bContentLoaded_ = false;
+	
+	FString GameVersionFileName = TEXT("DescriptionVersions.json");
+	
 };
+
 

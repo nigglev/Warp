@@ -4,6 +4,7 @@
 #include "LoginState.h"
 
 #include "BaseState.h"
+#include "SaveState.h"
 #include "UpdateState.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayFabContentExtension.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
@@ -54,18 +55,36 @@ void ULoginState::OnLoginResult(bool InResult)
 {
 	if (InResult)
 	{
-		RETURN_ON_FAIL(ALoginState, GetWorld());
-		UContentFSM* FSM = GetPlayfabContentSubsystem()->GetContentFSM();
-		RETURN_ON_FAIL(ALoginState, FSM);
-		UWarpSwitchData WarpSwitchData;
-		WarpSwitchData.ServerAPI = ServerAPI_;
-		WarpSwitchData.ClientAPI = ClientAPI_;
-		FSM->Switch(NewObject<UUpdateState>(GetPlayfabContentSubsystem()), &WarpSwitchData);
-		
+		bool bIsSave = GetPlayfabContentSubsystem()->IsSaveContentToPlayFab();
+		if (bIsSave)
+			SwitchToSaveState();
+		else
+			SwitchToUpdateState();
 	}
 
 	else
 	{
 		GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
 	}
+}
+
+void ULoginState::SwitchToUpdateState()
+{
+	UContentFSM* FSM = GetPlayfabContentSubsystem()->GetContentFSM();
+	RETURN_ON_FAIL(ALoginState, FSM);
+	UWarpSwitchData WarpSwitchData;
+	WarpSwitchData.ServerAPI = ServerAPI_;
+	WarpSwitchData.ClientAPI = ClientAPI_;
+	FSM->Switch(NewObject<UUpdateState>(FSM), &WarpSwitchData);
+}
+
+void ULoginState::SwitchToSaveState()
+{
+	UContentFSM* FSM = GetPlayfabContentSubsystem()->GetContentFSM();
+	RETURN_ON_FAIL(ALoginState, FSM);
+	UWarpSwitchData WarpSwitchData;
+	WarpSwitchData.ServerAPI = ServerAPI_;
+	WarpSwitchData.ClientAPI = ClientAPI_;
+	WarpSwitchData.DescriptionsToSaveJson = GetPlayfabContentSubsystem()->GetDataToSaveJson();
+	FSM->Switch(NewObject<USaveState>(FSM), &WarpSwitchData);
 }

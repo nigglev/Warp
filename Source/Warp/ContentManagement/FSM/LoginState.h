@@ -30,6 +30,8 @@ public:
 protected:
 	bool LoginToPlayFab();
 	void OnLoginResult(bool InResult);
+	void SwitchToUpdateState();
+	void SwitchToSaveState();
 
 	struct FServerTag
 	{

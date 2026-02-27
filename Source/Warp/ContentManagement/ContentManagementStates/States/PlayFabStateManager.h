@@ -10,7 +10,7 @@
 
 #include "PlayFabStateManager.generated.h"
 
-struct FDescriptionVersions;
+struct FGameVersion;
 class UWarpPlayfabContentSubSystem;
 enum class EPlayFabContentStates : uint8;
 /**
@@ -18,8 +18,8 @@ enum class EPlayFabContentStates : uint8;
  */
 struct WARP_API FPlayFabStateManagerData
 {
-	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> Versions;
-	TUniquePtr<FUStructDescriptionReader<FDescriptionVersions>> OldVersions;
+	TUniquePtr<FUStructDescriptionReader<FGameVersion>> Versions;
+	TUniquePtr<FUStructDescriptionReader<FGameVersion>> OldVersions;
 	
 	TArray<TUniquePtr<FDescriptionReaderBase>> DescriptionReaders;
 	TUniquePtr<FDescriptionReaderBase> CurrentDescriptionReader;
@@ -52,7 +52,7 @@ protected:
 	void HandleFinished(FPlayFabStateManagerData& InData);
 
 	
-	void GetOutdatedDescriptions(const FDescriptionVersions& LatestVersions, const FDescriptionVersions& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated);
+	void GetOutdatedDescriptions(const FGameVersion& LatestVersions, const FGameVersion& CurrentVersions, TArray<TUniquePtr<FDescriptionReaderBase>>& OutOutdated);
 	static void StateChangedLog(EPlayFabContentStates InOldState, EPlayFabContentStates InNewState);
 
 	FPlayFabStateManagerData ContextData_;

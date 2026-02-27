@@ -35,5 +35,5 @@ protected:
 	bool UpdateContent(const TArray<FString>& InContentToUpdate);
 
 	PlayFabClientPtr ClientAPI_ = nullptr;
-	FDescriptionVersions PlayFabVersion_;
+	FGameVersion PlayFabVersion_;
 };
