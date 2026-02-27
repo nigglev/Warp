@@ -185,6 +185,20 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 		
 		if (Current.Step.Coord == InEnd)
 		{
+			if (InEndRotation.IsSet())
+			{
+				float RotationDist = HexMath::GetRotationDiff(Current.Step.Rotation, InEndRotation.GetValue()) * InRotationCost;
+				float RestDist = InMaxDistance - Current.Step.Distance;
+				if (RestDist < RotationDist)
+				{
+					if (InLog)
+					{
+						UE_LOG(HexPathfinderLog, Log, TEXT("End Rotation is too far!"));
+					}
+					return false;
+				}
+			}
+			
 			// Восстановление пути
 			FPathNode C = Current.Step;
 			OutPath.Add(C);

@@ -9,6 +9,8 @@
 #include "Warp/Utils/RepAxialCoord.h"
 #include "PlacePointer.generated.h"
 
+class ABaseUnitActor;
+
 UCLASS()
 class WARP_API APlacePointer : public AActor
 {
@@ -19,16 +21,18 @@ public:
 	APlacePointer();
 	
 	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float InDeltaTime) override;
 	
 	HexMath::FPathNode GetPathNode() const { return PathNode_; }
-	void SetPathNode(const HexMath::FPathNode& InPathNode) { PathNode_ = InPathNode; }
+	
+	void Init(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit);
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	
+	void TryChangeAngle();
+	void UpdateRotation(float InDelta);
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Rotate Parameters")
 	float DeadZone_ = 30;
@@ -48,4 +52,7 @@ protected:
 	FAxialAngle AxialAngle_;
 	
 	HexMath::FPathNode PathNode_;
+	
+	UPROPERTY()
+	ABaseUnitActor* ActiveUnit_;
 };

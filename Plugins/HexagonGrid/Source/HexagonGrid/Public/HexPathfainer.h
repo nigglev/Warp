@@ -4,6 +4,8 @@
 
 namespace HexMath
 {
+	HEXAGONGRID_API int8 GetRotationDiff(int8 A, int8 B);
+	
 	struct HEXAGONGRID_API FPathNode
 	{
 		FAxialCoord Coord;

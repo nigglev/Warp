@@ -234,7 +234,7 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 			PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
 			RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 		
-			PlacePointer_->SetPathNode(Path.Last());
+			PlacePointer_->Init(Path.Last(), Unit);
 		}
 	}
 }

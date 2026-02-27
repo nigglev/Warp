@@ -5,6 +5,8 @@
 
 #include "MGLogs.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
+#include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(APlacePointerLog, Log, All);
 
@@ -24,19 +26,34 @@ APlacePointer::APlacePointer()
 	ArrowMesh_->SetupAttachment(Root_);
 }
 
-// Called when the game starts or when spawned
-void APlacePointer::BeginPlay()
+void APlacePointer::Init(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit)
 {
-	Super::BeginPlay();
+	RETURN_ON_FAIL(APlacePointerLog, InActiveUnit != nullptr);
 	
+	PathNode_ = InPathNode;
+	ActiveUnit_ = InActiveUnit;
+	
+	AxialAngle_.R = InPathNode.Rotation;
+	
+	const FRotator WorldRot(0.f, AxialAngle_.GetYaw(), 0.f);
+	SetActorRotation(WorldRot);
 }
 
-// Called every frame
-void APlacePointer::Tick(float DeltaTime)
+void APlacePointer::Tick(float InDeltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(InDeltaTime);
 	
 	RETURN_ON_FAIL(APlacePointerLog, !GetWorld()->IsNetMode(NM_DedicatedServer));
+	
+	TryChangeAngle();
+	
+	UpdateRotation(InDeltaTime);
+}
+
+void APlacePointer::TryChangeAngle()
+{
+	RETURN_ON_FAIL(APlacePointerLog, IsValid(ActiveUnit_));
+	RETURN_ON_FAIL(APlacePointerLog, ActiveUnit_->GetDescription() != nullptr);
 	
 	auto PC = Cast<ADefaultPlayerController>(GetWorld()->GetFirstPlayerController());
 	
@@ -52,18 +69,30 @@ void APlacePointer::Tick(float DeltaTime)
 		if (Dist > DeadZone_)
 		{
 			const float Yaw = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X));
-			AxialAngle_.SetByYaw(Yaw);
+			
+			int8 DirAngle = FAxialAngle::GetDirectionAngle(Yaw);
+			
+			float RotationDist = HexMath::GetRotationDiff(PathNode_.Rotation, DirAngle) * ActiveUnit_->GetDescription()->RotationCost;
+			
+			float RestDist = ActiveUnit_->GetDescription()->MaxRoundDistance - PathNode_.Distance;
+			
+			if (RestDist >= RotationDist)
+			{
+				AxialAngle_.SetByYaw(Yaw);
+			}
 		}
 	}
-	
+}
+
+void APlacePointer::UpdateRotation(float InDelta)
+{
 	float CurrentYaw = CurrentYaw = FMath::UnwindDegrees(GetActorRotation().Yaw);
 	float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
 	
 	if (!FMath::IsNearlyEqual(CurrentYaw, AxialAngle_.GetYaw()))
 	{
-		const float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotateSpeed_ * DeltaTime);
+		const float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotateSpeed_ * InDelta);
 		const FRotator WorldRot(0.f, NewYaw, 0.f);
 		SetActorRotation(WorldRot);
 	}
 }
-
