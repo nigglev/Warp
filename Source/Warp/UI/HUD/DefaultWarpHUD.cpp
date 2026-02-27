@@ -5,11 +5,13 @@
 
 #include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/GameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/UI/CombatUI/CombatUIWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultWarpHUDLog, Log, All);
 
@@ -42,6 +44,14 @@ void ADefaultWarpHUD::BeginPlay()
 		FInputModeGameAndUI Mode;
 		Mode.SetHideCursorDuringCapture(false);
 		PC->SetInputMode(Mode);
+	}
+	
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidgetClass_);
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_ == nullptr);
+	MainWidget_ = CreateWidget<UCombatUIWidget>(PC, MainWidgetClass_);
+	if (MainWidget_)
+	{
+		MainWidget_->AddToViewport(0);
 	}
 }
 

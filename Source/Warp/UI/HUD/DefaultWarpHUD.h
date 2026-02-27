@@ -8,6 +8,7 @@
 #include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultWarpHUD.generated.h"
 
+class UCombatUIWidget;
 class ABaseUnitActor;
 class UEndTurnWidget;
 class AWarpGameState;
@@ -41,4 +42,10 @@ protected:
 	bool bShowDebugHUD_ = false;
 	
 	TArray<HexMath::FPathNode> InfluenceZone_;
+	
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UCombatUIWidget> MainWidgetClass_;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UCombatUIWidget> MainWidget_;
 };
