@@ -49,6 +49,8 @@ public:
 	FOnClientPlayerControllerValid OnDefaultPlayerControllerValid;
 	
 	bool GetMouseRayPlaneZIntersection(float PlaneZ, FVector& OutPoint) const;
+	
+	void ActiveUnitStartMove();
 
 protected:
 	virtual void BeginPlay() override;

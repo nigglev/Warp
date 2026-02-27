@@ -231,10 +231,17 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 				
 		if (!Path.IsEmpty())
 		{
-			PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
-			RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
+			if (PlacePointer_ == nullptr)
+			{
+				PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
+				RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
+			}
 		
-			PlacePointer_->Init(Path.Last(), Unit);
+			PlacePointer_->Set(Path.Last(), Unit);
+		}
+		else if (PlacePointer_ != nullptr)
+		{
+			PlacePointer_->FixRotation();
 		}
 	}
 }
@@ -242,18 +249,34 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 void ADefaultPlayerController::OnSelectCellStopAction(const FInputActionValue& Value)
 {
 	MG_LOG(ADefaultPlayerControllerLog,  TEXT("Value: %s"), *Value.ToString());
-	if (PlacePointer_)
-	{
-		ServerOrderMove(PlacePointer_->GetPathNode().Coord, PlacePointer_->GetAxialAngle());
+	// if (PlacePointer_)
+	// {
+	// 	ServerOrderMove(PlacePointer_->GetPathNode().Coord, PlacePointer_->GetAxialAngle());
+	// 	
+	// 	PlacePointer_->Destroy();
+	// 	PlacePointer_ = nullptr;
+	// 	
+	// 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	// 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+	// 	
+	// 	GridWorldSubsystem->DropPathSelections();
+	// }
+}
+
+void ADefaultPlayerController::ActiveUnitStartMove()
+{
+	if (PlacePointer_ == nullptr)
+		return;
+	
+	ServerOrderMove(PlacePointer_->GetPathNode().Coord, PlacePointer_->GetAxialAngle());
 		
-		PlacePointer_->Destroy();
-		PlacePointer_ = nullptr;
+	PlacePointer_->Destroy();
+	PlacePointer_ = nullptr;
 		
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-		RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
 		
-		GridWorldSubsystem->DropPathSelections();
-	}
+	GridWorldSubsystem->DropPathSelections();
 }
 
 void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)

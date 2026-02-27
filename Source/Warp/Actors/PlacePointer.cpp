@@ -3,6 +3,7 @@
 
 #include "PlacePointer.h"
 
+#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
@@ -26,17 +27,50 @@ APlacePointer::APlacePointer()
 	ArrowMesh_->SetupAttachment(Root_);
 }
 
-void APlacePointer::Init(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit)
+void APlacePointer::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	RingMat_ = Mesh_->CreateDynamicMaterialInstance(0, Mesh_->GetMaterial(0));
+	ArrowMat_ = ArrowMesh_->CreateDynamicMaterialInstance(0, ArrowMesh_->GetMaterial(0));
+	
+	FixRotation(false);
+}
+
+void APlacePointer::Set(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit)
 {
 	RETURN_ON_FAIL(APlacePointerLog, InActiveUnit != nullptr);
 	
-	PathNode_ = InPathNode;
-	ActiveUnit_ = InActiveUnit;
+	if (PathNode_.Coord != InPathNode.Coord)
+	{
+		PathNode_ = InPathNode;
+		ActiveUnit_ = InActiveUnit;
 	
-	AxialAngle_.R = InPathNode.Rotation;
+		AxialAngle_.R = InPathNode.Rotation;
 	
-	const FRotator WorldRot(0.f, AxialAngle_.GetYaw(), 0.f);
-	SetActorRotation(WorldRot);
+		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(PathNode_.Coord);
+		RETURN_ON_FAIL(APlacePointerLog, PosOpt.IsSet());
+	
+		const FRotator WorldRot(0.f, AxialAngle_.GetYaw(), 0.f);
+	
+		SetActorLocationAndRotation(PosOpt.GetValue(), WorldRot);
+		
+		FixRotation(false);
+		RingMat_->SetVectorParameterValue(TEXT("BaseColor"), StartColor_);
+	}
+	else
+		FixRotation(!bRotationFixed_);
+}
+
+void APlacePointer::FixRotation(bool InFixed)
+{
+	bRotationFixed_ = InFixed;
+	RingMat_->SetVectorParameterValue(TEXT("BaseColor"), bRotationFixed_ ? FixedColor_ : StartColor_);
+}
+
+void APlacePointer::FixRotation()
+{
+	FixRotation(true);
 }
 
 void APlacePointer::Tick(float InDeltaTime)
@@ -45,9 +79,12 @@ void APlacePointer::Tick(float InDeltaTime)
 	
 	RETURN_ON_FAIL(APlacePointerLog, !GetWorld()->IsNetMode(NM_DedicatedServer));
 	
-	TryChangeAngle();
+	if (!bRotationFixed_)
+	{
+		TryChangeAngle();
 	
-	UpdateRotation(InDeltaTime);
+		UpdateRotation(InDeltaTime);
+	}
 }
 
 void APlacePointer::TryChangeAngle()

@@ -74,7 +74,7 @@ void UCombatUIWidget::HandleNextTurnClicked()
 	{
 		if (auto* MyPC = Cast<ADefaultPlayerController>(PC))
 		{
-			//MyPC->ServerEndTurn();
+			MyPC->ActiveUnitStartMove();
 		}
 	}
 }
