@@ -28,8 +28,9 @@ void ADefaultWarpHUD::PostInitializeComponents()
 	MG_COND_ERROR(ADefaultWarpHUDLog, GS == nullptr, TEXT("Warp Game State Invalid"));
 	if (GS != nullptr)
 	{
-		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
 		GS->OnMatchStateChanged.AddUObject(this, &ADefaultWarpHUD::OnMatchStateChanged);
+		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
+		GS->OnUnitStartMoving.AddUObject(this, &ADefaultWarpHUD::OnUnitStartMoving);
 	}
 }
 
@@ -124,17 +125,12 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	{
 		return;
 	}
-	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	
+		
 	if (InPrevActiveUnit != nullptr)
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s] -> %s[%s]"),
 		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialCoord().ToString(),
 		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
-	
-		uint32 PrevUnitId = InPrevActiveUnit->GetUniqueID();
-		GridWorldSubsystem->RemoveInfluence(PrevUnitId);
 	}
 	else
 	{
@@ -142,17 +138,36 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
 	}
 	
-	uint32 UnitId = InNewActiveUnit->GetUniqueID();
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	
+	if (InfluenceZoneId_.IsSet())
+		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+	
+	InfluenceZoneId_ = InNewActiveUnit->GetUniqueID();
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
 	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
 	
 	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
 	
-	GridWorldSubsystem->SelectInfluence(UnitId, AC, AA.R, 
+	GridWorldSubsystem->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, 
 		UnitDescription->MaxRoundDistance, 
 		UnitDescription->MoveCost, 
 		UnitDescription->RotationCost, 
 		&InfluenceZone_);
+	
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
+	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);
+}
+
+void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
+{
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	
+	if (InfluenceZoneId_.IsSet())
+		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+	
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
+	MainWidget_->OnUnitStartMoving(InNewActiveUnit);
 }
 

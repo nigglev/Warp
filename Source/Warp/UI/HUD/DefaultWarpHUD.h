@@ -38,10 +38,13 @@ protected:
 	
 	void OnMatchStateChanged(FName InMatchState);
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
+	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
 	
 	bool bShowDebugHUD_ = false;
 	
 	TArray<HexMath::FPathNode> InfluenceZone_;
+	
+	TOptional<uint32> InfluenceZoneId_;
 	
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UCombatUIWidget> MainWidgetClass_;

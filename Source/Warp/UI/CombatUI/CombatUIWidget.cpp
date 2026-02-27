@@ -47,6 +47,13 @@ void UCombatUIWidget::NativeConstruct()
 				? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 		}
 	}
+	
+	if (StartButton)
+	{
+		StartButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
+	ShowCombatUI(true);
 }
 
 void UCombatUIWidget::HandleStartClicked()
@@ -81,18 +88,15 @@ void UCombatUIWidget::HandleReturnToCampaignMapClicked()
 
 void UCombatUIWidget::ShowCombatUI(bool InShowCombatUI)
 {
-	if (StartButton)
-	{
-		StartButton->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	
 	if (NextTurnButton)
 	{
-		NextTurnButton->SetVisibility(ESlateVisibility::Visible);
+		NextTurnButton->SetVisibility(InShowCombatUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
-	if (ActionPointsBox)
-	{
-	    ActionPointsBox->SetVisibility(ESlateVisibility::Visible);
-	}
+	// if (ActionPointsBox)
+	// {
+	//     ActionPointsBox->SetVisibility(ESlateVisibility::Visible);
+	// }
 }
 
 void UCombatUIWidget::SetActionPoints(int32 CurrentPoints, int32 MaxPoints)
@@ -111,6 +115,16 @@ void UCombatUIWidget::SetActionPoints(int32 CurrentPoints, int32 MaxPoints)
 	}
 
 	UpdateActionPointFill(CurrentPoints);
+}
+
+void UCombatUIWidget::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit)
+{
+	ShowCombatUI(true);
+}
+
+void UCombatUIWidget::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
+{
+	ShowCombatUI(false);
 }
 
 void UCombatUIWidget::RebuildActionPoints(int32 MaxPoints)

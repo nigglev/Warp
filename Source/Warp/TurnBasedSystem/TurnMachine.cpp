@@ -118,11 +118,18 @@ void UTurnMachine::OnRep_TurnState()
     MG_LOG(ATurnMachineLog, TEXT("TurnState: %s"), *TurnState_.ToString());
     CheckLoaded();
     
+    ABaseUnitActor* NewActiveUnit = GetActiveUnit();
+    RETURN_ON_FAIL(ATurnMachineLog, NewActiveUnit);
+    RETURN_ON_FAIL(ATurnMachineLog, NewActiveUnit->IsLoaded());
+    
     if (TurnState_.Phase == ETurnPhase::WaitingForInput)
     {
-        ABaseUnitActor* NewActiveUnit = GetActiveUnit();
         GetOwner()->OnUnitSelected.Broadcast(NewActiveUnit, PrevActiveUnit_);
         PrevActiveUnit_ = NewActiveUnit;
+    }
+    else
+    {
+        GetOwner()->OnUnitStartMoving.Broadcast(NewActiveUnit);        
     }
 }
 
