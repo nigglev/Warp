@@ -52,6 +52,26 @@ void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 
 	ChunkGrid_->FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, OutPath, InMoveCost, InRotationCost, InDrawHexes);
 }
 
+void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation,
+	const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation, float InMaxDistance, float InMoveCost,
+	float InRotationCost, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const
+{
+	static TArray<HexMath::FPathNode> Path;
+	Path.Reset();
+	
+	FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, Path, InMoveCost, InRotationCost, InDrawHexes);
+	
+	for (HexMath::FPathNode AC : Path)
+	{
+		TOptional<FVector> TargetPosOpt = AxialCellToWorldCoord(AC.Coord, Z);
+		if (TargetPosOpt.IsSet())
+		{
+			OutPath.Add(TargetPosOpt.GetValue());
+		}
+	}
+	Path.Reset();
+}
+
 void UHexGridWorldSubsystem::DropPathSelections()
 {
 	ChunkGrid_->DropPathSelections();

@@ -37,13 +37,17 @@ public:
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 	
 	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
-	bool IsMoving() const { return !Path_.IsEmpty() || bRotating_; }
+	
+	bool IsMoving() const { return bOnMove_; }
 	
 	const FUnitDescription* GetDescription() const;
 	
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
+	
+	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
+	EMoveState MoveToTarget(float InDelta, const FVector& Target);
 	
 	bool UpdateRotation(float InDelta, float InTargetYaw);
 	
@@ -69,9 +73,8 @@ protected:
 	bool bOnMove_ = false;
 	
 	TArray<FVector> Path_;
+	int32 PathIndex_ = 0;
 	
-	bool bRotating_ = false;	
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
