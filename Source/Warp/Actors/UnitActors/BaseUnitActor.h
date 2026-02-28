@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
 #include "UnitCharacteristics/UnitSize.h"
 #include "Warp/Utils/AxialAngle.h"
@@ -20,6 +21,7 @@ class WARP_API ABaseUnitActor : public AActor
 public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float InDelta) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -36,6 +38,10 @@ public:
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
 	
+	bool SetCirclePath(TArray<HexMath::FPathNode>&& InPath);
+	
+	void SetLastRotation(FAxialAngle InAxialAngle);
+	
 	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 	
 	bool IsMoving() const { return bOnMove_; }
@@ -50,6 +56,8 @@ protected:
 	EMoveState MoveToTarget(float InDelta, const FVector& Target);
 	
 	bool UpdateRotation(float InDelta, float InTargetYaw);
+	
+	void SetOnStartPathPoint();
 	
 	UPROPERTY(EditDefaultsOnly, Category="Move")
 	float MoveSpeed_ = 600.f;
@@ -72,8 +80,11 @@ protected:
 	UPROPERTY(Replicated)
 	bool bOnMove_ = false;
 	
-	TArray<FVector> Path_;
+	TArray<HexMath::FPathNode> Path_;
 	int32 PathIndex_ = 0;
+	
+	bool bCircle_ = false;
+	FTimerHandle SetOnStartTimerHandle_;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;

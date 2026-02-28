@@ -5,6 +5,7 @@
 
 #include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
+#include "UnitActors/UnitActorFactory.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
@@ -37,16 +38,19 @@ void APlacePointer::OnConstruction(const FTransform& Transform)
 	FixRotation(false);
 }
 
-void APlacePointer::Set(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit)
+void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InActiveUnit)
 {
+	RETURN_ON_FAIL(APlacePointerLog, !InPath.IsEmpty());
 	RETURN_ON_FAIL(APlacePointerLog, InActiveUnit != nullptr);
 	
-	if (PathNode_.Coord != InPathNode.Coord)
-	{
-		PathNode_ = InPathNode;
-		ActiveUnit_ = InActiveUnit;
+	HexMath::FPathNode LastNode = InPath.Last();
 	
-		AxialAngle_.R = InPathNode.Rotation;
+	if (PathNode_.Coord != LastNode.Coord)
+	{
+		PathNode_ = LastNode;
+		ActiveUnit_ = InActiveUnit;
+		
+		AxialAngle_.R = LastNode.Rotation;
 	
 		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(PathNode_.Coord);
 		RETURN_ON_FAIL(APlacePointerLog, PosOpt.IsSet());
@@ -57,6 +61,12 @@ void APlacePointer::Set(const HexMath::FPathNode& InPathNode, ABaseUnitActor* In
 		
 		FixRotation(false);
 		RingMat_->SetVectorParameterValue(TEXT("BaseColor"), StartColor_);
+		
+		if (Ghost_ == nullptr)
+		{
+			Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), InPath[0].Coord, this, true);
+		}
+		Ghost_->SetCirclePath(MoveTemp(InPath));
 	}
 	else
 		FixRotation(!bRotationFixed_);
@@ -85,6 +95,14 @@ void APlacePointer::Tick(float InDeltaTime)
 	
 		UpdateRotation(InDeltaTime);
 	}
+}
+
+void APlacePointer::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (Ghost_ != nullptr)
+		Ghost_->Destroy();
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void APlacePointer::TryChangeAngle()
@@ -131,5 +149,8 @@ void APlacePointer::UpdateRotation(float InDelta)
 		const float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotateSpeed_ * InDelta);
 		const FRotator WorldRot(0.f, NewYaw, 0.f);
 		SetActorRotation(WorldRot);
+		
+		if (Ghost_ != nullptr)
+			Ghost_->SetLastRotation(AxialAngle_);
 	}
 }

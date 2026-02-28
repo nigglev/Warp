@@ -14,12 +14,12 @@ UGameAssets::UGameAssets(const FObjectInitializer& ObjectInitializer)
 	SectionName = TEXT("Warp Game Assets");
 }
 
-TSubclassOf<ABaseUnitActor> UGameAssets::GetUnitActorClass(const FName& InUnitType) const
+TSubclassOf<ABaseUnitActor> UGameAssets::GetUnitActorClass(const FName& InUnitType, bool InGhost) const
 {
-	UDataTable* DT = UnitActorsTable_.LoadSynchronous();
+	UDataTable* DT = InGhost ? UnitGhostActorsTable_.LoadSynchronous() : UnitActorsTable_.LoadSynchronous();;
 	RETURN_ON_FAIL_NULL(AGameAssetsLog, DT != nullptr);
 	
-	FUnitActorsTableRows* Row = UnitActorsTable_->FindRow<FUnitActorsTableRows>(InUnitType, FString(__FUNCDNAME__));
+	FUnitActorsTableRows* Row = DT->FindRow<FUnitActorsTableRows>(InUnitType, FString(__FUNCDNAME__));
 	RETURN_ON_FAIL_NULL_T(AGameAssetsLog, Row != nullptr, TEXT("Couldn't find Actor Class for %s"), *InUnitType.ToString());
 	
 	return Row->UnitActor.LoadSynchronous();

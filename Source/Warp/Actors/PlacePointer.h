@@ -27,11 +27,14 @@ public:
 	
 	HexMath::FPathNode GetPathNode() const { return PathNode_; }
 	
-	void Set(const HexMath::FPathNode& InPathNode, ABaseUnitActor* InActiveUnit);
+	void Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InActiveUnit);
 	
 	void FixRotation();
 	
-	FAxialAngle GetAxialAngle() const { return AxialAngle_; }	
+	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 
 protected:
 	
@@ -75,4 +78,7 @@ protected:
 	ABaseUnitActor* ActiveUnit_;
 	
 	bool bRotationFixed_ = false;
+	
+	UPROPERTY()
+	ABaseUnitActor* Ghost_;
 };

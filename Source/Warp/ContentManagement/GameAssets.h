@@ -23,9 +23,12 @@ public:
 		return GetMutableDefault<UGameAssets>();
 	}
 	
-	TSubclassOf<ABaseUnitActor> GetUnitActorClass(const FName& InUnitType) const;
+	TSubclassOf<ABaseUnitActor> GetUnitActorClass(const FName& InUnitType, bool InGhost = false) const;
 	
 protected:
 	UPROPERTY(Config, EditAnywhere, Category="Data")
 	TSoftObjectPtr<UDataTable> UnitActorsTable_;
+	
+	UPROPERTY(Config, EditAnywhere, Category="Data")
+	TSoftObjectPtr<UDataTable> UnitGhostActorsTable_;
 };

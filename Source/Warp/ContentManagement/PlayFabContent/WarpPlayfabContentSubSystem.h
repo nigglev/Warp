@@ -33,6 +33,8 @@ public:
 	
 	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
 	
+	static const FGameplayDescription* GetGameplayDescription(const UObject* WorldContextObject); 
+	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 	bool WriteDescriptionToDataSource(const FName& InDescriptionName);
 	void OnDescriptionSavingResult(bool bSucceeded);
@@ -65,7 +67,7 @@ public:
 	}
 	
 	template<typename Descr>
-	const FGameplayDescription* GetFirstDescription()
+	const Descr* GetFirstDescription()
 	{
 		const TUniquePtr<FBaseDescriptions>* BucketPtr = Descriptions_.Find(Descr::DescrName);
 		ensureMsgf(BucketPtr && BucketPtr->IsValid(), TEXT("Descriptions bucket '%s' is missing or null."),

@@ -1,6 +1,7 @@
 {
 	"items": [
 		{
+			"ghostDelayTime": 0.5,
 			"defaultPlayerUnitType": "Corvette",
 			"campaignMapLayerCount": 4,
 			"campaignMapNodeInLayerCountMin": 1,

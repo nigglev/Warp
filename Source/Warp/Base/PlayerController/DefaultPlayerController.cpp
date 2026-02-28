@@ -237,7 +237,7 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 				RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 			}
 		
-			PlacePointer_->Set(Path.Last(), Unit);
+			PlacePointer_->Set(MoveTemp(Path), Unit);
 		}
 		else if (PlacePointer_ != nullptr)
 		{

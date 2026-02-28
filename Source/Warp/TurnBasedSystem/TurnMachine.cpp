@@ -40,10 +40,7 @@ void UTurnMachine::CreateUnits()
     
     GetOwner()->OnUnitArrived.AddUObject(this, &UTurnMachine::OnUnitArrived);
     
-    UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = UWarpPlayfabContentSubSystem::Get(this);
-    RETURN_ON_FAIL(ATurnMachineLog, PlayfabContentSubSystem);
-	
-    const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
+    const FGameplayDescription* Descr = UWarpPlayfabContentSubSystem::GetGameplayDescription(this);
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
     for(int i = 0; i < 1; i++)
