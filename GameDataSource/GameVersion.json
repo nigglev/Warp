@@ -1,13 +1,13 @@
 {
-	"version": 14,
+	"version": 16,
 	"items": [
 		{
 			"descriptionName": "GameplayDescriptions",
-			"version": 6
+			"version": 7
 		},
 		{
 			"descriptionName": "UnitDescriptions",
-			"version": 8
+			"version": 9
 		}
 	]
 }

@@ -3,27 +3,39 @@
 		{
 			"unitSize": "Small",
 			"unitSpeed": 1,
+			"maxRoundDistance": 50,
+			"moveCost": 10,
+			"rotationCost": 20,
 			"unitMaxAP": 4,
 			"name": "corvette"
 		},
 		{
 			"unitSize": "Small",
 			"unitSpeed": 1,
+			"maxRoundDistance": 50,
+			"moveCost": 10,
+			"rotationCost": 20,
 			"unitMaxAP": 4,
 			"name": "corvette_black"
 		},
 		{
 			"unitSize": "Small",
 			"unitSpeed": 1,
+			"maxRoundDistance": 50,
+			"moveCost": 10,
+			"rotationCost": 20,
 			"unitMaxAP": 4,
 			"name": "corvette_blue"
 		},
 		{
 			"unitSize": "Small",
 			"unitSpeed": 1,
+			"maxRoundDistance": 50,
+			"moveCost": 10,
+			"rotationCost": 20,
 			"unitMaxAP": 4,
 			"name": "corvette_green"
 		}
 	],
-	"version": 8
+	"version": 9
 }
