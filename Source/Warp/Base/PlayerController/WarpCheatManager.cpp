@@ -4,13 +4,13 @@
 #include "WarpCheatManager.h"
 
 #include "MGLogs.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(WarpCheatManagerLog, Log, All);
 
 void UWarpCheatManager::SaveDescriptionToPlayFab(const FString& InDescriptionName)
 {
-	auto CS = UWarpPlayfabContentSubSystem::Get(this);
+	auto CS = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
 
 	if (InDescriptionName.IsEmpty())
@@ -22,7 +22,7 @@ void UWarpCheatManager::SaveDescriptionToPlayFab(const FString& InDescriptionNam
 
 void UWarpCheatManager::WriteDescriptionToSource(const FString& InDescriptionName)
 {
-	auto CS = UWarpPlayfabContentSubSystem::Get(this);
+	auto CS = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
 	
 	CS->WriteDescriptionToDataSource(FName(*InDescriptionName));

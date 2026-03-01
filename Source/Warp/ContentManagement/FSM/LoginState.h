@@ -13,7 +13,7 @@
 #include "UObject/Object.h"
 #include "LoginState.generated.h"
 
-class UWarpPlayfabContentSubSystem;
+class UWarpContentSubSystem;
 class UPlayFabLoginInfo;
 /**
  * 

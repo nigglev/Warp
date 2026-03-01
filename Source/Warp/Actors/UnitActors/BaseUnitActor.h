@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
-#include "UnitCharacteristics/UnitSize.h"
 #include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
@@ -58,15 +57,6 @@ protected:
 	bool UpdateRotation(float InDelta, float InTargetYaw);
 	
 	void SetOnStartPathPoint();
-	
-	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float MoveSpeed_ = 600.f;
-	
-	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float RotateSpeed_ = 360;
-
-	UPROPERTY(EditDefaultsOnly, Category="Move")
-	float AcceptanceRadius_ = 25.f;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_;

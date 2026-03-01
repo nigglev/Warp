@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "WarpPlayfabContentSubSystem.h"
+#include "WarpContentSubSystem.h"
 #include "MGLogs.h"
 #include "Core/PlayFabClientAPI.h"
 #include "Dom/JsonObject.h"
@@ -14,12 +14,12 @@
 
 DEFINE_LOG_CATEGORY_STATIC(AContentLog, Log, All);
 
-UWarpPlayfabContentSubSystem::UWarpPlayfabContentSubSystem()
+UWarpContentSubSystem::UWarpContentSubSystem()
 {   
    
 }
 
-UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* WorldContextObject)
+UWarpContentSubSystem* UWarpContentSubSystem::Get(const UObject* WorldContextObject)
 {
     UWorld* World = WorldContextObject->GetWorld();
     RETURN_ON_FAIL_NULL(AContentLog, World);
@@ -27,15 +27,15 @@ UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* W
     UGameInstance* GI = World->GetGameInstance();
     RETURN_ON_FAIL_NULL(AContentLog, GI);
     
-    auto Content =	GI->GetSubsystem<UWarpPlayfabContentSubSystem>();
+    auto Content =	GI->GetSubsystem<UWarpContentSubSystem>();
     RETURN_ON_FAIL_NULL(AContentLog, Content);
 
     return Content;
 }
 
-const FGameplayDescription* UWarpPlayfabContentSubSystem::GetGameplayDescription(const UObject* WorldContextObject)
+const FGameplayDescription* UWarpContentSubSystem::GetGameplayDescription(const UObject* WorldContextObject)
 {
-    UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = Get(WorldContextObject);
+    UWarpContentSubSystem* PlayfabContentSubSystem = Get(WorldContextObject);
     RETURN_ON_FAIL_NULL(AContentLog, PlayfabContentSubSystem);
 	
     const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
@@ -43,7 +43,17 @@ const FGameplayDescription* UWarpPlayfabContentSubSystem::GetGameplayDescription
     return Descr;
 }
 
-void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
+const FUnitDescription* UWarpContentSubSystem::GetUnitDescription(const UObject* WorldContextObject, FName InUnitType)
+{
+    UWarpContentSubSystem* PlayfabContentSubSystem = Get(WorldContextObject);
+    RETURN_ON_FAIL_NULL(AContentLog, PlayfabContentSubSystem);
+	
+    const FUnitDescription* Descr = PlayfabContentSubSystem->GetDescription<FUnitDescription>(InUnitType);
+    RETURN_ON_FAIL_NULL(AContentLog, Descr);
+    return Descr;
+}
+
+void UWarpContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);
 
@@ -63,13 +73,13 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     }
 }
 
-void UWarpPlayfabContentSubSystem::InitializeDescriptions()
+void UWarpContentSubSystem::InitializeDescriptions()
 {
     Descriptions_.Add(FGameplayDescription::DescrName, MakeUnique<FGameplayDescriptions>());
     Descriptions_.Add(FUnitDescription::DescrName, MakeUnique<FUnitDescriptions>());
 }
 
-FGameVersion UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource()
+FGameVersion UWarpContentSubSystem::GetGameVersionFromDataSource()
 {
     FGameVersion Versions;
     const FString FolderDir = GetGameDataSourceFilePath();
@@ -105,7 +115,7 @@ FGameVersion UWarpPlayfabContentSubSystem::GetGameVersionFromDataSource()
     return Versions;
 }
 
-bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
+bool UWarpContentSubSystem::ReadDescriptionsFromDataSource()
 {
     const FString FolderDir = GetGameDataSourceFilePath();
     RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
@@ -144,7 +154,7 @@ bool UWarpPlayfabContentSubSystem::ReadDescriptionsFromDataSource()
 }
 
 
-bool UWarpPlayfabContentSubSystem::WriteGameVersionToDataSource(const FGameVersion& InGameVersion)
+bool UWarpContentSubSystem::WriteGameVersionToDataSource(const FGameVersion& InGameVersion)
 {
     const FString FolderDir = GetGameDataSourceFilePath();
     RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
@@ -164,7 +174,7 @@ bool UWarpPlayfabContentSubSystem::WriteGameVersionToDataSource(const FGameVersi
     return true;
 }
 
-bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSourceFromJson(const FString& InDescriptionName,
+bool UWarpContentSubSystem::WriteDescriptionToDataSourceFromJson(const FString& InDescriptionName,
                                                                         const FString& InDescriptionJson)
 {   
     FBaseDescriptions* Descriptions = Descriptions_.Find(FName(*InDescriptionName))->Get();
@@ -178,7 +188,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSourceFromJson(const FS
     return true;
 }
 
-bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description)
+bool UWarpContentSubSystem::WriteDescriptionToDataSource_Internal(const FName& DescriptionName, FBaseDescriptions& Description)
 {
     const FString FolderDir = GetGameDataSourceFilePath();
     RETURN_ON_FAIL_BOOL(AContentLog, !FolderDir.IsEmpty());
@@ -198,7 +208,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource_Internal(const F
     return true;
 }
 
-bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
+bool UWarpContentSubSystem::WriteDescriptionsToDataSource()
 {
     bool bAllOk = true;
 
@@ -222,7 +232,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionsToDataSource()
     return bAllOk;
 }
 
-bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InDescriptionName)
+bool UWarpContentSubSystem::WriteDescriptionToDataSource(const FName& InDescriptionName)
 {
     RETURN_ON_FAIL_BOOL(AContentLog, InDescriptionName.IsValid());
     
@@ -242,7 +252,7 @@ bool UWarpPlayfabContentSubSystem::WriteDescriptionToDataSource(const FName& InD
 }
 
 
-bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
+bool UWarpContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescriptionName)
 {
     bool bSuccess = ReadDescriptionsFromDataSource();
     RETURN_ON_FAIL_BOOL(AContentLog, bSuccess);
@@ -296,7 +306,7 @@ bool UWarpPlayfabContentSubSystem::SaveDescriptionToPlayFab(const FName& InDescr
     return true; 
 }
 
-FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
+FString UWarpContentSubSystem::GetGameDataSourceFilePath() const
 {   
     FString FolderDir;
     if (RoleType_ == ERoleType::NotSet)
@@ -323,7 +333,7 @@ FString UWarpPlayfabContentSubSystem::GetGameDataSourceFilePath() const
     
 }
 
-FGameVersion UWarpPlayfabContentSubSystem::UpdateGameVersion(FName InNewDescriptionName, int32 InNewDescriptionVersion)
+FGameVersion UWarpContentSubSystem::UpdateGameVersion(FName InNewDescriptionName, int32 InNewDescriptionVersion)
 {
     FGameVersion Versions = GetGameVersionFromDataSource();
     Versions.UpdateContentDescriptionVersion(InNewDescriptionName.ToString(), InNewDescriptionVersion);
@@ -331,7 +341,7 @@ FGameVersion UWarpPlayfabContentSubSystem::UpdateGameVersion(FName InNewDescript
     return Versions;
 }
 
-bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
+bool UWarpContentSubSystem::UpdateCachedGameData()
 {
     ContentFSM_ = NewObject<UContentFSM>(this);
     RETURN_ON_FAIL_BOOL(AContentLog, ContentFSM_);
@@ -341,7 +351,7 @@ bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
 }
 
 
-bool UWarpPlayfabContentSubSystem::TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason)
+bool UWarpContentSubSystem::TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason)
 {
     OutVersion = 0;
     
@@ -381,7 +391,7 @@ bool UWarpPlayfabContentSubSystem::TryGetVersionFromJson(const FString& InJson, 
     return false;
 }
 
-bool UWarpPlayfabContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescriptionNames,
+bool UWarpContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescriptionNames,
     const FString& InFolderName) const
 {
     OutDescriptionNames.Reset();
@@ -408,7 +418,7 @@ bool UWarpPlayfabContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescrip
     return true;
 }
 
-bool UWarpPlayfabContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescriptionNames,
+bool UWarpContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescriptionNames,
     const TMap<FName, TUniquePtr<FBaseDescriptions>>& InDescriptionsMap) const
 {
     OutDescriptionNames.Reset();
@@ -422,7 +432,7 @@ bool UWarpPlayfabContentSubSystem::GetDescriptionNames(TArray<FName>& OutDescrip
     return true;
 }
 
-bool UWarpPlayfabContentSubSystem::GetFileJson(const FString& InFolderName, const FString& InFileName, FString& OutJson) const
+bool UWarpContentSubSystem::GetFileJson(const FString& InFolderName, const FString& InFileName, FString& OutJson) const
 {
     const FString JsonPath = FPaths::Combine(InFolderName, InFileName);
     
@@ -441,7 +451,7 @@ bool UWarpPlayfabContentSubSystem::GetFileJson(const FString& InFolderName, cons
     return true;
 }
 
-ERoleType UWarpPlayfabContentSubSystem::GetCurrentRoleType() const
+ERoleType UWarpContentSubSystem::GetCurrentRoleType() const
 {
     FLaunchContext LaunchContext = BuildLaunchContext(GetWorld());
     MG_LOG(AContentLog, TEXT("%s"), *LaunchContext.ToString());
@@ -457,14 +467,14 @@ ERoleType UWarpPlayfabContentSubSystem::GetCurrentRoleType() const
     return ERoleType::Server;
 }
 
-void UWarpPlayfabContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult)
+void UWarpContentSubSystem::OnPlayFabError(const PlayFab::FPlayFabCppError& ErrorResult)
 {
     UE_LOG(LogTemp, Error, TEXT("PlayFab error: %s"),
            *ErrorResult.GenerateErrorReport());
 }
 
 
-void UWarpPlayfabContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoaded)
+void UWarpContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoaded)
 {
     MG_COND_WARNING(AContentLog, !InContentLoaded, TEXT("Failed to load content"));
     MG_LOG(AContentLog, TEXT("InContentLoaded: %d"), InContentLoaded);
@@ -477,7 +487,7 @@ void UWarpPlayfabContentSubSystem::OnContentCheckedAndLoaded(bool InContentLoade
 }
 
 
-void UWarpPlayfabContentSubSystem::OnSaveDone(bool InSaveSuccess)
+void UWarpContentSubSystem::OnSaveDone(bool InSaveSuccess)
 {
 	MG_LOG(AContentLog, TEXT("OnSaveDone: %d"), InSaveSuccess);
 

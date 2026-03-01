@@ -6,7 +6,7 @@
 #include "JsonObjectConverter.h"
 #include "MGLogs.h"
 #include "Core/PlayFabClientAPI.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 DEFINE_LOG_CATEGORY_STATIC(AUpdateState, Log, All);
 

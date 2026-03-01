@@ -13,7 +13,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 
 
@@ -27,7 +27,7 @@ void UMapViewportWidget::NativeConstruct()
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapBorder);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, MapContentRoot);
 
-	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
 
 	Content->OnContentLoaded.AddUObject(this, &UMapViewportWidget::BuildMap);
@@ -505,7 +505,7 @@ const FGameplayDescription* UMapViewportWidget::GetGameplayDescriptions()
 {
 	//RETURN_ON_FAIL_NULL(AMapViewportWidgetLog, GetWorld());
 
-	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	//RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
 	return Content->GetDescription<FGameplayDescription>(FName("GameplayDescriptions"));
 }

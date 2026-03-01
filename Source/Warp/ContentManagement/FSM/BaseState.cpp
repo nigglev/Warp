@@ -4,7 +4,7 @@
 #include "BaseState.h"
 
 #include "MGLogs.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseState, Log, All);
 
@@ -18,10 +18,10 @@ bool UBaseState::OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* In
 	return Super::OnExit(InNextState, InSwitchData);
 }
 
-UWarpPlayfabContentSubSystem* UBaseState::GetPlayfabContentSubsystem() const
+UWarpContentSubSystem* UBaseState::GetPlayfabContentSubsystem() const
 {
 	RETURN_ON_FAIL_NULL(ABaseState, GetWorld());
-	UWarpPlayfabContentSubSystem* SubSystem = UWarpPlayfabContentSubSystem::Get(GetWorld());
+	UWarpContentSubSystem* SubSystem = UWarpContentSubSystem::Get(GetWorld());
 	RETURN_ON_FAIL_NULL(ABaseState, SubSystem);
 	return SubSystem;
 }

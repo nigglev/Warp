@@ -9,7 +9,7 @@
 #include "BaseState.generated.h"
 
 
-class UWarpPlayfabContentSubSystem;
+class UWarpContentSubSystem;
 class UPlayFabLoginInfo;
 
 struct WARP_API UWarpSwitchData : public UContentFSMSwitchData
@@ -40,5 +40,5 @@ public:
 	virtual bool OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* InSwitchData) override;
 
 protected:
-	virtual UWarpPlayfabContentSubSystem* GetPlayfabContentSubsystem() const;
+	virtual UWarpContentSubSystem* GetPlayfabContentSubsystem() const;
 };

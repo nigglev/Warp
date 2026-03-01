@@ -6,7 +6,7 @@
 #include "MGLogs.h"
 #include "Kismet/GameplayStatics.h"
 #include "Warp/Base/MatchStates.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
@@ -149,7 +149,7 @@ void ADefaultGameMode::CheckServerContentLoaded()
 	if (bServerContentReady_)
 		return;
 
-	auto PlayfabContentSubSystem =	UWarpPlayfabContentSubSystem::Get(this);
+	auto PlayfabContentSubSystem =	UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultGameModeLog, PlayfabContentSubSystem);
 	
 	bServerContentReady_ = PlayfabContentSubSystem->IsContentLoaded();

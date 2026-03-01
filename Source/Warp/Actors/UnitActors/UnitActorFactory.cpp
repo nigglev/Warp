@@ -5,8 +5,9 @@
 
 #include "BaseUnitActor.h"
 #include "HexGridWorldSubsystem.h"
+#include "MGLogs.h"
 #include "Warp/ContentManagement/GameAssets.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(UnitFactoryLog, Log, All);
 

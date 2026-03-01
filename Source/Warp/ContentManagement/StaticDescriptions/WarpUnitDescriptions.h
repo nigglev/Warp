@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EUnitSize.h"
 #include "JsonObjectConverter.h"
 #include "WarpDescriptionBase.h"
 #include "UObject/Object.h"
@@ -20,22 +19,19 @@ struct FUnitDescription : public FBaseDescription
 	static inline const FName DescrName = TEXT("UnitDescriptions");
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EUnitSize UnitSize = EUnitSize::Medium;
+	float MaxRoundDistance = 50;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 UnitSpeed = 1;
+	float MoveCost = 10;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxRoundDistance = 50;
+	float RotationCost = 20;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MoveCost = 10;
+	float AnimationMoveSpeed = 600;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 RotationCost = 20;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 UnitMaxAP = 2;
+	float AnimationRotationSpeed = 3600;
 };
 
 USTRUCT(BlueprintType)

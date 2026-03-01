@@ -8,7 +8,7 @@
 #include "MGLogs.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/GameState/WarpGameState.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
@@ -94,7 +94,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	
 	if (bCircle_)
 	{
-		const FGameplayDescription* Descr = UWarpPlayfabContentSubSystem::GetGameplayDescription(this);
+		const FGameplayDescription* Descr = UWarpContentSubSystem::GetGameplayDescription(this);
 		RETURN_ON_FAIL(ABaseUnitActorLog, Descr);
 		
 		GetWorld()->GetTimerManager().SetTimer(SetOnStartTimerHandle_, this, &ABaseUnitActor::SetOnStartPathPoint, Descr->GhostDelayTime);
@@ -141,8 +141,11 @@ ABaseUnitActor::EMoveState ABaseUnitActor::MoveToTarget(float InDelta, const FVe
 
 	if (UpdateRotation(InDelta, TargetYaw))
 		return EMoveState::Rotating;
+
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, EMoveState::Approached);
 	
-	float ShiftLen = MoveSpeed_ * InDelta;
+	float ShiftLen = Descr->AnimationMoveSpeed * InDelta;
 	Approached = CurrentDist <= ShiftLen;
 	
 	if (Approached)
@@ -165,7 +168,10 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 		return false;
 	}
 	
-	const float NewYaw = FMath::FixedTurn(CurrentYaw, InTargetYaw, RotateSpeed_ * InDelta);
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
+	
+	const float NewYaw = FMath::FixedTurn(CurrentYaw, InTargetYaw, Descr->AnimationRotationSpeed * InDelta);
 	//MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f; NewYaw: %f"), CurrentYaw, InTargetYaw, NewYaw);
 	
 	const FRotator WorldRot(0.f, NewYaw, 0.f);
@@ -253,7 +259,7 @@ const FUnitDescription* ABaseUnitActor::GetDescription() const
 {
 	RETURN_ON_FAIL_NULL(ABaseUnitActorLog, !UnitType_.IsNone());
 
-	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	return Content->GetDescription<FUnitDescription>(UnitType_);
 }
 

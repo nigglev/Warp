@@ -10,7 +10,7 @@
 #include "Warp/Actors/PlacePointer.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/Actors/UnitActors/UnitActorFactory.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
@@ -43,7 +43,7 @@ void ADefaultPlayerController::PostInitializeComponents()
 	EnableCheats();
 #endif	
 	
-	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, Content != nullptr);
 
 	if (!Content->IsContentLoaded())
@@ -113,7 +113,7 @@ bool ADefaultPlayerController::IsClientLoaded() const
 {
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, IsLocalController());
 
-	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL_BOOL(ADefaultPlayerControllerLog, Content != nullptr);
 
 	return Content->IsContentLoaded();

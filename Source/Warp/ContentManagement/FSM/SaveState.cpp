@@ -7,7 +7,7 @@
 #include "MGLogs.h"
 #include "PlayFabServerDataModels.h"
 #include "Core/PlayFabServerAPI.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 DEFINE_LOG_CATEGORY_STATIC(ASaveState, Log, All);
 
 namespace
@@ -20,7 +20,7 @@ namespace
 		int32 Succeeded = 0;
 		int32 Failed = 0;
 
-		TWeakObjectPtr<UWarpPlayfabContentSubSystem> Subsystem;
+		TWeakObjectPtr<UWarpContentSubSystem> Subsystem;
 	};
 
 	void SendNext_TitleDataBatch(const TSharedRef<FTitleDataBatchState>& State)
@@ -102,7 +102,7 @@ bool USaveState::OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* In
 bool USaveState::SaveDescriptionsBatchToPlayFab(const TMap<FName, FString>& InDescriptionsToSaveJson,
 	const PlayFabServerPtr& InPlayFabAPI)
 {
-	UWarpPlayfabContentSubSystem* Subsystem = GetPlayfabContentSubsystem();
+	UWarpContentSubSystem* Subsystem = GetPlayfabContentSubsystem();
 	RETURN_ON_FAIL_BOOL(ASaveState, Subsystem != nullptr);
 
 	if (!InPlayFabAPI)

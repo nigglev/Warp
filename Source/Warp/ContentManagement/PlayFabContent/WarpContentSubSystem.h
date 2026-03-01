@@ -12,8 +12,9 @@
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameplayDescriptions.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpGameVersion.h"
 #include "Warp/Utils/WarpUtils.h"
-#include "WarpPlayfabContentSubSystem.generated.h"
+#include "WarpContentSubSystem.generated.h"
 
+struct FUnitDescription;
 class UPlayFabStateManager;
 enum class EPlayFabContentStates : uint8;
 /**
@@ -35,17 +36,18 @@ DECLARE_MULTICAST_DELEGATE(FOnUnitsLoaded);
 
 
 UCLASS()
-class WARP_API UWarpPlayfabContentSubSystem : public UGameInstanceSubsystem
+class WARP_API UWarpContentSubSystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
 public:
-	UWarpPlayfabContentSubSystem();
+	UWarpContentSubSystem();
 	virtual void Initialize(FSubsystemCollectionBase& InCollection) override;
 	
-	static UWarpPlayfabContentSubSystem* Get(const UObject* WorldContextObject);
+	static UWarpContentSubSystem* Get(const UObject* WorldContextObject);
 	
 	static const FGameplayDescription* GetGameplayDescription(const UObject* WorldContextObject); 
+	static const FUnitDescription* GetUnitDescription(const UObject* WorldContextObject, FName InUnitType);
 	
 	bool SaveDescriptionToPlayFab(const FName& InDescriptionName);
 

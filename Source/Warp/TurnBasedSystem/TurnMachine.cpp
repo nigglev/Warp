@@ -3,13 +3,14 @@
 
 #include "TurnMachine.h"
 
+#include "MGLogs.h"
 #include "Algo/AllOf.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/Actors/UnitActors/UnitActorFactory.h"
 #include "Warp/Base/GameState/WarpGameState.h"
-#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ATurnMachineLog, Log, All);
 
@@ -40,7 +41,7 @@ void UTurnMachine::CreateUnits()
     
     GetOwner()->OnUnitArrived.AddUObject(this, &UTurnMachine::OnUnitArrived);
     
-    const FGameplayDescription* Descr = UWarpPlayfabContentSubSystem::GetGameplayDescription(this);
+    const FGameplayDescription* Descr = UWarpContentSubSystem::GetGameplayDescription(this);
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
     for(int i = 0; i < 1; i++)

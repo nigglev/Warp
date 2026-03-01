@@ -1,50 +1,29 @@
 {
 	"items": [
 		{
-			"unitSize": "Small",
-			"unitSpeed": 1,
-			"maxRoundDistance": 50,
+			"name": "corvette",
+			"maxRoundDistance": 70,
 			"moveCost": 10,
-			"rotationCost": 20,
-			"unitMaxAP": 4,
-			"name": "corvette"
+			"rotationCost": 5,
+			"AnimationMoveSpeed": 600,
+			"AnimationRotationSpeed": 600
 		},
 		{
-			"unitSize": "Small",
-			"unitSpeed": 1,
-			"maxRoundDistance": 50,
+			"name": "valiant",
+			"maxRoundDistance": 70,
 			"moveCost": 10,
-			"rotationCost": 20,
-			"unitMaxAP": 4,
-			"name": "corvette_black"
+			"rotationCost": 10,
+			"AnimationMoveSpeed": 600,
+			"AnimationRotationSpeed": 60
 		},
 		{
-			"unitSize": "Small",
-			"unitSpeed": 1,
-			"maxRoundDistance": 50,
+			"name": "valiant_big",
+			"maxRoundDistance": 90,
 			"moveCost": 10,
 			"rotationCost": 20,
-			"unitMaxAP": 4,
-			"name": "corvette_blue"
-		},
-		{
-			"unitSize": "Small",
-			"unitSpeed": 1,
-			"maxRoundDistance": 50,
-			"moveCost": 10,
-			"rotationCost": 20,
-			"unitMaxAP": 4,
-			"name": "corvette_green"
-		},
-		{
-			"unitSize": "Small",
-			"unitSpeed": 1,
-			"maxRoundDistance": 50,
-			"moveCost": 10,
-			"rotationCost": 20,
-			"unitMaxAP": 4,
-			"name": "valiant"
+			"AnimationMoveSpeed": 600,
+			"AnimationRotationSpeed": 30
 		}
 	],
-	"version": 10
+	"version": 11
 }
