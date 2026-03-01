@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(ALoginState, Log, All);
 
 void ULoginState::OnEnter(UContentFSMState* InPrevState, UContentFSMSwitchData* InSwitchData)
 {
+	RETURN_ON_FAIL(ALoginState, InSwitchData);
 	Super::OnEnter(InPrevState, InSwitchData);
 	UWarpSwitchData* SwitchData = static_cast<UWarpSwitchData*>(InSwitchData);
 	TSharedRef<UWarpSwitchData> SharedSwitchData = MakeShared<UWarpSwitchData>(*SwitchData);

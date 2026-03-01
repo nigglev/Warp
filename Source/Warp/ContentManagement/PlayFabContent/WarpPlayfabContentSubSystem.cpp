@@ -48,7 +48,7 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     Super::Initialize(InCollection);
 
     RoleType_ = GetCurrentRoleType();
-    //RoleType_ = ERoleType::Client;
+    RoleType_ = ERoleType::Client;
     InitializeDescriptions();
     bool bSuccess = ReadDescriptionsFromDataSource();
     RETURN_ON_FAIL(AContentLog, bSuccess);
@@ -335,7 +335,8 @@ bool UWarpPlayfabContentSubSystem::UpdateCachedGameData()
 {
     ContentFSM_ = NewObject<UContentFSM>(this);
     RETURN_ON_FAIL_BOOL(AContentLog, ContentFSM_);
-    ContentFSM_->Switch(NewObject<ULoginState>(ContentFSM_), nullptr);
+    UWarpSwitchData SwitchData;
+    ContentFSM_->Switch(NewObject<ULoginState>(ContentFSM_), &SwitchData);
     return true;   
 }
 

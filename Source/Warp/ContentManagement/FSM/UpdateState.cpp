@@ -29,7 +29,7 @@ bool UUpdateState::DownloadVersions()
 {
 	RETURN_ON_FAIL_BOOL(AUpdateState, ClientAPI_ != nullptr);
 	PlayFab::ClientModels::FGetTitleDataRequest Request;
-	Request.Keys.Add(TEXT("DescriptionVersions"));
+	Request.Keys.Add(FGameVersion::Name.ToString());
 
 	const bool bOk =ClientAPI_->GetTitleData(
 	   Request,
@@ -42,14 +42,14 @@ bool UUpdateState::DownloadVersions()
 
 void UUpdateState::OnGetGameVersionTitleDataSuccess(const PlayFab::ClientModels::FGetTitleDataResult& Result)
 {
-	const FString* Value = Result.Data.Find(TEXT("DescriptionVersions"));
-	const bool bParsed = FJsonObjectConverter::JsonObjectStringToUStruct(*Value, &PlayFabVersion_);
+	const FString* Value = Result.Data.Find(FGameVersion::Name.ToString());
 	if (!Value)
 	{
 		MG_ERROR(AUpdateState, TEXT("GetTitleData: DescriptionVersions not found"));
 		GetPlayfabContentSubsystem()->OnContentCheckedAndLoaded(false);
 		return;
 	}
+	const bool bParsed = FJsonObjectConverter::JsonObjectStringToUStruct(*Value, &PlayFabVersion_);
 	if (!bParsed)
 	{
 		MG_ERROR(AUpdateState, TEXT("GetTitleData: failed to parse DescriptionVersions JSON: %s"), **Value);
