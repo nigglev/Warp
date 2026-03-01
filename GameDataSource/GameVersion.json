@@ -1,14 +1,13 @@
 {
-	"version": 18,
-	"versionDate": "2026.02.27-16.07.19",
+	"version": 12,
 	"items": [
 		{
 			"descriptionName": "GameplayDescriptions",
-			"version": 4
+			"version": 5
 		},
 		{
 			"descriptionName": "UnitDescriptions",
-			"version": 6
+			"version": 7
 		}
 	]
 }

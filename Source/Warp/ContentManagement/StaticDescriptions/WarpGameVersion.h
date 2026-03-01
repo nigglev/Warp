@@ -43,8 +43,7 @@ struct FGameVersion
 			Sum += FMath::Max(0, It.Version);
 		}
 
-		Version += Sum;
-		VersionDate = FDateTime::UtcNow();
+		Version = Sum;
 	}
 
 	bool VersionsToJson(FString& OutJsonString) const
@@ -65,10 +64,9 @@ struct FGameVersion
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FDateTime VersionDate = FDateTime::UtcNow();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FDescriptionVersion> Items;	
+	TArray<FDescriptionVersion> Items;
+
+	static inline const FName Name = TEXT("GameVersion");
 };

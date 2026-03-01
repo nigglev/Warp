@@ -5,6 +5,8 @@
 
 #include "BaseState.h"
 #include "MGLogs.h"
+#include "PlayFabServerDataModels.h"
+#include "Core/PlayFabServerAPI.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
 DEFINE_LOG_CATEGORY_STATIC(ASaveState, Log, All);
 

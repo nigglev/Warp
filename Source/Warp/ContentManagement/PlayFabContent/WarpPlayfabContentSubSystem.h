@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DescriptionReaderBase.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "PlayFab.h"
 #include "Core/PlayFabError.h"
@@ -48,8 +47,6 @@ public:
 
 	UContentFSM* GetContentFSM() const {return ContentFSM_;}
 	ERoleType GetRoleType() const {return RoleType_;}
-	TMap<FName, FString> GetDataToSaveJson() const {return DataToSaveJson_;}
-	bool IsSaveContentToPlayFab() const {return bSaveContentToPlayFab_;}
 	FGameVersion GetGameVersionFromDataSource();
 
 	bool WriteGameVersionToDataSource(const FGameVersion& InGameVersion);
@@ -114,21 +111,19 @@ protected:
 	FGameVersion UpdateGameVersion(FName InNewDescriptionName, int32 InNewDescriptionVersion);
 	bool UpdateCachedGameData();
 
-	static bool TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason = nullptr); 
+	static bool TryGetVersionFromJson(const FString& InJson, int32& OutVersion, FText* OutFailReason = nullptr);
+	bool GetDescriptionNames(TArray<FName>& OutDescriptionNames, const FString& InFolderName) const;
+	bool GetDescriptionNames(TArray<FName>& OutDescriptionNames, const TMap<FName, TUniquePtr<FBaseDescriptions>>& InDescriptionsMap) const;
+	bool GetFileJson(const FString& InFolderName, const FString& InFileName, FString& OutJson) const;
 	ERoleType GetCurrentRoleType() const;
 	
 	TMap<FName, TUniquePtr<FBaseDescriptions>> Descriptions_;
-	TMap<FName, FString> DataToSaveJson_;
 
 	UPROPERTY()
 	UContentFSM* ContentFSM_ = nullptr;
 	ERoleType RoleType_ = ERoleType::NotSet;
-
-	bool bSaveContentToPlayFab_ = false;
+	
 	bool bContentLoaded_ = false;
-	
-	FString GameVersionFileName = TEXT("DescriptionVersions.json");
-	
 };
 
 

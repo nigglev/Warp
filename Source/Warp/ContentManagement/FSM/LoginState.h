@@ -28,10 +28,11 @@ public:
 	virtual bool OnExit(UContentFSMState* InNextState, UContentFSMSwitchData* InSwitchData) override;
 
 protected:
-	bool LoginToPlayFab();
-	void OnLoginResult(bool InResult);
-	void SwitchToUpdateState();
-	void SwitchToSaveState();
+	bool LoginToPlayFab(TSharedRef<UWarpSwitchData> InSwitchData);
+	void OnLoginResult(bool InResult, TSharedRef<UWarpSwitchData> InSwitchData);
+	void SwitchToUpdateState(TSharedRef<UWarpSwitchData> InSwitchData);
+	void SwitchToSaveState(TSharedRef<UWarpSwitchData> InSwitchData);
+	TOptional<FString> ReadSecret();
 
 	struct FServerTag
 	{
@@ -50,7 +51,7 @@ protected:
 	};
 
 	template<typename TTag>
-    bool LoginWithCustomId(const TSharedPtr<typename TTag::TPlayFabAPI>& InPlayFabAPI, const FString& InCustomId)
+    bool LoginWithCustomId(const TSharedPtr<typename TTag::TPlayFabAPI>& InPlayFabAPI, const FString& InCustomId, TSharedRef<UWarpSwitchData> InSwitchData)
     {
 		ensure(InPlayFabAPI != nullptr);
 
@@ -59,7 +60,8 @@ protected:
         Request.CreateAccount = true;
 
         typename TTag::TLoginWithCustomIDDelegate SuccessDelegate;
-        SuccessDelegate.BindWeakLambda(this, [this](const typename TTag::TLoginWithCustomIDResult& InResult)
+
+        SuccessDelegate.BindWeakLambda(this, [this, InSwitchData](const typename TTag::TLoginWithCustomIDResult& InResult)
         {
             PlayFabId_ = InResult.PlayFabId;
             if (InResult.EntityToken.IsValid())
@@ -69,19 +71,13 @@ protected:
             }
 
             SessionTicket_ = InResult.SessionTicket;
-        	this->OnLoginResult(true);
-
-            // MG_LOG(WarpPlayfabContentLog, TEXT("PlayFab login successful. PlayFabId_: %s; EntityToken_: %s; TokenExpiration_: %s; SessionTicket_: %s"),
-            //     *InUserObject->GetPlayFabId(),
-            //     *InUserObject->GetEntityToken().Left(5),
-            //     *InUserObject->GetEntityTokenExpiration().ToString(),
-            //     *InUserObject->GetSessionTicket().Left(5));
+        	this->OnLoginResult(true, InSwitchData);
         });
 
         PlayFab::FPlayFabErrorDelegate ErrorDelegate;
-        ErrorDelegate.BindWeakLambda(this, [this](const PlayFab::FPlayFabCppError& InError)
+        ErrorDelegate.BindWeakLambda(this, [this, InSwitchData](const PlayFab::FPlayFabCppError& InError)
         {
-        	this->OnLoginResult(false);
+        	this->OnLoginResult(false, InSwitchData);
            // MG_ERROR(WarpPlayfabContentLog, TEXT("PlayFab login failed: %s"), *InError.GenerateErrorReport());
         });
 

@@ -12,8 +12,12 @@ void UWarpCheatManager::SaveDescriptionToPlayFab(const FString& InDescriptionNam
 {
 	auto CS = UWarpPlayfabContentSubSystem::Get(this);
 	RETURN_ON_FAIL(WarpCheatManagerLog, CS != nullptr);
+
+	if (InDescriptionName.IsEmpty())
+		CS->SaveDescriptionToPlayFab(FName());
+	else
+		CS->SaveDescriptionToPlayFab(FName(*InDescriptionName));
 	
-	CS->SaveDescriptionToPlayFab(FName(*InDescriptionName));	
 }
 
 void UWarpCheatManager::WriteDescriptionToSource(const FString& InDescriptionName)
