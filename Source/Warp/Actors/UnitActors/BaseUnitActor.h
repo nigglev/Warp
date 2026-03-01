@@ -32,7 +32,7 @@ public:
 	FName GetUnitType() const {return UnitType_;}
 	void SetUnitType(const FName InUnitType) { UnitType_ = InUnitType; }
 	
-	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
+	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord);
 	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }

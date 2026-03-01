@@ -150,11 +150,7 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
 	
-	GridWorldSubsystem->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, 
-		UnitDescription->MaxRoundDistance, 
-		UnitDescription->MoveCost, 
-		UnitDescription->RotationCost, 
-		&InfluenceZone_);
+	GridWorldSubsystem->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);

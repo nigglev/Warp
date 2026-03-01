@@ -192,7 +192,7 @@ void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellT
 }
 
 void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
-	float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FPathNode>* OutPath)
+	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -205,12 +205,12 @@ void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord&
 	HexMath::FAxialCoord HexCenterCell = InHexCell;
 	
 	TSet<HexMath::FPathNode> Wave;
-	HexMath::FindPathZone(HexCenterCell, InRotation, InHexDistance, Wave, InMoveCost, InRotationCost, CacheOpt->PathfinderLog);
+	HexMath::FindPathZone(HexCenterCell, InRotation, InMoveParams, Wave, CacheOpt->PathfinderLog);
 	
 	for (const HexMath::FPathNode& WaveElem : Wave)
 	{
 		Cells.Add(WaveElem.Coord);
-		float Level = static_cast<float>(WaveElem.Distance) / (InHexDistance + InMoveCost);
+		float Level = static_cast<float>(WaveElem.Distance) / (InMoveParams.MaxDistance + InMoveParams.MoveCost);
 		SetCellType(WaveElem.Coord, ECellType::Captured, Level);
 		if (OutPath)
 			OutPath->Add(WaveElem);
@@ -218,7 +218,7 @@ void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord&
 }
 
 void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes)
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -226,7 +226,7 @@ void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, int8 InSta
 
 	DropPathSelections();
 	
-	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, OutPath, InMoveCost, InRotationCost, CacheOpt->PathfinderLog);
+	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, CacheOpt->PathfinderLog);
 	
 	if (InDrawHexes)
 	{

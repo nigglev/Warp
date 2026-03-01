@@ -227,7 +227,7 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		
 		TArray<HexMath::FPathNode> Path;
 		GridWorldSubsystem->FindPath(Unit->GetAxialCoord(), Unit->GetAxialAngle().R, TargetAxialCoordOpt.GetValue(), {}, 
-			UnitDescr->MaxRoundDistance, Path, UnitDescr->MoveCost, UnitDescr->RotationCost, true);
+			UnitDescr->MoveParams, Path, true);
 				
 		if (!Path.IsEmpty())
 		{

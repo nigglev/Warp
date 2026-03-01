@@ -6,6 +6,7 @@
 #include "ECellType.h"
 #include "HexMath.h"
 #include "HexPathfainer.h"
+#include "MoveParams.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "HexGridWorldSubsystem.generated.h"
 
@@ -30,15 +31,14 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, float InHexDistance, float InMoveCost, float InRotationCost, 
-		TArray<HexMath::FPathNode>* OutPath = nullptr);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
 	void RemoveInfluence(uint32 InId);
 	
 	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes) const;
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes) const;
 	
 	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		float InMaxDistance, float InMoveCost, float InRotationCost, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const;
+		const FMoveParams& InMoveParams, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const;
 	
 	void DropPathSelections();
 

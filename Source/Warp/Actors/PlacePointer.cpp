@@ -127,9 +127,9 @@ void APlacePointer::TryChangeAngle()
 			
 			int8 DirAngle = FAxialAngle::GetDirectionAngle(Yaw);
 			
-			float RotationDist = HexMath::GetRotationDiff(PathNode_.Rotation, DirAngle) * ActiveUnit_->GetDescription()->RotationCost;
+			float RotationDist = HexMath::GetRotationDiff(PathNode_.Rotation, DirAngle) * ActiveUnit_->GetDescription()->MoveParams.RotationCost;
 			
-			float RestDist = ActiveUnit_->GetDescription()->MaxRoundDistance - PathNode_.Distance;
+			float RestDist = ActiveUnit_->GetDescription()->MoveParams.MaxDistance - PathNode_.Distance;
 			
 			if (RestDist >= RotationDist)
 			{

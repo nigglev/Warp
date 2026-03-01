@@ -3,14 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HullSize.h"
 #include "JsonObjectConverter.h"
+#include "MoveParams.h"
 #include "WarpDescriptionBase.h"
 #include "UObject/Object.h"
 #include "WarpUnitDescriptions.generated.h"
 
-/**
- * 
- */
 USTRUCT()
 struct FUnitDescription : public FBaseDescription
 {
@@ -19,16 +18,10 @@ struct FUnitDescription : public FBaseDescription
 	static inline const FName DescrName = TEXT("UnitDescriptions");
 	
 	UPROPERTY(EditAnywhere)
-	FIntVector2 Size = FIntVector2(1, 1);
+	FHullSize Hull;
 	
 	UPROPERTY(EditAnywhere)
-	float MaxRoundDistance = 50;
-	
-	UPROPERTY(EditAnywhere)
-	float MoveCost = 10;
-	
-	UPROPERTY(EditAnywhere)
-	float RotationCost = 20;
+	FMoveParams MoveParams;
 	
 	UPROPERTY(EditAnywhere)
 	float AnimationMoveSpeed = 600;

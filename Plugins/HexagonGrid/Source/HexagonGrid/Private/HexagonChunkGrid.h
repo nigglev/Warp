@@ -6,6 +6,7 @@
 #include "ECellType.h"
 #include "HexMath.h"
 #include "HexPathfainer.h"
+#include "MoveParams.h"
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
 
@@ -71,12 +72,12 @@ public:
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
 	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
-		float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FPathNode>* OutPath = nullptr);
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
 	
 	void RemoveInfluence(uint32 InId);
 	
 	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes);
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes);
 	
 	void DropPathSelections();
 	

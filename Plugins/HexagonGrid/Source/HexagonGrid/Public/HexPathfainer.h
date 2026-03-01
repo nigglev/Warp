@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "HexMath.h"
+#include "MoveParams.h"
 
 namespace HexMath
 {
@@ -27,9 +28,9 @@ namespace HexMath
 	inline bool operator==(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord == RHS.Coord; }
 	inline bool operator!=(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord != RHS.Coord; }
 
-	void FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, float InMaxDistance,
-		TSet<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog);
+	void FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
+		TSet<FPathNode>& OutPath, bool InLog);
 	
 	bool FindPath(const FAxialCoord& InStart, int8 InStartRotation, const FAxialCoord& InEnd, TOptional<int8> InEndRotation, 
-		float InMaxDistance, TArray<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog);
+		const FMoveParams& InMoveParams, TArray<FPathNode>& OutPath, bool InLog);
 }

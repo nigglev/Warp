@@ -44,9 +44,9 @@ void UTurnMachine::CreateUnits()
     const FGameplayDescription* Descr = UWarpContentSubSystem::GetGameplayDescription(this);
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
-    for(int i = 0; i < 1; i++)
+    for(int i = 0; i < 3; i++)
     {
-        HexMath::FAxialCoord AC(0, i * 3);
+        HexMath::FAxialCoord AC(i*4, i * 2);
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
         ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], AC);
         if (Unit != nullptr)

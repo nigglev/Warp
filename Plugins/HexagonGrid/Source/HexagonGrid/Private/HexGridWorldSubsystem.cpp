@@ -4,6 +4,7 @@
 #include "HexagonChunkGrid.h"
 #include "HexagonGridSettings.h"
 #include "HexGridISMActor.h"
+#include "MoveParams.h"
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridWSLog, Log, Log);
 
@@ -36,9 +37,9 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 }
 
 void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
-	float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FPathNode>* OutPath)
+	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
 {
-	ChunkGrid_->SelectInfluence(InId, InHexCell, InRotation, InHexDistance, InMoveCost, InRotationCost, OutPath);
+	ChunkGrid_->SelectInfluence(InId, InHexCell, InRotation, InMoveParams, OutPath);
 }
 
 void UHexGridWorldSubsystem::RemoveInfluence(uint32 InId)
@@ -47,19 +48,19 @@ void UHexGridWorldSubsystem::RemoveInfluence(uint32 InId)
 }
 
 void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes) const
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes) const
 {
-	ChunkGrid_->FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, OutPath, InMoveCost, InRotationCost, InDrawHexes);
+	ChunkGrid_->FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, InDrawHexes);
 }
 
 void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation,
-	const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation, float InMaxDistance, float InMoveCost,
-	float InRotationCost, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const
+	const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation, const FMoveParams& InMoveParams,
+	float Z, TArray<FVector>& OutPath, bool InDrawHexes) const
 {
 	static TArray<HexMath::FPathNode> Path;
 	Path.Reset();
 	
-	FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMaxDistance, Path, InMoveCost, InRotationCost, InDrawHexes);
+	FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, Path, InDrawHexes);
 	
 	for (HexMath::FPathNode AC : Path)
 	{

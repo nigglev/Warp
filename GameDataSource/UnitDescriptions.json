@@ -2,28 +2,21 @@
 	"items": [
 		{
 			"name": "corvette",
-			"size": {"x": 1, "y": 1},
-			"maxRoundDistance": 70,
-			"moveCost": 10,
-			"rotationCost": 5,
+			"MoveParams": { "MaxDistance": 70, "MoveCost": 10, "RotationCost": 5 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 600
 		},
 		{
 			"name": "valiant",
-			"size": {"x": 4, "y": 1},
-			"maxRoundDistance": 70,
-			"moveCost": 10,
-			"rotationCost": 10,
+			"Hull" : { "Forward": 2, "Backward": 1 },
+			"MoveParams": { "MaxDistance": 70, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 60
 		},
 		{
 			"name": "valiant_big",
-			"size": {"x": 6, "y": 3},
-			"maxRoundDistance": 90,
-			"moveCost": 10,
-			"rotationCost": 20,
+			"Hull" : { "Forward": 4, "Backward": 3, "Left": 1, "Right": 1 },
+			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 20 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 30
 		}

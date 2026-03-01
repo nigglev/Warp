@@ -50,15 +50,15 @@ namespace HexMath
 	inline bool operator!=(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord != RHS.Step.Coord; }
 }
 
-void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, float InMaxDistance,
-	TSet<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog)
+void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
+	TSet<FPathNode>& OutPath, bool InLog)
 {
 	OutPath.Reset();
 	
 	if (InLog)
 	{
-		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMaxDistance: %.2f; InMoveCost: %.2f; RInRotationCost: %.2f"), 
-			*InStart.ToString(), InStartRotation, InMaxDistance, InMoveCost, InRotationCost);
+		UE_LOG(HexPathfinderLog, Log, TEXT("FindPathZone. InStart: %s; InStartRotation: %d; InMoveParams: %s"), 
+			*InStart.ToString(), InStartRotation, *InMoveParams.ToString());
 	}
 	
 	auto IsWalkable = [](const FAxialCoord& Coord) { return true; };// !Obstacles_.Contains(Coord); };
@@ -97,10 +97,10 @@ void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, flo
 			int8 RotationDiff = GetRotationDiff(Current.Rotation, AngleToNeighbour);			
 
 			// Стоимость шага: 1 (или возьми из тайла)
-			const float StepCost = InMoveCost + RotationDiff * InRotationCost;// GetTraversalCost(Current.Coord, Neighbour);
+			const float StepCost = InMoveParams.MoveCost + RotationDiff * InMoveParams.RotationCost;// GetTraversalCost(Current.Coord, Neighbour);
 			const float TentativeDistance = Current.Distance + StepCost;
 			
-			if (TentativeDistance > InMaxDistance)
+			if (TentativeDistance > InMoveParams.MaxDistance)
 			{
 				if (InLog)
 				{
@@ -134,15 +134,15 @@ void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, flo
 }
 
 bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const FAxialCoord& InEnd, TOptional<int8> InEndRotation, 
-	float InMaxDistance, TArray<FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InLog)
+	const FMoveParams& InMoveParams, TArray<FPathNode>& OutPath, bool InLog)
 {
 	OutPath.Reset();
 	
 	if (InLog)
 	{
 		int8 EndRotationValue = InEndRotation.IsSet() ? InEndRotation.GetValue() : TNumericLimits<int8>::Max();
-		UE_LOG(HexPathfinderLog, Log, TEXT("FindPath. InStart: %s; InStartRotation: %d; InEnd: %s; EndRotationValue: %d, InMaxDistance: %.2f; InMoveCost: %.2f; InRotationCost: %.2f"), 
-			*InStart.ToString(), InStartRotation, *InEnd.ToString(), EndRotationValue, InMaxDistance, InMoveCost, InRotationCost);
+		UE_LOG(HexPathfinderLog, Log, TEXT("FindPath. InStart: %s; InStartRotation: %d; InEnd: %s; EndRotationValue: %d, InMoveParams: %s"), 
+			*InStart.ToString(), InStartRotation, *InEnd.ToString(), EndRotationValue, *InMoveParams.ToString());
 	}
 	
 	// Быстрые случаи
@@ -166,7 +166,7 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 	Passed.Reserve(256);
 	
 	{
-		float H = AxialDistance(InStart, InEnd) * InMoveCost;
+		float H = AxialDistance(InStart, InEnd) * InMoveParams.MoveCost;
 		Open.HeapPush(FOpenNode(FPathNode(InStart, InStartRotation, 0), H), OpenHeapPred);
 	}
 	
@@ -187,8 +187,8 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 		{
 			if (InEndRotation.IsSet())
 			{
-				float RotationDist = HexMath::GetRotationDiff(Current.Step.Rotation, InEndRotation.GetValue()) * InRotationCost;
-				float RestDist = InMaxDistance - Current.Step.Distance;
+				float RotationDist = HexMath::GetRotationDiff(Current.Step.Rotation, InEndRotation.GetValue()) * InMoveParams.RotationCost;
+				float RestDist = InMoveParams.MaxDistance - Current.Step.Distance;
 				if (RestDist < RotationDist)
 				{
 					if (InLog)
@@ -230,10 +230,10 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 			int8 RotationDiff = GetRotationDiff(Current.Step.Rotation, AngleToNeighbour);			
 
 			// Стоимость шага: 1 (или возьми из тайла)
-			const float StepCost = InMoveCost + RotationDiff * InRotationCost;// GetTraversalCost(Current.Coord, Neighbour);
+			const float StepCost = InMoveParams.MoveCost + RotationDiff * InMoveParams.RotationCost;// GetTraversalCost(Current.Coord, Neighbour);
 			const float TentativeDistance = Current.Step.Distance + StepCost;
 			
-			if (TentativeDistance > InMaxDistance)
+			if (TentativeDistance > InMoveParams.MaxDistance)
 			{
 				if (InLog)
 				{
@@ -243,7 +243,7 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 				continue;
 			}
 			
-			const int32 H = AxialDistance(NeighbourCoord, InEnd) * InMoveCost;
+			const int32 H = AxialDistance(NeighbourCoord, InEnd) * InMoveParams.MoveCost;
 			const float TentativeF = TentativeDistance + H;
 
 			FOpenNode& Neighbour = Passed.FindOrAdd(FOpenNode(NeighbourCoord, AngleToNeighbour));

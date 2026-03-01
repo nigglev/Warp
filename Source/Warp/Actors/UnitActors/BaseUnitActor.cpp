@@ -180,6 +180,11 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 	return true;
 }
 
+void ABaseUnitActor::SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord)
+{
+	AxialCoord_ = InAxialCoord;
+}
+
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
 {
 	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, !InPath.IsEmpty());
@@ -233,7 +238,7 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
 		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), AxialAngle_.R, InTarget.ToNative(), InAxialAngle.R, 
-			Descr->MaxRoundDistance, Path_, Descr->MoveCost, Descr->RotationCost, false);
+			Descr->MoveParams, Path_, false);
 	
 		if (!Path_.IsEmpty())
 		{
