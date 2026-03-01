@@ -48,7 +48,7 @@ void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollec
     Super::Initialize(InCollection);
 
     RoleType_ = GetCurrentRoleType();
-    RoleType_ = ERoleType::Client;
+
     InitializeDescriptions();
     bool bSuccess = ReadDescriptionsFromDataSource();
     RETURN_ON_FAIL(AContentLog, bSuccess);
