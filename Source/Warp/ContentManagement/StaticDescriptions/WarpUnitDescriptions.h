@@ -26,6 +26,15 @@ struct FUnitDescription : public FBaseDescription
 	int32 UnitSpeed = 1;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxRoundDistance = 50;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MoveCost = 10;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 RotationCost = 20;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 UnitMaxAP = 2;
 };
 

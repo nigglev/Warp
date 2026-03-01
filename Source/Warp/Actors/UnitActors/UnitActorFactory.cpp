@@ -10,7 +10,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(UnitFactoryLog, Log, All);
 
-AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubclassOf<AActor>& InActorClass, const HexMath::FAxialCoord& InAxialCoord)
+AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubclassOf<AActor>& InActorClass, 
+	const HexMath::FAxialCoord& InAxialCoord, AActor* InOwner /*= nullptr*/)
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
 	
@@ -18,6 +19,7 @@ AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubc
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, PosOpt.IsSet());
 	
 	FActorSpawnParameters Params;
+	Params.Owner = InOwner;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	UWorld* World = InWorldContext->GetWorld();
@@ -30,18 +32,19 @@ AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubc
 }
 
 ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext, FName InUnitType,
-	const HexMath::FAxialCoord& InAxialCoord)
+	const HexMath::FAxialCoord& InAxialCoord, AActor* InOwner /*= nullptr*/, bool InGhost /*= false*/)
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
 	
-	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameAssets::Get()->GetUnitActorClass(InUnitType);
+	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameAssets::Get()->GetUnitActorClass(InUnitType, InGhost);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActorClass);
 	
-	ABaseUnitActor* Unit = Cast<ABaseUnitActor>(CreateActor(InWorldContext, UnitActorClass, InAxialCoord));
+	ABaseUnitActor* Unit = Cast<ABaseUnitActor>(CreateActor(InWorldContext, UnitActorClass, InAxialCoord, InOwner));
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, Unit);
 	
 	if (Unit != nullptr)
 	{
+		Unit->SetUnitType(InUnitType);
 		Unit->SetAxialCoord(InAxialCoord);
 	}
 	

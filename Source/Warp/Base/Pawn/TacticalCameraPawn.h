@@ -45,9 +45,13 @@ protected:
 	FVector PanTarget = FVector::ZeroVector;
 
 	// --- Zoom/Move tuning ---
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	float MinArmLength = 800.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	float MaxArmLength = 4000.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	float ZoomSpeed = 200.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	float MoveSpeedUU = 2200.f;
 
 	// --- Lock/follow ---

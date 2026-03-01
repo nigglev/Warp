@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
 #include "UnitCharacteristics/UnitSize.h"
 #include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
+struct FUnitDescription;
 struct FAxialAngle;
 
 UCLASS()
@@ -19,8 +21,11 @@ class WARP_API ABaseUnitActor : public AActor
 public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float InDelta) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	bool IsLoaded() const;
 
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
@@ -31,19 +36,28 @@ public:
 	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord) { AxialCoord_ = InAxialCoord; }
 	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
 	
-	FUnitSize GetUnitActorSize() const {return UnitActorSize_;}
-	void SetUnitActorSize(const FUnitSize InSize) {UnitActorSize_ = InSize;}
-
-	void SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
-	bool IsMoving() const { return !Path_.IsEmpty() || bRotating_; }
+	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	
+	bool SetCirclePath(TArray<HexMath::FPathNode>&& InPath);
+	
+	void SetLastRotation(FAxialAngle InAxialAngle);
+	
+	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	
+	bool IsMoving() const { return bOnMove_; }
+	
+	const FUnitDescription* GetDescription() const;
 	
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
-	UFUNCTION()
-	void OnRep_UnitActorSize();
+	
+	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
+	EMoveState MoveToTarget(float InDelta, const FVector& Target);
 	
 	bool UpdateRotation(float InDelta, float InTargetYaw);
+	
+	void SetOnStartPathPoint();
 	
 	UPROPERTY(EditDefaultsOnly, Category="Move")
 	float MoveSpeed_ = 600.f;
@@ -55,7 +69,7 @@ protected:
 	float AcceptanceRadius_ = 25.f;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
-	FName UnitType_ = FName("Unit");
+	FName UnitType_;
 	
 	UPROPERTY(Replicated)
 	FRepAxialCoord AxialCoord_;
@@ -63,16 +77,15 @@ protected:
 	UPROPERTY(Replicated)
 	FAxialAngle AxialAngle_;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_UnitActorSize)
-	FUnitSize UnitActorSize_ = FUnitSize::None();
-
 	UPROPERTY(Replicated)
 	bool bOnMove_ = false;
 	
-	TArray<FVector> Path_;
+	TArray<HexMath::FPathNode> Path_;
+	int32 PathIndex_ = 0;
 	
-	bool bRotating_ = false;	
-
+	bool bCircle_ = false;
+	FTimerHandle SetOnStartTimerHandle_;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")

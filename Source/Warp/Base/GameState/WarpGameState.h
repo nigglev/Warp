@@ -15,8 +15,10 @@ struct FUnitRecord;
 class AWarpGameState;
 
 DECLARE_MULTICAST_DELEGATE(FOnCombatStarted);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitSelected, ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitStartMoving, ABaseUnitActor*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMatchStateChanged, FName);
 
 UCLASS()
 class WARP_API AWarpGameState : public AGameState
@@ -40,8 +42,10 @@ public:
 	const UTurnMachine* GetTurnMachine() const { return TurnMachine_; }
 	UTurnMachine* GetTurnMachine() { return TurnMachine_; }
 
-	FOnUnitArrived OnUnitArrived;
+	FOnMatchStateChanged OnMatchStateChanged;
 	FOnUnitSelected OnUnitSelected;
+	FOnUnitStartMoving OnUnitStartMoving;
+	FOnUnitArrived OnUnitArrived;
 	
 protected:
 	virtual void OnRep_MatchState() override;

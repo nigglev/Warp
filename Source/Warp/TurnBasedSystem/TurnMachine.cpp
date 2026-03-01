@@ -3,6 +3,7 @@
 
 #include "TurnMachine.h"
 
+#include "Algo/AllOf.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
@@ -39,19 +40,18 @@ void UTurnMachine::CreateUnits()
     
     GetOwner()->OnUnitArrived.AddUObject(this, &UTurnMachine::OnUnitArrived);
     
-    UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = UWarpPlayfabContentSubSystem::Get(this);
-    RETURN_ON_FAIL(ATurnMachineLog, PlayfabContentSubSystem);
-	
-    const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
+    const FGameplayDescription* Descr = UWarpPlayfabContentSubSystem::GetGameplayDescription(this);
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 1; i++)
     {
         HexMath::FAxialCoord AC(0, i * 3);
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
         ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], AC);
         if (Unit != nullptr)
+        {
             CombatUnits_.Add(Unit);
+        }
     }
 
     FLaunchContext Context = BuildLaunchContext(this);
@@ -77,12 +77,16 @@ void UTurnMachine::OnRep_CombatUnits()
     CheckLoaded();
 }
 
-void UTurnMachine::CheckLoaded() const
+void UTurnMachine::CheckLoaded()
 {
     RETURN_ON_FAIL(ATurnMachineLog, GetOwner());
     if (IsValidState())
     {
         GetOwner()->SetUnitsLoaded();
+    }
+    else
+    {
+        GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UTurnMachine::CheckLoaded));
     }
 }
 
@@ -111,11 +115,18 @@ void UTurnMachine::OnRep_TurnState()
     MG_LOG(ATurnMachineLog, TEXT("TurnState: %s"), *TurnState_.ToString());
     CheckLoaded();
     
+    ABaseUnitActor* NewActiveUnit = GetActiveUnit();
+    RETURN_ON_FAIL(ATurnMachineLog, NewActiveUnit);
+    RETURN_ON_FAIL(ATurnMachineLog, NewActiveUnit->IsLoaded());
+    
     if (TurnState_.Phase == ETurnPhase::WaitingForInput)
     {
-        ABaseUnitActor* NewActiveUnit = GetActiveUnit();
         GetOwner()->OnUnitSelected.Broadcast(NewActiveUnit, PrevActiveUnit_);
         PrevActiveUnit_ = NewActiveUnit;
+    }
+    else
+    {
+        GetOwner()->OnUnitStartMoving.Broadcast(NewActiveUnit);        
     }
 }
 
@@ -139,7 +150,15 @@ void UTurnMachine::SetWaitingForArrival()
 
 bool UTurnMachine::IsValidState() const
 {
-    return !CombatUnits_.IsEmpty() && TurnState_.ActiveUnitIndex != INDEX_NONE;
+    if (TurnState_.ActiveUnitIndex == INDEX_NONE)
+        return false;
+    
+    if (CombatUnits_.IsEmpty())
+        return false;
+    
+    bool AllLoaded = Algo::AllOf(CombatUnits_, [](const ABaseUnitActor* Unit) { return Unit && Unit->IsLoaded(); });
+    
+    return AllLoaded;
 }
 
 const ABaseUnitActor* UTurnMachine::GetActiveUnit() const
@@ -166,26 +185,23 @@ bool UTurnMachine::CanAcceptMove() const
     return TurnState_.Phase == ETurnPhase::WaitingForInput;
 }
 
-bool UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+void UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
     MG_LOG(ATurnMachineLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
     
     if (!CanAcceptMove())
-        return false;
+        return;
     
     FLaunchContext Context = BuildLaunchContext(this);
     if (!IsAuthorityLike(Context))
-        return false;
+        return;
 
     ABaseUnitActor* Active = GetActiveUnit();
     if (!IsValid(Active))
-        return false;
+        return;
 
-    Active->SetMoveTarget(InTarget, InAxialAngle);
-    
-    SetWaitingForArrival();
-    
-    return true;
+    if (Active->SetMoveTarget(InTarget, InAxialAngle))
+        SetWaitingForArrival();
 }
 
 void UTurnMachine::OnUnitArrived(ABaseUnitActor* InUnit)

@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "ECellType.h"
 #include "HexMath.h"
+#include "HexPathfainer.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "HexGridWorldSubsystem.generated.h"
+
 
 class UHexagonChunkGrid;
 
@@ -28,11 +30,17 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, float InHexDistance, float InMoveCost, float InRotationCost, 
+		TArray<HexMath::FPathNode>* OutPath = nullptr);
 	void RemoveInfluence(uint32 InId);
 	
-	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath) const;
-	void SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, TArray<HexMath::FAxialCoord>& OutPath) const;
+	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
+		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes) const;
+	
+	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
+		float InMaxDistance, float InMoveCost, float InRotationCost, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const;
+	
+	void DropPathSelections();
 
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
 	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);

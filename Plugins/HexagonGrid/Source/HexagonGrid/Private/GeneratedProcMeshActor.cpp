@@ -63,7 +63,7 @@ namespace
 		
 		FVector Point1 = InCenter + Dir * InCircumRadius * k;
 		
-		AddVertex(Point1, Dir, FVector2D(l, k), FLinearColor::White, OutBaseVertices, Normals, Tangents,Colors, UV0);
+		AddVertex(Point1, Dir, FVector2D(l, k), FLinearColor::Red, OutBaseVertices, Normals, Tangents,Colors, UV0);
 		
 		k = InGap.X + InGap.Y / 2;
 		l = (1 - k) * 0.5;
@@ -75,11 +75,11 @@ namespace
 		
 		FVector Point2 = InCenter + Dir * InCircumRadius * k;
 		
-		AddVertex(Point2, Dir, FVector2D(l, k), FLinearColor::Black, OutBaseVertices, Normals, Tangents,Colors, UV0);
+		AddVertex(Point2, Dir, FVector2D(l, k), FLinearColor::Green, OutBaseVertices, Normals, Tangents,Colors, UV0);
 		
 		FVector Point3 = InCenter + Dir * InCircumRadius;
 		
-		AddVertex(Point3, Dir, FVector2D(BaseU, 1), FLinearColor::Black, OutBaseVertices, Normals, Tangents,Colors, UV0);
+		AddVertex(Point3, Dir, FVector2D(BaseU, 1), FLinearColor::Blue, OutBaseVertices, Normals, Tangents,Colors, UV0);
 	}
 }
 
@@ -102,7 +102,7 @@ void AGeneratedProcMeshActor::BuildPolygon(double InCircumRadius, uint16 InSegme
 	double Angle = 360.f / InSegmentCount;
 	
 	FVector Center = FVector(0, 0, 0);
-	AddVertex(Center, FVector::UnitX(), FVector2D(0.5, 0), FLinearColor::White, Vertices, Normals, Tangents,Colors, UV0);
+	AddVertex(Center, FVector::UnitX(), FVector2D(0.5, 0), FLinearColor::Red, Vertices, Normals, Tangents,Colors, UV0);
 	
 	AddCorner(Center, InCircumRadius, Angle, InGap, 0, Vertices, Normals, Tangents, Colors, UV0);
 	

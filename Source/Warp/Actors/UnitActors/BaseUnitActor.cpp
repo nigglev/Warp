@@ -4,11 +4,12 @@
 #include "BaseUnitActor.h"
 
 #include "HexGridWorldSubsystem.h"
+#include "HexPathfainer.h"
 #include "MGLogs.h"
-#include "MGLogTypes.h"
-#include "Misc/MapErrors.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/GameState/WarpGameState.h"
+#include "Warp/ContentManagement/PlayFabContent/WarpPlayfabContentSubSystem.h"
+#include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
@@ -30,15 +31,30 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseUnitActor, UnitType_);
-	DOREPLIFETIME(ABaseUnitActor, UnitActorSize_);
 	DOREPLIFETIME(ABaseUnitActor, bOnMove_);
 	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
 	DOREPLIFETIME(ABaseUnitActor, AxialAngle_);
 }
 
+bool ABaseUnitActor::IsLoaded() const
+{
+	return UnitType_ != NAME_None;
+}
+
 void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void ABaseUnitActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (SetOnStartTimerHandle_.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SetOnStartTimerHandle_);
+		SetOnStartTimerHandle_.Invalidate();
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void ABaseUnitActor::Tick(float InDelta)
@@ -52,42 +68,90 @@ void ABaseUnitActor::Tick(float InDelta)
 	
 	FVector Current = GetActorLocation();
 	
-	if (!Path_.IsEmpty())
+	if (Path_.IsValidIndex(PathIndex_))
 	{
-		FVector Target = Path_[0];
-		FVector Dir = Target - Current;
-		float CurrentDist;
-		Dir.ToDirectionAndLength(Dir, CurrentDist);
-	
-		float TargetYaw  = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X));
+		HexMath::FPathNode& Node = Path_[PathIndex_];
 		
-		bRotating_ = UpdateRotation(InDelta, TargetYaw);
-		if (!bRotating_)
+		TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Node.Coord, Current.Z);
+		RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
+		
+		FVector Target = TargetPosOpt.GetValue();
+		
+		EMoveState MoveState = MoveToTarget(InDelta, Target);
+		if (MoveState == EMoveState::Approached)
 		{
-			float ShiftLen = MoveSpeed_ * InDelta;
-			if (CurrentDist <= ShiftLen)
-			{
-				ShiftLen = CurrentDist;
-				Path_.RemoveAt(0);
-			}
-
-			FVector NewLoc = Current + Dir * ShiftLen;
-
-			SetActorLocation(NewLoc, true);
+			PathIndex_++;
 		}
+		return;
+	}
+	
+	
+	float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
+	bOnMove_ = UpdateRotation(InDelta, TargetYaw);
+	
+	if (bOnMove_)
+		return;
+	
+	if (bCircle_)
+	{
+		const FGameplayDescription* Descr = UWarpPlayfabContentSubSystem::GetGameplayDescription(this);
+		RETURN_ON_FAIL(ABaseUnitActorLog, Descr);
+		
+		GetWorld()->GetTimerManager().SetTimer(SetOnStartTimerHandle_, this, &ABaseUnitActor::SetOnStartPathPoint, Descr->GhostDelayTime);
 	}
 	else
 	{
-		float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
-		bOnMove_ = UpdateRotation(InDelta, TargetYaw);
-		
-		if (!bOnMove_)
-		{
-			auto GS = Cast<AWarpGameState>(GetWorld()->GetGameState());
-			RETURN_ON_FAIL(ABaseUnitActorLog, GS);
-			GS->OnUnitArrived.Broadcast(this);
-		}		
-	}
+		auto GS = Cast<AWarpGameState>(GetWorld()->GetGameState());
+		RETURN_ON_FAIL(ABaseUnitActorLog, GS);
+		GS->OnUnitArrived.Broadcast(this);
+	}	
+}
+
+void ABaseUnitActor::SetOnStartPathPoint()
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, !Path_.IsEmpty());
+	
+	PathIndex_ = 0;
+	
+	FVector Current = GetActorLocation();
+				
+	TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Path_[0].Coord, Current.Z);
+	RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
+				
+	const FRotator WorldRot(0.f, FAxialAngle::GetYaw(Path_[0].Rotation), 0.f);
+				
+	SetActorLocationAndRotation(TargetPosOpt.GetValue(), WorldRot);
+	
+	bOnMove_ = true;
+}
+
+ABaseUnitActor::EMoveState ABaseUnitActor::MoveToTarget(float InDelta, const FVector& Target)
+{
+	FVector Current = GetActorLocation();
+	
+	FVector Dir = Target - Current;
+	float CurrentDist;
+	Dir.ToDirectionAndLength(Dir, CurrentDist);
+	
+	bool Approached = FMath::IsNearlyZero(CurrentDist, 1.e-3f);
+	if (Approached)
+		return EMoveState::Approached;
+	
+	float TargetYaw  = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X));
+
+	if (UpdateRotation(InDelta, TargetYaw))
+		return EMoveState::Rotating;
+	
+	float ShiftLen = MoveSpeed_ * InDelta;
+	Approached = CurrentDist <= ShiftLen;
+	
+	if (Approached)
+		ShiftLen = CurrentDist;
+
+	FVector NewLoc = Current + Dir * ShiftLen;
+	SetActorLocation(NewLoc, true);
+
+	return Approached ? EMoveState::Approached : EMoveState::Moving;
 }
 
 bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
@@ -110,71 +174,88 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 	return true;
 }
 
+bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
+{
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, !InPath.IsEmpty());
+	
+	if (SetOnStartTimerHandle_.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SetOnStartTimerHandle_);
+		SetOnStartTimerHandle_.Invalidate();
+	}
+	
+	Path_ = MoveTemp(InPath);
+	bCircle_ = true;
+	
+	AxialCoord_ = Path_.Last().Coord;
+	AxialAngle_ = FAxialAngle(Path_.Last().Rotation);
+	
+	SetOnStartPathPoint();
+	
+	return true;
+}
 
-void ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+void ABaseUnitActor::SetLastRotation(FAxialAngle InAxialAngle)
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, !Path_.IsEmpty());
+	
+	Path_.Last().Rotation = InAxialAngle.R;
+	AxialAngle_ = InAxialAngle;
+}
+
+bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
 {
 	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
 	
 	if (!HasAuthority())
 	{
-		return;
+		return false;
 	}
 	
-	float CurrentYaw = CurrentYaw = FMath::UnwindDegrees(GetActorRotation().Yaw);
+	Path_.Reset();
 	
 	if (InTarget == AxialCoord_)
 	{
-		AxialAngle_ = InAxialAngle;
-		float DeltaAngle = FMath::FindDeltaAngleDegrees(CurrentYaw, AxialAngle_.GetYaw());
-		
-		bOnMove_ = FMath::Abs(DeltaAngle) > KINDA_SMALL_NUMBER;
-		
-		if (bOnMove_)
-		{
-			MG_LOG(ABaseUnitActorLog, TEXT("CurrentYaw: %f; InTargetYaw: %f"), CurrentYaw, AxialAngle_.GetYaw());
-		}
-		
-		return;
+		bOnMove_ = InAxialAngle.R != AxialAngle_.R;
+		Path_.Emplace(InTarget.ToNative(), InAxialAngle.R);
 	}
-	
-	MG_COND_ERROR_SHORT(ABaseUnitActorLog, !Path_.IsEmpty());
-	Path_.Reset();
-	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	
-	TArray<HexMath::FAxialCoord> Path;
-	GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), InTarget.ToNative(), Path);
-	
-	if (!Path.IsEmpty())
+	else
 	{
-		RETURN_ON_FAIL(ABaseUnitActorLog, Path.Num() > 1);
-		Path.RemoveAt(0);
+		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 		
-		FVector Current = GetActorLocation();
-		for (HexMath::FAxialCoord AC : Path)
-		{
-			TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(AC, Current.Z);
-			if (TargetPosOpt.IsSet())
-			{
-				Path_.Add(TargetPosOpt.GetValue());
-			}
-		}
+		const FUnitDescription* Descr = GetDescription();
+		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
+		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), AxialAngle_.R, InTarget.ToNative(), InAxialAngle.R, 
+			Descr->MaxRoundDistance, Path_, Descr->MoveCost, Descr->RotationCost, false);
+	
+		if (!Path_.IsEmpty())
+		{
+			RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Path_.Num() > 1);
+			bOnMove_ = true;
+		}
+	}
+			
+	if (bOnMove_)
+	{
 		AxialCoord_ = InTarget;
 		AxialAngle_ = InAxialAngle;
-	
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; CurrentYaw: %f; InTargetYaw: %f"), *InTarget.ToNative().ToString(), CurrentYaw, AxialAngle_.GetYaw());
-	
-		bOnMove_ = true;
+		
+		PathIndex_ = 0;
+		
+		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; InTargetYaw: %f"), *InTarget.ToNative().ToString(), AxialAngle_.GetYaw());
 	}
+	
+	return bOnMove_;
 }
 
-
-void ABaseUnitActor::OnRep_UnitActorSize()
+const FUnitDescription* ABaseUnitActor::GetDescription() const
 {
+	RETURN_ON_FAIL_NULL(ABaseUnitActorLog, !UnitType_.IsNone());
 
+	UWarpPlayfabContentSubSystem* Content = UWarpPlayfabContentSubSystem::Get(this);
+	return Content->GetDescription<FUnitDescription>(UnitType_);
 }
-
 
 void ABaseUnitActor::OnRep_UnitType()
 {

@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "CombatUIWidget.generated.h"
 
+class ABaseUnitActor;
 class UBorder;
 class UHorizontalBox;
 class UButton;
@@ -23,6 +24,9 @@ public:
 	
 	void ShowCombatUI(bool InShowCombatUI);
 	void SetActionPoints(int32 CurrentPoints, int32 MaxPoints);
+	
+	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
+	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
 
 private:
 	void RebuildActionPoints(int32 MaxPoints);

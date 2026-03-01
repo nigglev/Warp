@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "ECellType.h"
-#include "GraphAStar.h"
 #include "HexMath.h"
+#include "HexPathfainer.h"
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
 
@@ -70,14 +70,15 @@ public:
 	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell);
+	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
+		float InHexDistance, float InMoveCost, float InRotationCost, TArray<HexMath::FPathNode>* OutPath = nullptr);
+	
 	void RemoveInfluence(uint32 InId);
 	
-	void FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 
-		TArray<HexMath::FAxialCoord>& OutPath, bool InLog = false) const;
+	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
+		float InMaxDistance, TArray<HexMath::FPathNode>& OutPath, float InMoveCost, float InRotationCost, bool InDrawHexes);
 	
-	void SelectedFindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd, 
-		TArray<HexMath::FAxialCoord>& OutPath);
+	void DropPathSelections();
 	
 private:
 	static TOptional<HexMath::FOffsetCoord> WorldToChunkCoord(const FVector& InWorldPoint);
@@ -104,8 +105,8 @@ private:
 	//InNumColsRows - размеры чанка в ячейках (из настроек)
 	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, bool InSelected);
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel = 1);
 	
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
@@ -115,7 +116,7 @@ private:
 	FHashTable ChunkIndexes_;
 	
 	TArray<HexMath::FAxialCoord> SelectedCells_;
-	TArray<HexMath::FAxialCoord> PFCells_;
+	TArray<HexMath::FPathNode> PFCells_;
 	
 	TSet<HexMath::FAxialCoord> Obstacles_;
 	

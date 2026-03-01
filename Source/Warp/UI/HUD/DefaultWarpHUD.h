@@ -3,9 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HexPathfainer.h"
 #include "GameFramework/HUD.h"
+#include "Warp/Utils/RepAxialCoord.h"
 #include "DefaultWarpHUD.generated.h"
 
+class UCombatUIWidget;
 class ABaseUnitActor;
 class UEndTurnWidget;
 class AWarpGameState;
@@ -22,11 +25,30 @@ class WARP_API ADefaultWarpHUD : public AHUD
 
 	
 public:
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
+	void ShowDebugHUD();
+
+	virtual void DrawHUD() override;
+
 protected:
 	AWarpGameState* GetGameState() const;
 	
+	void OnMatchStateChanged(FName InMatchState);
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
+	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
+	
+	bool bShowDebugHUD_ = false;
+	
+	TArray<HexMath::FPathNode> InfluenceZone_;
+	
+	TOptional<uint32> InfluenceZoneId_;
+	
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UCombatUIWidget> MainWidgetClass_;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UCombatUIWidget> MainWidget_;
 };

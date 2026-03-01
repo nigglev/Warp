@@ -33,6 +33,16 @@ UWarpPlayfabContentSubSystem* UWarpPlayfabContentSubSystem::Get(const UObject* W
     return Content;
 }
 
+const FGameplayDescription* UWarpPlayfabContentSubSystem::GetGameplayDescription(const UObject* WorldContextObject)
+{
+    UWarpPlayfabContentSubSystem* PlayfabContentSubSystem = Get(WorldContextObject);
+    RETURN_ON_FAIL_NULL(AContentLog, PlayfabContentSubSystem);
+	
+    const FGameplayDescription* Descr = PlayfabContentSubSystem->GetFirstDescription<FGameplayDescription>();
+    RETURN_ON_FAIL_NULL(AContentLog, Descr);
+    return Descr;
+}
+
 void UWarpPlayfabContentSubSystem::Initialize(FSubsystemCollectionBase& InCollection)
 {
     Super::Initialize(InCollection);

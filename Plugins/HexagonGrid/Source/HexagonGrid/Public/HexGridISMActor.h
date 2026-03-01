@@ -30,14 +30,18 @@ public:
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
 	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
 
+	virtual void Tick(float DeltaSeconds) override;
+	
 protected:
 	virtual void BeginPlay() override;
-	
+
+protected:
 	void BuildHexagon(uint32 Radius);
 	
-	void SetColor(int32 InIndex, const FLinearColor InColor, float InZOffset) const;
+	void SetHexColor(int32 InIndex, const FLinearColor& InColor) const;
+	void SetHexZOffset(int32 InIndex, float InZOffset) const;
 	
 	UFUNCTION(CallInEditor, Category="Grid")
 	void UpdateMPC();
@@ -83,6 +87,7 @@ protected:
 		FLinearColor::Green,
 		FLinearColor::Black,
 		FLinearColor::Yellow,
+		FLinearColor::Red,
 	};
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
@@ -90,6 +95,7 @@ protected:
 		-2,
 		0,
 		2,
+		3
 	};
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
@@ -112,13 +118,14 @@ protected:
 	struct FSelectStatus
 	{
 		ECellType BaseStatus = ECellType::Opened;
+		float Level = 1;
 		bool bSelected = false;
 	};
 	
-	void ChangeCellStatus(int32 InIndex, ECellType InCellType);
+	void ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel);
 	void ChangeSelectStatus(int32 InIndex, bool InSelected);
 	
-	void SetCellType(int32 InIndex, ECellType InCellType);
+	void SetCellType(int32 InIndex, ECellType InCellType, float InLevel);
 	void SetSelectStatus(int32 InIndex, bool InSelected);
 	
 	FLinearColor GetColor(int32 InIndex) const;
