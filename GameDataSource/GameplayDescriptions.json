@@ -2,10 +2,7 @@
 	"items": [
 		{
 			"defaultPlayerUnitTypes": [
-				"corvette",
-				"corvette_black",
-				"corvette_blue",
-				"corvette_green"
+				"valiant"
 			],
 			"campaignMapLayerCount": 4,
 			"campaignMapNodeInLayerCountMin": 1,
@@ -14,5 +11,5 @@
 			"name": "GameplayDescriptions"
 		}
 	],
-	"version": 7
+	"version": 8
 }
