@@ -11,26 +11,29 @@
 /**
  * 
  */
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FUnitDescription : public FBaseDescription
 {
 	GENERATED_BODY()
 
 	static inline const FName DescrName = TEXT("UnitDescriptions");
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
+	FIntVector2 Size = FIntVector2(1, 1);
+	
+	UPROPERTY(EditAnywhere)
 	float MaxRoundDistance = 50;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	float MoveCost = 10;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	float RotationCost = 20;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	float AnimationMoveSpeed = 600;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	float AnimationRotationSpeed = 3600;
 };
 
@@ -39,7 +42,7 @@ struct FUnitDescriptions : public FBaseDescriptions
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	TArray<FUnitDescription> Items;
 
 	virtual bool AreItemsEmpty() override

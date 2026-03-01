@@ -146,7 +146,9 @@ bool UWarpContentSubSystem::ReadDescriptionsFromDataSource()
         }
         
         bool bSuccess = Descriptions.Get<1>()->JsonToDescription(JsonString, FailReason);
-        MG_COND_ERROR(AContentLog, !bSuccess, TEXT("Failed to convert Json to description: %s"), *FailReason->ToString());
+        
+        const TCHAR* ReasonStr = FailReason != nullptr ? *FailReason->ToString() : TEXT("Unknown");
+        MG_COND_ERROR(AContentLog, !bSuccess, TEXT("Failed to convert Json to description: %s"), ReasonStr);
         MG_COND_LOG(AContentLog, bSuccess, TEXT("Description has been read: %s"), *DescriptionName.ToString());
     }
     
