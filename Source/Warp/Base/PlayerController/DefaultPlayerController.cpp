@@ -149,9 +149,7 @@ void ADefaultPlayerController::SetupInputComponent()
 		EIC->BindAction(Action_SelectCell, ETriggerEvent::Started, this, &ADefaultPlayerController::OnSelectCellStartAction);
 		EIC->BindAction(Action_SelectCell, ETriggerEvent::Completed, this, &ADefaultPlayerController::OnSelectCellStopAction);
 		
-		EIC->BindAction(Action_CaptureCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Captured>);
 		EIC->BindAction(Action_CloseCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Closed>);
-		EIC->BindAction(Action_OpenCell, ETriggerEvent::Triggered, this, &ADefaultPlayerController::OnCellAction<ECellType::Opened>);
 		
 		EIC->BindAction(Action_ShowDebugHUD, ETriggerEvent::Triggered, this, &ADefaultPlayerController::ShowDebugHUD);
 	}

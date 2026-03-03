@@ -58,6 +58,8 @@ protected:
 	
 	void SetOnStartPathPoint();
 	
+	void CapturingHexes();
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_;
 	

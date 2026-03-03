@@ -50,8 +50,15 @@ namespace HexMath
 	inline bool operator!=(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord != RHS.Step.Coord; }
 }
 
+void HexMath::CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InMoveParams,
+	TArray<FAxialCoord>& OutCells, bool InLog)
+{
+	OutCells.Reset();
+	OutCells.Add(InStart);
+}
+
 void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
-	TSet<FPathNode>& OutPath, bool InLog)
+                           TSet<FPathNode>& OutPath, bool InLog)
 {
 	OutPath.Reset();
 	

@@ -43,12 +43,16 @@ uint32 UHexagonChunkGrid::GetColRowCountInChunk()
 
 void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 {
-	using namespace HexMath;
-	using namespace HexMath::HexMathOffset;
-	
-	TOptional<FOffsetCoord> ObserverChunkCoordOp = WorldToChunkCoord(InNewPosition);
+	TOptional<HexMath::FOffsetCoord> ObserverChunkCoordOp = WorldToChunkCoord(InNewPosition);
 	if (!ObserverChunkCoordOp.IsSet())
 		return;
+	
+	CreateNewChunks(ObserverChunkCoordOp.GetValue());
+}
+void UHexagonChunkGrid::CreateNewChunks(const HexMath::FOffsetCoord& InNewPosition)
+{
+	using namespace HexMath;
+	using namespace HexMath::HexMathOffset;
 	
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -59,11 +63,9 @@ void UHexagonChunkGrid::CreateNewChunks(const FVector& InNewPosition)
 
 	FOffsetRealCoord ChunkPitch = GetChunkPitchNoGap<HEX_LAYOUT>(NumColsRows, NumColsRows, HexSize);
 	
-	FOffsetCoord ObserverChunkCoord = ObserverChunkCoordOp.GetValue();
-	
-	if (CurrentChunkCoord_ != ObserverChunkCoord)
+	if (CurrentChunkCoord_ != InNewPosition)
 	{
-		CurrentChunkCoord_ = ObserverChunkCoord;
+		CurrentChunkCoord_ = InNewPosition;
 		
 		int32 iT = CacheOpt->BuildChunkAround;
 		
@@ -114,168 +116,6 @@ int32 UHexagonChunkGrid::FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoor
 	return INDEX_NONE;
 }
 
-void UHexagonChunkGrid::SelectCell(const FVector& InPosition)
-{
-	TOptional<HexMath::FAxialCoord> AxialCellOpt = WorldToAxialCellCoord(InPosition);
-	if (!AxialCellOpt.IsSet())
-		return;
-	
-	HexMath::FAxialCoord AxialCell = AxialCellOpt.GetValue();
-	
-	int32 Index = SelectedCells_.Find(AxialCell);
-	if (Index == INDEX_NONE)
-	{
-		if (SelectedCells_.Num() < 2)
-		{
-			SelectedCells_.Add(AxialCell);
-		}
-		else
-		{
-			SelectCell(SelectedCells_.Last(), false);
-			
-			SelectedCells_.Last() = AxialCell;
-		}
-		
-		SelectCell(AxialCell, true);
-	}
-	else
-	{
-		SelectCell(SelectedCells_[Index], false);
-		SelectedCells_.RemoveAt(Index);
-	}
-}
-
-void UHexagonChunkGrid::SelectCell(const HexMath::FAxialCoord& InAxialCoord, bool InSelected)
-{
-	HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
-	SelectCell(NCell, InSelected);
-}
-
-void UHexagonChunkGrid::SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected)
-{
-	uint32 ColRowCount = GetColRowCountInChunk();
-	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, ColRowCount, ColRowCount);
-	
-	UE_LOG(HexGridLog, Verbose, TEXT("ChunkCoord: %s"), *ChunkCoord.ToString());
-	
-	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
-	if (ChunkIndex != INDEX_NONE)
-	{
-		ChunksList_[ChunkIndex].ChunkActor->SelectCell(InOffsetCoord, InSelected);
-	}
-}
-
-void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellType)
-{
-	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
-	if (!ensure(CacheOpt.IsSet()))
-		return;
-	
-	TOptional<HexMath::FAxialCoord> AxialCell = WorldToAxialCellCoord(InPosition);
-	if (!AxialCell.IsSet())
-		return;
-	
-	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), CacheOpt->SelectRadius, 
-		[this, InCellType] (const HexMath::FAxialCoord& InCell)
-	{
-		SetCellType(InCell, InCellType);
-			
-		if (InCellType != ECellType::Opened)
-		{
-			Obstacles_.Add(InCell);
-		}
-		else
-		{
-			Obstacles_.Remove(InCell);
-		}
-	});
-}
-
-void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
-	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
-{
-	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
-	if (!ensure(CacheOpt.IsSet()))
-		return;
-	
-	RemoveInfluence(InId);
-	
-	TArray<HexMath::FAxialCoord>& Cells = InfluencedCells_.FindOrAdd(InId);
-
-	HexMath::FAxialCoord HexCenterCell = InHexCell;
-	
-	TSet<HexMath::FPathNode> Wave;
-	HexMath::FindPathZone(HexCenterCell, InRotation, InMoveParams, Wave, CacheOpt->PathfinderLog);
-	
-	for (const HexMath::FPathNode& WaveElem : Wave)
-	{
-		Cells.Add(WaveElem.Coord);
-		float Level = static_cast<float>(WaveElem.Distance) / (InMoveParams.MaxDistance + InMoveParams.MoveCost);
-		SetCellType(WaveElem.Coord, ECellType::Captured, Level);
-		if (OutPath)
-			OutPath->Add(WaveElem);
-	}
-}
-
-void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes)
-{
-	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
-	if (!ensure(CacheOpt.IsSet()))
-		return;
-
-	DropPathSelections();
-	
-	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, CacheOpt->PathfinderLog);
-	
-	if (InDrawHexes)
-	{
-		PFCells_ = OutPath;
-	
-		for (HexMath::FPathNode PFCell : PFCells_)
-			SelectCell(PFCell.Coord, true);
-	}
-}
-
-void UHexagonChunkGrid::DropPathSelections()
-{
-	for (HexMath::FPathNode PFCell : PFCells_)
-		SelectCell(PFCell.Coord, false);
-}
-
-void UHexagonChunkGrid::RemoveInfluence(uint32 InId)
-{
-	TArray<HexMath::FAxialCoord>* Cells = InfluencedCells_.Find(InId);
-	if (Cells)
-	{
-		for (HexMath::FAxialCoord Cell : *Cells)
-		{
-			SetCellType(Cell, ECellType::Opened);
-		}
-		Cells->Reset();
-	}
-}
-
-void UHexagonChunkGrid::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel)
-{
-	HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
-	SetCellType(NCell, InCellType, InLevel);
-}
-
-void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
-{
-	uint32 ColRowCount = GetColRowCountInChunk();
-	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, ColRowCount, ColRowCount);
-	
-	UE_LOG(HexGridLog, Verbose, TEXT("ChunkCoord: %s"), *ChunkCoord.ToString());
-	
-	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
-	if (ChunkIndex != INDEX_NONE)
-	{
-		ChunksList_[ChunkIndex].ChunkActor->SetCellType(InOffsetCoord, InCellType, InLevel);
-	}
-}
-
 TOptional<HexMath::FOffsetCoord> UHexagonChunkGrid::WorldToChunkCoord(const FVector& InWorldPoint)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
@@ -315,151 +155,160 @@ TOptional<HexMath::FAxialCoord> UHexagonChunkGrid::WorldToAxialCellCoord(const F
 	return CellCoord;
 }
 
+void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellType)
+{
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return;
+	
+	TOptional<HexMath::FAxialCoord> AxialCell = WorldToAxialCellCoord(InPosition);
+	if (!AxialCell.IsSet())
+		return;
+	
+	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), CacheOpt->SelectRadius, 
+		[this, InCellType] (const HexMath::FAxialCoord& InCell)
+	{
+		SetCellType(InCell, InCellType, 1.f);
+			
+		if (InCellType != ECellType::Opened)
+		{
+			Obstacles_.Add(InCell);
+		}
+		else
+		{
+			Obstacles_.Remove(InCell);
+		}
+	});
+}
 
-// void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, const HexMath::FAxialCoord& InEnd,
-// 	TArray<HexMath::FAxialCoord>& OutPath, bool InLog /*= false*/) const
-// {
-// 	OutPath.Reset();
-// 	
-// 	if (InLog)
-// 	{
-// 		UE_LOG(HexGridLog, Log, TEXT("FindPath. InStart: %s; InEnd: %s"), *InStart.ToString(), *InEnd.ToString());
-// 	}
-//
-//     // Быстрые случаи
-//     if (InStart == InEnd)
-//     {
-//         OutPath.Add(InStart);
-//         return;
-//     }
-// 	
-// 	auto IsWalkable = [this](const HexMath::FAxialCoord& Coord) { return !Obstacles_.Contains(Coord); };
-//
-//     // Эти функции/проверки подставь под свою сетку:
-//     // if (!IsValidCoord(Start) || !IsValidCoord(End)) return;
-//     if (!IsWalkable(InStart) || !IsWalkable(InStart)) return;
-//
-//     struct FOpenNode
-//     {
-//         HexMath::FAxialCoord Coord;
-//         int32 F = 0;   // g + h
-//         int32 G = 0;   // стоимость от Start
-//     };
-//
-//     // Min-heap по F: меньший F должен быть "наверху".
-//     // В UE heap-алгоритмах часто нужно инвертировать сравнение для min-heap.
-//     auto MinHeapPred = [](const FOpenNode& A, const FOpenNode& B)
-//     {
-//         return A.F < B.F; // меньше F = выше приоритет
-//     };
-//
-//     TArray<FOpenNode> Open;
-//     Open.Reserve(256);
-//
-//     TMap<HexMath::FAxialCoord, int32> GScore;
-//     GScore.Reserve(256);
-//     GScore.Add(InStart, 0);
-//
-//     TMap<HexMath::FAxialCoord, HexMath::FAxialCoord> CameFrom;
-//     CameFrom.Reserve(256);
-//
-//     // closed можно не хранить отдельно, но удобно
-//     TSet<HexMath::FAxialCoord> Closed;
-//     Closed.Reserve(256);
-//
-//     {
-//         const int32 H = AxialDistance(InStart, InEnd);
-//         Open.HeapPush(FOpenNode{ InStart, /*F*/ H, /*G*/ 0 }, MinHeapPred);
-//     }
-//
-// 	uint32 Step = 0;
-//     while (Open.Num() > 0)
-//     {
-//     	Step++;
-//     	
-//         FOpenNode Current;
-//         Open.HeapPop(Current, MinHeapPred, EAllowShrinking::No);
-//     	
-//     	if (InLog)
-//     	{
-//     		UE_LOG(HexGridLog, Log, TEXT("\t %u: OpenNim: %d; Coord: %s; F: %d G: %d"), Step, Open.Num(), *Current.Coord.ToString(), Current.F, Current.G);
-//     	}
-//
-//         if (Current.Coord == InEnd)
-//         {
-//             // Восстановление пути
-//             TArray<HexMath::FAxialCoord> ReversePath;
-//             ReversePath.Reserve(64);
-//
-//             HexMath::FAxialCoord C = InEnd;
-//             ReversePath.Add(C);
-//
-//             while (C != InStart)
-//             {
-//                 HexMath::FAxialCoord* Parent = CameFrom.Find(C);
-//                 if (!ensure(Parent))
-//                 {
-//                     OutPath.Reset();
-//                     return;
-//                 }
-//                 C = *Parent;
-//                 ReversePath.Add(C);
-//             }
-//
-//             Algo::Reverse(ReversePath);
-//             OutPath = MoveTemp(ReversePath);
-//             return;
-//         }
-//
-//         if (Closed.Contains(Current.Coord))
-//         {
-//             continue;
-//         }
-//         Closed.Add(Current.Coord);
-//
-//         for (int32 i = 0; i < HexMath::HexMathAxial::AxialNeighbourCount; ++i)
-//         {
-//             const HexMath::FAxialCoord Neighbour = Current.Coord + HexMath::HexMathAxial::AxialNeighboursShifts[i];
-//
-//             // Подставь свои проверки:
-//             // if (!IsValidCoord(N)) continue;
-//             if (!IsWalkable(Neighbour)) continue;
-//
-//             // Стоимость шага: 1 (или возьми из тайла)
-//             const int32 StepCost = 1;// GetTraversalCost(Current.Coord, Neighbour);
-//             const int32 TentativeG = Current.G + StepCost;
-//
-//             int32* OldG = GScore.Find(Neighbour);
-//         	int32 OldGVal = OldG ? *OldG : -1;
-//
-//             if (OldG == nullptr || TentativeG < *OldG)
-//             {
-//                 CameFrom.Add(Neighbour, Current.Coord);
-//                 GScore.Add(Neighbour, TentativeG);
-//
-//                 const int32 H = AxialDistance(Neighbour, InEnd);
-//                 const int32 F = TentativeG + H;
-//
-//             	if (InLog)
-//             	{
-//             		UE_LOG(HexGridLog, Log, TEXT("\t\t Added Neighbour: %s; OldG: %d; TentativeG: %d; F: %d"), 
-// 					   *Neighbour.ToString(), OldGVal, TentativeG, F);
-//             	}
-//             	
-//                 Open.HeapPush(FOpenNode{ Neighbour, F, TentativeG }, MinHeapPred);
-//             }
-//         	else if (InLog)
-//         	{
-//         		UE_LOG(HexGridLog, Log, TEXT("\t\t Missed Neighbour: %s; OldG: %d; TentativeG: %d"), 
-// 					*Neighbour.ToString(), OldGVal, TentativeG);
-//         	}
-//         }
-//     }
-//
-//     // пути нет
-//     OutPath.Reset();
-// 	//FGraphAStar<UHexagonChunkGrid> Pathfinder(*this);
-// 	
-// 	//TArray<HexMath::FAxialCoord> OutPathIndices;
-// 	//const EGraphAStarResult Result = Pathfinder.FindPath(Start, End, *this, OutPathIndices);
-// }
+void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
+		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes)
+{
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return;
+
+	DropPathSelections();
+	
+	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, CacheOpt->PathfinderLog);
+	
+	if (InDrawHexes)
+	{
+		PFCells_ = OutPath;
+	
+		for (HexMath::FPathNode PFCell : PFCells_)
+			SetCellType(PFCell.Coord, ECellType::Selected, 1);
+	}
+}
+
+void UHexagonChunkGrid::DropPathSelections()
+{
+	for (HexMath::FPathNode PFCell : PFCells_)
+		SetCellType(PFCell.Coord, ECellType::Selected, 0);
+}
+
+void UHexagonChunkGrid::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel)
+{
+	HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
+	SetCellType(NCell, InCellType, InLevel);
+}
+
+void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
+{
+	uint32 ColRowCount = GetColRowCountInChunk();
+	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, ColRowCount, ColRowCount);
+	
+	UE_LOG(HexGridLog, Verbose, TEXT("ChunkCoord: %s"), *ChunkCoord.ToString());
+	
+	int32 ChunkIndex = FindChunkIndex(ChunkCoord);
+	
+	if (ChunkIndex == INDEX_NONE)
+	{
+		CreateNewChunks(ChunkCoord);
+		ChunkIndex = FindChunkIndex(ChunkCoord);
+	}
+	
+	if (ChunkIndex != INDEX_NONE)
+	{
+		ChunksList_[ChunkIndex].ChunkActor->SetCellType(InOffsetCoord, InCellType, InLevel);
+	}
+}
+
+void UHexagonChunkGrid::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull)
+{
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return;
+	
+	ReleaseCells(InId);
+	
+	TArray<HexMath::FAxialCoord>& Cells = CapturedCells_.FindOrAdd(InId);
+
+	HexMath::FAxialCoord HexCenterCell = InHexCell;
+	
+	HexMath::CaptureCells(HexCenterCell, InRotation, InHull, Cells, CacheOpt->PathfinderLog);
+	
+	for (HexMath::FAxialCoord Cell : Cells)
+	{
+		SetCellType(Cell, ECellType::Captured, 1);
+	}
+}
+
+void UHexagonChunkGrid::ReleaseCells(uint32 InId)
+{
+	ClearCells(InId, ECellType::Captured);
+}
+
+void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
+	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
+{
+	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return;
+	
+	RemoveInfluence(InId);
+	
+	TArray<HexMath::FAxialCoord>& Cells = InfluencedCells_.FindOrAdd(InId);
+
+	HexMath::FAxialCoord HexCenterCell = InHexCell;
+	
+	TSet<HexMath::FPathNode> Wave;
+	HexMath::FindPathZone(HexCenterCell, InRotation, InMoveParams, Wave, CacheOpt->PathfinderLog);
+	
+	for (const HexMath::FPathNode& WaveElem : Wave)
+	{
+		Cells.Add(WaveElem.Coord);
+		float Level = 1 - static_cast<float>(WaveElem.Distance) / (InMoveParams.MaxDistance + InMoveParams.MoveCost);
+		SetCellType(WaveElem.Coord, ECellType::MoveProjection, Level);
+		if (OutPath)
+			OutPath->Add(WaveElem);
+	}
+}
+
+void UHexagonChunkGrid::RemoveInfluence(uint32 InId)
+{
+	ClearCells(InId, ECellType::MoveProjection);
+}
+
+void UHexagonChunkGrid::ClearCells(uint32 InId, ECellType InCellType)
+{
+	TArray<HexMath::FAxialCoord>* Cells = nullptr;
+	if (InCellType == ECellType::Captured)
+		Cells = CapturedCells_.Find(InId);
+	else if (InCellType == ECellType::MoveProjection)
+		Cells = InfluencedCells_.Find(InId);
+	else
+	{
+		UE_LOG(HexGridLog, Error, TEXT("ClearCells. InCellType:%s"), *StaticEnum<ECellType>()->GetValueAsString(InCellType));
+		return;
+	}
+	
+	if (Cells != nullptr)
+	{
+		for (HexMath::FAxialCoord Cell : *Cells)
+		{
+			SetCellType(Cell, InCellType, 0);
+		}
+		Cells->Reset();
+	}
+}

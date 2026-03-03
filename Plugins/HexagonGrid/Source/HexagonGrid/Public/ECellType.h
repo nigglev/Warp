@@ -5,9 +5,10 @@
 UENUM()
 enum class ECellType : uint8
 {
-	Opened = 0,
-	Captured,
-	Closed	,
+	Opened         = 0,
 	MoveProjection,
-	MAX_VALUE
+	Captured,
+	Closed,
+	Selected,
+	MAX
 };

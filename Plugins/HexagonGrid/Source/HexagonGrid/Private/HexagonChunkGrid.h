@@ -10,6 +10,8 @@
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
 
+struct FHullSize;
+
 namespace HexMath
 {
 	struct FOffsetCoord;
@@ -68,8 +70,10 @@ class HEXAGONGRID_API UHexagonChunkGrid : public UObject
 public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	
-	void SelectCell(const FVector& InPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
+	
+	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull);
+	void ReleaseCells(uint32 InId);
 	
 	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
 		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
@@ -98,16 +102,16 @@ private:
 	static TOptional<FHexGridActorCDODataCache> GetHexGridActorCDODataCache();
 	
 	void CreateNewChunks(const FVector& InNewPosition);
+	void CreateNewChunks(const HexMath::FOffsetCoord& InNewPosition);
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 
 	static uint32 GetColRowCountInChunk();
 	
-	//InNumColsRows - размеры чанка в ячейках (из настроек)
-	void SelectCell(const HexMath::FAxialCoord& InAxialCoord, bool InSelected);
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel = 1);
+	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel);
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel);
+	
+	void ClearCells(uint32 InId, ECellType InCellType);
 	
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
@@ -116,10 +120,10 @@ private:
 	
 	FHashTable ChunkIndexes_;
 	
-	TArray<HexMath::FAxialCoord> SelectedCells_;
 	TArray<HexMath::FPathNode> PFCells_;
 	
 	TSet<HexMath::FAxialCoord> Obstacles_;
 	
 	TMap<uint32, TArray<HexMath::FAxialCoord>> InfluencedCells_;
+	TMap<uint32, TArray<HexMath::FAxialCoord>> CapturedCells_;
 };

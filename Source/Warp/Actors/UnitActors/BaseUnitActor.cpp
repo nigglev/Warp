@@ -101,6 +101,8 @@ void ABaseUnitActor::Tick(float InDelta)
 	}
 	else
 	{
+		CapturingHexes();
+		
 		auto GS = Cast<AWarpGameState>(GetWorld()->GetGameState());
 		RETURN_ON_FAIL(ABaseUnitActorLog, GS);
 		GS->OnUnitArrived.Broadcast(this);
@@ -180,9 +182,25 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 	return true;
 }
 
+void ABaseUnitActor::CapturingHexes()
+{
+	if (bCircle_)
+		return;
+	
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	RETURN_ON_FAIL(ABaseUnitActorLog, GridWorldSubsystem != nullptr);
+		
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
+	
+	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Hull);
+}
+
 void ABaseUnitActor::SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord)
 {
 	AxialCoord_ = InAxialCoord;
+	
+	CapturingHexes();
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)

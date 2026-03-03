@@ -92,11 +92,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_SelectCell;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
-	class UInputAction* Action_CaptureCell;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_CloseCell;
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	class UInputAction* Action_OpenCell;
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* Action_ShowDebugHUD;
 

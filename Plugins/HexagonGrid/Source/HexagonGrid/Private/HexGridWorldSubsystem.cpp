@@ -36,6 +36,16 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 	ChunkGrid_->SetCellType(InPosition, InCellType);
 }
 
+void UHexGridWorldSubsystem::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull)
+{
+	ChunkGrid_->CaptureCells(InId, InHexCell, InRotation, InHull);
+}
+
+void UHexGridWorldSubsystem::ReleaseCells(uint32 InId)
+{
+	ChunkGrid_->ReleaseCells(InId);
+}
+
 void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
 	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
 {
@@ -76,11 +86,6 @@ void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 
 void UHexGridWorldSubsystem::DropPathSelections()
 {
 	ChunkGrid_->DropPathSelections();
-}
-
-void UHexGridWorldSubsystem::SelectCell(const FVector& InPosition)
-{
-	ChunkGrid_->SelectCell(InPosition);
 }
 
 TOptional<HexMath::FAxialCoord> UHexGridWorldSubsystem::WorldToAxialCellCoord(const FVector& InWorldPoint)

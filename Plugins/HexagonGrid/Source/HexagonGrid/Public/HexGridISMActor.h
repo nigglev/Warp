@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CellLayers.h"
 #include "ECellType.h"
 #include "HexMath.h"
 #include "GameFramework/Actor.h"
@@ -29,7 +30,6 @@ public:
 	
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
-	void SelectCell(const HexMath::FOffsetCoord& InOffsetCoord, bool InSelected);
 	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -62,7 +62,7 @@ protected:
 	uint32 GridSize_ = 10;
 
 	UPROPERTY(EditAnywhere, Category="Grid")
-	float ZOffset_ = 0.f;
+	float ZOffset_ = 0.2f;
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
 	float SizeScale_ = 1.f;
@@ -75,29 +75,16 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category="Grid")
 	float FadeLength_ = 500.f;
-	
+		
 	UPROPERTY(EditAnywhere, Category="Grid")
-	FLinearColor SelectedColor_ = FLinearColor::Gray;
-	
-	UPROPERTY(EditAnywhere, Category="Grid")
-	float SelectedZOffset_ = 0;
-	
-	UPROPERTY(EditAnywhere, Category="Grid")
-	FLinearColor Colors_[static_cast<int32>(ECellType::MAX_VALUE)] ={
-		FLinearColor::Green,
-		FLinearColor::Black,
-		FLinearColor::Yellow,
-		FLinearColor::Red,
+	TMap<ECellType, FLinearColor> CellColors_ = {
+		{ ECellType::Opened, FLinearColor::Black },
+		{ ECellType::MoveProjection, FLinearColor::Blue },
+		{ ECellType::Captured, FLinearColor::Red },
+		{ ECellType::Closed, FLinearColor::Black },
+		{ ECellType::Selected, FLinearColor::Yellow },
 	};
-	
-	UPROPERTY(EditAnywhere, Category="Grid")
-	float ZOffsets_[static_cast<int32>(ECellType::MAX_VALUE)] ={
-		-2,
-		0,
-		2,
-		3
-	};
-	
+		
 	UPROPERTY(EditAnywhere, Category="Grid")
 	double GlowIntensity_ = 1;
 	
@@ -114,22 +101,13 @@ protected:
 	TObjectPtr<UMaterialParameterCollection> MPC_;
 	
 	HexMath::FOffsetCoord ChunkCoord_;
-
-	struct FSelectStatus
-	{
-		ECellType BaseStatus = ECellType::Opened;
-		float Level = 1;
-		bool bSelected = false;
-	};
 	
 	void ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel);
-	void ChangeSelectStatus(int32 InIndex, bool InSelected);
 	
 	void SetCellType(int32 InIndex, ECellType InCellType, float InLevel);
-	void SetSelectStatus(int32 InIndex, bool InSelected);
 	
 	FLinearColor GetColor(int32 InIndex) const;
 	float GetZOffset(int32 InIndex) const;
 	
-	TMap<int32, FSelectStatus> SelectStatus_;
+	TMap<int32, FCellLayers> SelectStatus_;
 };
