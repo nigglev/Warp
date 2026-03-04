@@ -26,13 +26,13 @@ public:
 	
 	bool IsLoaded() const;
 
+	void Init(const FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, bool InGhost);
+	
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
 	FName GetUnitType() const {return UnitType_;}
-	void SetUnitType(const FName InUnitType) { UnitType_ = InUnitType; }
 	
-	void SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord);
 	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
 	
 	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
@@ -75,7 +75,8 @@ protected:
 	TArray<HexMath::FPathNode> Path_;
 	int32 PathIndex_ = 0;
 	
-	bool bCircle_ = false;
+	bool Ghost_ = false;
+	
 	FTimerHandle SetOnStartTimerHandle_;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")

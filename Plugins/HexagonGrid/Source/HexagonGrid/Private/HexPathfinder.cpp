@@ -50,11 +50,54 @@ namespace HexMath
 	inline bool operator!=(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord != RHS.Step.Coord; }
 }
 
-void HexMath::CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InMoveParams,
+void HexMath::CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InHullSize,
 	TArray<FAxialCoord>& OutCells, bool InLog)
 {
 	OutCells.Reset();
 	OutCells.Add(InStart);
+	
+	auto AddAlongDirection = [](const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InHullSize, TArray<FAxialCoord>& OutCells)
+	{
+		FAxialCoord Current = InStart;
+		for (uint8 i = 0; i < InHullSize.Forward; ++i)
+		{
+			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation);
+			OutCells.Add(Current);
+		}
+		
+		Current = InStart;
+		for (uint8 i = 0; i < InHullSize.Backward; ++i)
+		{
+			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation + 3);
+			OutCells.Add(Current);
+		}
+	};
+	
+	AddAlongDirection(InStart, InStartRotation, InHullSize, OutCells);
+	
+	{
+		FAxialCoord Current = InStart;
+		for (uint8 i = 0; i < InHullSize.Left; ++i)
+		{
+			uint8 R = (i & 1) ? 1 : 2;
+			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation - R);
+			OutCells.Add(Current);
+		
+			AddAlongDirection(Current, InStartRotation, InHullSize, OutCells);
+		}
+	}
+	
+	{
+		FAxialCoord Current = InStart;
+		for (uint8 i = 0; i < InHullSize.Right; ++i)
+		{
+			uint8 R = (i & 1) ? 1 : 2;
+			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation + R);
+			OutCells.Add(Current);
+		
+			AddAlongDirection(Current, InStartRotation, InHullSize, OutCells);
+		}
+	}
 }
 
 void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
@@ -94,7 +137,7 @@ void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, con
 		
 		for (int32 i = 0; i < HexMathAxial::AxialNeighbourCount; ++i)
 		{
-			const FAxialCoord NeighbourCoord = Current.Coord + HexMathAxial::AxialNeighboursShifts[i];
+			const FAxialCoord NeighbourCoord = Current.Coord + HexMathAxial::AxialNeighboursShiftsByRotation[i];
 			// Подставь свои проверки:
 			// if (!IsValidCoord(N)) continue;
 			if (!IsWalkable(NeighbourCoord)) continue;
@@ -229,7 +272,7 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 		
 		for (int32 i = 0; i < HexMathAxial::AxialNeighbourCount; ++i)
 		{
-			const FAxialCoord NeighbourCoord = Current.Step.Coord + HexMathAxial::AxialNeighboursShifts[i];
+			const FAxialCoord NeighbourCoord = Current.Step.Coord + HexMathAxial::AxialNeighboursShiftsByRotation[i];
 			if (!IsWalkable(NeighbourCoord)) continue;
 			
 			const int8 AngleToNeighbour = HexMathAxial::AxialNeighboursRotation[i];

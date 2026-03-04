@@ -205,7 +205,7 @@ namespace HexMath
 		}
 	
 		static constexpr uint8 AxialNeighbourCount = 6;
-		static const FAxialCoord AxialNeighboursShifts[AxialNeighbourCount] = {
+		static const FAxialCoord AxialNeighboursShiftsByRotation[AxialNeighbourCount] = {
 			{+1,  0},
 			{+1, -1},
 			{ 0, -1},
@@ -221,6 +221,28 @@ namespace HexMath
 			-1,
 			0,
 		};
+		
+		static const FAxialCoord AxialNeighboursShiftsByDirection[AxialNeighbourCount] = {
+			{0,  +1},
+			{+1, 0},
+			{ +1, -1},
+			{0,  -1},
+			{-1, 0},
+			{ -1, +1},
+		};
+		
+		inline uint8 DirectionToAxialNeighbourIndex(int8 InDirection)
+		{
+			int8 Direction = InDirection % 6;
+			uint8 DirIndex = Direction >= 0 ? Direction : Direction + 6;
+			return DirIndex;
+		}
+		
+		inline FAxialCoord GetNeighbourAlongDirection(const FAxialCoord& InAxial, int8 InDirection)
+		{
+			uint8 Index = DirectionToAxialNeighbourIndex(InDirection);
+			return InAxial + AxialNeighboursShiftsByDirection[Index];
+		}
 		
 		inline void IterateAxialNeighbours(const FAxialCoord& InAxialCenter, int32 InHexRadius, 
 			const TFunctionRef<void(const FAxialCoord&)>& InHandler)
@@ -252,46 +274,10 @@ namespace HexMath
 			float E = GetEdgeLength(InCircularRadius, InSegmentCount);
 			return FMath::Sqrt(InCircularRadius * InCircularRadius - E * E / 4);
 		}
-	
-		//Q along UE X, R along UE Y
-		// inline FVector AxialToWorld(int32 Q, int32 R, float InCircularRadius, float InZOffset = 0, bool InPointyTop = false)
-		// {
-		// 	HexReal x;
-		// 	HexReal y;
-		//
-		// 	if (InPointyTop)
-		// 	{
-		// 		x = InCircularRadius * sqrt3 * (static_cast<float>(Q) + static_cast<float>(R) * 0.5f);
-		// 		y = InCircularRadius * 1.5f * static_cast<float>(R);
-		// 	}
-		// 	else
-		// 	{
-		// 		x = InCircularRadius * 1.5f * static_cast<float>(Q);
-		// 		y = InCircularRadius * sqrt3 * (static_cast<float>(R) + static_cast<float>(Q) * 0.5f);
-		// 	}
-		//
-		// 	return FVector(x, y, InZOffset);
-		// }
-	
-		// static FIntPoint WorldToAxial(const FVector& InWorldPoint, float InHexSize, bool InPointyTop = false)
-		// {
-		// 	FVector2D V = WorldToAxialFractional(InWorldPoint, InHexSize, InPointyTop);
-		// 	return CubeRoundAxial(V.X, V.Y);
-		// }
-		//
-		// static FIntPoint WorldToChunkCoord(const FVector& InWorldPoint, float InHexSize, int32 R, bool InPointyTop = false)
-		// {
-		// 	const int32 Stride = 1; //2 * R + 1;
-		// 	const FVector2D Ax = WorldToAxialFractional(InWorldPoint, InHexSize, InPointyTop);
-		// 	return CubeRoundAxial(Ax.X / static_cast<float>(Stride), Ax.Y / static_cast<float>(Stride));
-		// }
-	
 	}
 
 	namespace HexMathOffset
 	{
-		
-	
 		constexpr HexReal GetH(float InCircularRadius) { return InCircularRadius * sqrt3; } //flat-top
 		constexpr HexReal GetW(float InCircularRadius) { return InCircularRadius * sqrt3; } //pointy-top
 	

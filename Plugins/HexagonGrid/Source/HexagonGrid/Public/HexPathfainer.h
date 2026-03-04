@@ -29,7 +29,7 @@ namespace HexMath
 	inline bool operator==(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord == RHS.Coord; }
 	inline bool operator!=(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord != RHS.Coord; }
 	
-	void CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InMoveParams, TArray<FAxialCoord>& OutCells, bool InLog);
+	void CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InHullSize, TArray<FAxialCoord>& OutCells, bool InLog);
 
 	void FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
 		TSet<FPathNode>& OutPath, bool InLog);

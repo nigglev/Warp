@@ -41,6 +41,16 @@ bool ABaseUnitActor::IsLoaded() const
 	return UnitType_ != NAME_None;
 }
 
+void ABaseUnitActor::Init(const FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, bool InGhost)
+{
+	UnitType_ = InUnitType;
+	AxialCoord_ = InAxialCoord;
+	Ghost_ = InGhost;
+	
+	if (!Ghost_)
+		CapturingHexes();
+}
+
 void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();
@@ -92,7 +102,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	if (bOnMove_)
 		return;
 	
-	if (bCircle_)
+	if (Ghost_)
 	{
 		const FGameplayDescription* Descr = UWarpContentSubSystem::GetGameplayDescription(this);
 		RETURN_ON_FAIL(ABaseUnitActorLog, Descr);
@@ -184,7 +194,7 @@ bool ABaseUnitActor::UpdateRotation(float InDelta, float InTargetYaw)
 
 void ABaseUnitActor::CapturingHexes()
 {
-	if (bCircle_)
+	if (Ghost_)
 		return;
 	
 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
@@ -194,13 +204,6 @@ void ABaseUnitActor::CapturingHexes()
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
 	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Hull);
-}
-
-void ABaseUnitActor::SetAxialCoord(const HexMath::FAxialCoord& InAxialCoord)
-{
-	AxialCoord_ = InAxialCoord;
-	
-	CapturingHexes();
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
@@ -214,7 +217,6 @@ bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
 	}
 	
 	Path_ = MoveTemp(InPath);
-	bCircle_ = true;
 	
 	AxialCoord_ = Path_.Last().Coord;
 	AxialAngle_ = FAxialAngle(Path_.Last().Rotation);

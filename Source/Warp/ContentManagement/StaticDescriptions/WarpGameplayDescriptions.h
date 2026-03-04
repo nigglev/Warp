@@ -27,6 +27,8 @@ struct FGameplayDescription : public FBaseDescription
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMin = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignMapNodeInLayerCountMax = 4;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ShipsOnStart = 1;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float GhostDelayTime = 1;
 };
 

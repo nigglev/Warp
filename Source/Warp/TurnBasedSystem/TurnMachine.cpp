@@ -44,7 +44,7 @@ void UTurnMachine::CreateUnits()
     const FGameplayDescription* Descr = UWarpContentSubSystem::GetGameplayDescription(this);
     RETURN_ON_FAIL(ATurnMachineLog, Descr);
 	
-    for(int i = 0; i < 3; i++)
+    for(int32 i = 0; i < Descr->ShipsOnStart; i++)
     {
         HexMath::FAxialCoord AC(i*4, i * 2);
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
