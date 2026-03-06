@@ -69,8 +69,8 @@ void UHexagonChunkGrid::CreateNewChunks(const HexMath::FOffsetCoord& InNewPositi
 		
 		int32 iT = CacheOpt->BuildChunkAround;
 		
-		for (HexInt Idx = CurrentChunkCoord_.Up - iT; Idx <= CurrentChunkCoord_.Up + iT; ++Idx)
-			for (HexInt Jdx = CurrentChunkCoord_.Right - iT; Jdx <= CurrentChunkCoord_.Right + iT; ++Jdx)
+		for (HexInt Idx = CurrentChunkCoord_.Row - iT; Idx <= CurrentChunkCoord_.Row + iT; ++Idx)
+			for (HexInt Jdx = CurrentChunkCoord_.Col - iT; Jdx <= CurrentChunkCoord_.Col + iT; ++Jdx)
 			{
 				FOffsetCoord ChunkCoord(Jdx, Idx);
 				int32 ChunkIndex = FindChunkIndex(ChunkCoord);
@@ -78,7 +78,7 @@ void UHexagonChunkGrid::CreateNewChunks(const HexMath::FOffsetCoord& InNewPositi
 				
 				if (!bAlreadyPresent)
 				{
-					FOffsetRealCoord NewChunkPos(ChunkCoord.Right * ChunkPitch.Right,  ChunkCoord.Up * ChunkPitch.Up);
+					FOffsetRealCoord NewChunkPos(ChunkCoord.Col * ChunkPitch.Right,  ChunkCoord.Row * ChunkPitch.Up);
 				
 					FVector ChunkPos = OffsetHexToWorld(NewChunkPos);
 

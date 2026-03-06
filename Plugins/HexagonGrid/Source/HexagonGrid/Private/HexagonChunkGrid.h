@@ -31,7 +31,7 @@ struct FChunkData
 	UPROPERTY()
 	AHexGridISMActor* ChunkActor = nullptr;
 		
-	static uint32 CalcKey(const HexMath::FOffsetCoord& InChunkIndex) { return HashCombine( GetTypeHash(InChunkIndex.Right), GetTypeHash(InChunkIndex.Up)); } 
+	static uint32 CalcKey(const HexMath::FOffsetCoord& InChunkIndex) { return HashCombine( GetTypeHash(InChunkIndex.Col), GetTypeHash(InChunkIndex.Row)); } 
 		
 	FChunkData() = default;
 	FChunkData(const HexMath::FOffsetCoord& InChunkIndex, AHexGridISMActor* InChunkActor) 

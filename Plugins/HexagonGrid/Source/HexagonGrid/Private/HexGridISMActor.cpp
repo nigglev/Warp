@@ -79,7 +79,7 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	{
 		if (DetailDebug)
 		{
-			UE_LOG(HexGridActorLog, Warning, TEXT("%llu : %llu\t%5.2f : %2.2f"), InOCoord.Right, InOCoord.Up, InLoc.X, InLoc.Y);
+			UE_LOG(HexGridActorLog, Warning, TEXT("%llu : %llu\t%5.2f : %2.2f"), InOCoord.Col, InOCoord.Row, InLoc.X, InLoc.Y);
 		}
 		 
 		const FTransform Tr(R, InLoc, FVector(SizeScale, SizeScale, 1));
@@ -166,13 +166,13 @@ void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, E
 {
 	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
-	if (!ensure(LocalCoord.Right >= 0 && LocalCoord.Up >= 0))
+	if (!ensure(LocalCoord.Col >= 0 && LocalCoord.Row >= 0))
 		return;
 	
 	UE_LOG(HexGridActorLog, Verbose, TEXT("Chunk: %s; LocalORCoord: %s; LocalOCoord: %s"), 
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
-	int32 Index = GridSize_ * LocalCoord.Up + LocalCoord.Right;
+	int32 Index = GridSize_ * LocalCoord.Row + LocalCoord.Col;
 	SetCellType(Index, InCellType, InLevel);
 }
 

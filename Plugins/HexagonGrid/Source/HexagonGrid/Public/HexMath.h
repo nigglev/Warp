@@ -33,27 +33,27 @@ namespace HexMath
 #pragma region OffsetCoord
 	struct FOffsetCoord
 	{
-		HexInt Up = INT32_MAX;
-		HexInt Right = INT32_MAX;
+		HexInt Col = INT32_MAX;
+		HexInt Row = INT32_MAX;
 		
 		FOffsetCoord() = default;
-		FOffsetCoord(HexInt InRight, HexInt InUp) : Up(InUp), Right(InRight) {}
+		FOffsetCoord(HexInt InCol, HexInt InRow) : Col(InCol), Row(InRow) {}
 		
 		friend auto operator<=>(const FOffsetCoord&, const FOffsetCoord&) = default;
 		
 		FString ToString() const
 		{
-			return FString::Printf(TEXT("(%d, %d)"), Right, Up);
+			return FString::Printf(TEXT("(%d, %d)"), Col, Row);
 		}
 	};
 	
-	inline FOffsetCoord operator+(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Right + RHS.Right, LHS.Up + RHS.Up); }
-	inline FOffsetCoord operator-(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Right - RHS.Right, LHS.Up - RHS.Up); }
+	inline FOffsetCoord operator+(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Col + RHS.Col, LHS.Row + RHS.Row); }
+	inline FOffsetCoord operator-(const FOffsetCoord& LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS.Col - RHS.Col, LHS.Row - RHS.Row); }
 	
 	template<typename T>
-	FOffsetCoord operator*(T LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS * RHS.Right, LHS * RHS.Up); }
+	FOffsetCoord operator*(T LHS, const FOffsetCoord& RHS) { return FOffsetCoord(LHS * RHS.Col, LHS * RHS.Row); }
 	template<typename T>
-	FOffsetCoord operator*(const FOffsetCoord& LHS, T RHS) { return FOffsetCoord(LHS.Right * RHS, LHS.Up * RHS); }
+	FOffsetCoord operator*(const FOffsetCoord& LHS, T RHS) { return FOffsetCoord(LHS.Col * RHS, LHS.Row * RHS); }
 	
 	struct FOffsetRealCoord
 	{
@@ -102,6 +102,18 @@ namespace HexMath
 	
 	inline bool operator==(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q == RHS.Q && LHS.R == RHS.R; }
 	inline bool operator!=(const FAxialCoord& LHS, const FAxialCoord& RHS) { return LHS.Q != RHS.Q || LHS.R != RHS.R; }
+	
+	struct FCubeCoord
+	{
+		HexInt Q = INT32_MAX; //Col vert for flat-top
+		HexInt R = INT32_MAX; //120 degree rows
+		HexInt S = INT32_MAX;
+		
+		FCubeCoord() = default;
+		FCubeCoord(HexInt InQ, HexInt InR) : Q(InQ), R(InR), S(-InQ - InR) {}		
+		
+		FString ToString() const { return FString::Printf(TEXT("(%d, %d, %d)"), Q, R, S); }
+	};
 	
 	FORCEINLINE uint32 GetTypeHash(const FAxialCoord& Key)
 	{
@@ -170,7 +182,7 @@ namespace HexMath
 		}
 		
 		template<EHexOffsetLayout OffsetType>
-		FOffsetCoord AxialToOffset(const FAxialCoord& InACoord)
+			FOffsetCoord AxialToOffset(const FAxialCoord& InACoord)
 		{
 			const HexInt Q1 = InACoord.Q & 1;
 			const HexInt R1 = InACoord.R & 1;
@@ -193,6 +205,33 @@ namespace HexMath
 			{
 				const HexInt col = InACoord.Q + (InACoord.R + R1) / 2;
 				return FOffsetCoord(col, InACoord.R);
+			}
+		}
+		
+		template<EHexOffsetLayout OffsetType>
+		FAxialCoord OffsetToAxial(const FOffsetCoord& InOffsetCoord)
+		{
+			const HexInt Q1 = InOffsetCoord.Col & 1;
+			const HexInt R1 = InOffsetCoord.Row & 1;
+			if constexpr (OffsetType == EHexOffsetLayout::FlatTopOddQ)
+			{
+				const HexInt row = InOffsetCoord.Row - (InOffsetCoord.Col - Q1) / 2;
+				return FAxialCoord(InOffsetCoord.Col, row);
+			}
+			else if constexpr (OffsetType == EHexOffsetLayout::FlatTopEvenQ)
+			{
+				const HexInt row = InOffsetCoord.Row - (InOffsetCoord.Col + Q1) / 2;
+				return FAxialCoord(InOffsetCoord.Col, row);
+			}
+			else if constexpr (OffsetType == EHexOffsetLayout::PointyTopOddR)
+			{
+				const HexInt col = InOffsetCoord.Col - (InOffsetCoord.Row - R1) / 2;
+				return FAxialCoord(col, InOffsetCoord.Row);
+			}
+			else // PointyTopEvenR
+			{
+				const HexInt col = InOffsetCoord.Col - (InOffsetCoord.Row + R1) / 2;
+				return FAxialCoord(col, InOffsetCoord.Row);
 			}
 		}
 		
@@ -258,6 +297,25 @@ namespace HexMath
 					InHandler(Cell);
 				}
 			}
+		}
+		
+		inline FAxialCoord RotateAxial(const FAxialCoord& InAxialCenter, const FAxialCoord& InAxialPosition, int8 InRotation)
+		{
+			FCubeCoord Dir(InAxialPosition.Q - InAxialCenter.Q, InAxialPosition.R - InAxialCenter.R);
+			
+			uint8 N = DirectionToAxialNeighbourIndex(InRotation);
+			for (int8 i = 0; i < N; ++i)
+			{
+				int8 Sign = i & 1 ? 1 : -1;
+				FCubeCoord Temp;
+				Temp.R = Sign * Dir.Q;
+				Temp.S = Sign * Dir.R;
+				Temp.Q = Sign * Dir.S;
+				
+				Dir = Temp;
+			}
+			
+			return FAxialCoord(Dir.Q + InAxialCenter.Q, Dir.R + InAxialCenter.R);			
 		}
 	
 		inline float GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }
@@ -327,11 +385,11 @@ namespace HexMath
 		{
 			if constexpr (bIsFlat<OffsetType>)
 			{
-				return InOffsetCoord.Right * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Up * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Right) * ParityShift<OffsetType>(InCircularRadius);
+				return InOffsetCoord.Col * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Row * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Col) * ParityShift<OffsetType>(InCircularRadius);
 			}
 			else
 			{
-				return InOffsetCoord.Right * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Up * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Up) * ParityShift<OffsetType>(InCircularRadius);
+				return InOffsetCoord.Col * ColBasis<OffsetType>(InCircularRadius) + InOffsetCoord.Row * RowBasis<OffsetType>(InCircularRadius) + Parity<OffsetType>(InOffsetCoord.Row) * ParityShift<OffsetType>(InCircularRadius);
 			}
 		}
 	
@@ -389,12 +447,12 @@ namespace HexMath
 			if (!ensure(NumCols > 0 && NumRows > 0)) 
 				return FOffsetCoord(0,0);
 			
-			HexInt Rc = InCellCoord.Right / NumCols;
-			HexInt Ri = InCellCoord.Right % NumCols;
+			HexInt Rc = InCellCoord.Col / NumCols;
+			HexInt Ri = InCellCoord.Col % NumCols;
 			if (Ri < 0) Rc--;
 	
-			HexInt Upc = InCellCoord.Up / NumRows;
-			HexInt Upi = InCellCoord.Up % NumRows;
+			HexInt Upc = InCellCoord.Row / NumRows;
+			HexInt Upi = InCellCoord.Row % NumRows;
 			if (Upi < 0) Upc--;
 	
 			FOffsetCoord ChunkCoord(Rc,Upc);
