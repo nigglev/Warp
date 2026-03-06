@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HullSize.h"
+#include "HullHexFootprint.h"
 #include "JsonObjectConverter.h"
 #include "MoveParams.h"
 #include "WarpDescriptionBase.h"
@@ -18,7 +18,7 @@ struct FUnitDescription : public FBaseDescription
 	static inline const FName DescrName = TEXT("UnitDescriptions");
 	
 	UPROPERTY(EditAnywhere)
-	FHullSize Hull;
+	FHullHexFootprint Footprint;
 	
 	UPROPERTY(EditAnywhere)
 	FMoveParams MoveParams;

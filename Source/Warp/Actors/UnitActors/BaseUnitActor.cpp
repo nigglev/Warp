@@ -203,7 +203,7 @@ void ABaseUnitActor::CapturingHexes()
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
-	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Hull);
+	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Footprint);
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)

@@ -234,7 +234,7 @@ void UHexagonChunkGrid::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, 
 	}
 }
 
-void UHexagonChunkGrid::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull)
+void UHexagonChunkGrid::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull)
 {
 	TOptional<FHexGridActorCDODataCache> CacheOpt = GetHexGridActorCDODataCache();
 	if (!ensure(CacheOpt.IsSet()))
@@ -244,7 +244,7 @@ void UHexagonChunkGrid::CaptureCells(uint32 InId, const HexMath::FAxialCoord& In
 	
 	TArray<HexMath::FAxialCoord>& Cells = CapturedCells_.FindOrAdd(InId);
 
-	HexMath::FAxialCoord HexCenterCell = InHexCell;
+	HexMath::FAxialCoord HexCenterCell = InCenterCell;
 	
 	HexMath::CaptureCells(HexCenterCell, InRotation, InHull, Cells, CacheOpt->PathfinderLog);
 	

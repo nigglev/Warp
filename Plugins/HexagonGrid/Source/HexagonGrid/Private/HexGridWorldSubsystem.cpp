@@ -36,9 +36,9 @@ void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType In
 	ChunkGrid_->SetCellType(InPosition, InCellType);
 }
 
-void UHexGridWorldSubsystem::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull)
+void UHexGridWorldSubsystem::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull)
 {
-	ChunkGrid_->CaptureCells(InId, InHexCell, InRotation, InHull);
+	ChunkGrid_->CaptureCells(InId, InCenterCell, InRotation, InHull);
 }
 
 void UHexGridWorldSubsystem::ReleaseCells(uint32 InId)

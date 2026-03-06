@@ -8,6 +8,10 @@
 		},
 		{
 			"name": "valiant",
+			"Footprint": 
+			{
+				"Cells": [ {"X":1, "Y": 1 }]
+			},
 			"Hull" : { "Forward": 2, "Backward": 1 },
 			"MoveParams": { "MaxDistance": 70, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,

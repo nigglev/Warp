@@ -11,7 +11,7 @@
 #include "HexGridWorldSubsystem.generated.h"
 
 
-struct FHullSize;
+struct FHullHexFootprint;
 class UHexagonChunkGrid;
 
 /**
@@ -31,7 +31,7 @@ public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull);
+	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull);
 	void ReleaseCells(uint32 InId);
 	
 	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
