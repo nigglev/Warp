@@ -8,7 +8,8 @@
 			"campaignMapNodeInLayerCountMin": 1,
 			"campaignMapNodeInLayerCountMax": 5,
 			"ghostDelayTime": 0.5,
-			"name": "GameplayDescriptions"
+			"name": "GameplayDescriptions",
+			"ShipsOnStart": 2
 		}
 	],
 	"version": 8

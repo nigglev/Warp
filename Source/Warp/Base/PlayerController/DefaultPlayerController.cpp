@@ -224,14 +224,16 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
 		TArray<HexMath::FPathNode> Path;
-		GridWorldSubsystem->FindPath(Unit->GetAxialCoord(), Unit->GetAxialAngle().R, TargetAxialCoordOpt.GetValue(), {}, 
+		GridWorldSubsystem->FindPath(Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
 			UnitDescr->MoveParams, Path, true);
 				
 		if (!Path.IsEmpty())
 		{
 			if (PlacePointer_ == nullptr)
 			{
-				PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
+				HexMath::FPathNode& LastPoint = Path.Last();
+				FAxialTransform AxialPos(LastPoint.Coord, LastPoint.Rotation);
+				PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, AxialPos));
 				RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 			}
 		

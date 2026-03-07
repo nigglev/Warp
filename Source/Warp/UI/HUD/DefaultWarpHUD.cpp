@@ -129,13 +129,13 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	if (InPrevActiveUnit != nullptr)
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s] -> %s[%s]"),
-		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialCoord().ToString(),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
+		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialPosition().ToString(),
+		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	else
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s]"),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
+		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	
 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
@@ -144,8 +144,8 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
 	
 	InfluenceZoneId_ = InNewActiveUnit->GetUniqueID();
-	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
-	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
+	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
+	FAxialAngle AA = InNewActiveUnit->GetAxialRotation();
 	
 	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);

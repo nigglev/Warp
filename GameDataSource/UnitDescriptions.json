@@ -27,7 +27,7 @@
 					{"X":-1, "Y": -3 },{"X":-1, "Y": -2 }, {"X":-1, "Y": 0 }, {"X":-1, "Y": -1 }, {"X":-1, "Y": 1 }, {"X":-1, "Y": 2 }, {"X":-1, "Y": 3 }, {"X":-1, "Y": 4 }	
 				]
 			},
-			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 20 },
+			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 30
 		}

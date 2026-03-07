@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
-#include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "PlacePointer.generated.h"
 
@@ -42,6 +41,8 @@ protected:
 	void UpdateRotation(float InDelta);
 	
 	void FixRotation(bool InFixed);
+	
+	void OnTransformChanged();
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
 	float DeadZone_ = 30;

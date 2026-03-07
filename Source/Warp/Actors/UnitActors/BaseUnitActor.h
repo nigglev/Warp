@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
-#include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "BaseUnitActor.generated.h"
 
@@ -26,22 +25,22 @@ public:
 	
 	bool IsLoaded() const;
 
-	void Init(const FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, bool InGhost);
+	void Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost);
 	
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
 	FName GetUnitType() const {return UnitType_;}
 	
-	HexMath::FAxialCoord GetAxialCoord() const { return AxialCoord_.ToNative(); }
+	HexMath::FAxialCoord GetAxialPosition() const { return AxialTransform_.Position.ToNative(); }
 	
-	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	FAxialAngle GetAxialRotation() const { return AxialTransform_.Rotation; }
 	
 	bool SetCirclePath(TArray<HexMath::FPathNode>&& InPath);
 	
 	void SetLastRotation(FAxialAngle InAxialAngle);
 	
-	bool SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	bool SetMoveTarget(const FAxialTransform& InTarget);
 	
 	bool IsMoving() const { return bOnMove_; }
 	
@@ -50,6 +49,9 @@ public:
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
+	
+	//UFUNCTION()
+	//void OnRep_UnitType();
 	
 	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
 	EMoveState MoveToTarget(float InDelta, const FVector& Target);
@@ -64,10 +66,7 @@ protected:
 	FName UnitType_;
 	
 	UPROPERTY(Replicated)
-	FRepAxialCoord AxialCoord_;
-	
-	UPROPERTY(Replicated)
-	FAxialAngle AxialAngle_;
+	FAxialTransform AxialTransform_;
 	
 	UPROPERTY(Replicated)
 	bool bOnMove_ = false;

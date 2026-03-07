@@ -32,8 +32,7 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ABaseUnitActor, UnitType_);
 	DOREPLIFETIME(ABaseUnitActor, bOnMove_);
-	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
-	DOREPLIFETIME(ABaseUnitActor, AxialAngle_);
+	DOREPLIFETIME(ABaseUnitActor, AxialTransform_);
 }
 
 bool ABaseUnitActor::IsLoaded() const
@@ -41,10 +40,10 @@ bool ABaseUnitActor::IsLoaded() const
 	return UnitType_ != NAME_None;
 }
 
-void ABaseUnitActor::Init(const FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, bool InGhost)
+void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost)
 {
 	UnitType_ = InUnitType;
-	AxialCoord_ = InAxialCoord;
+	AxialTransform_ = InAxialTransform;
 	Ghost_ = InGhost;
 	
 	if (!Ghost_)
@@ -96,7 +95,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	}
 	
 	
-	float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
+	float TargetYaw  = FMath::UnwindDegrees(AxialTransform_.Rotation.GetYaw());
 	bOnMove_ = UpdateRotation(InDelta, TargetYaw);
 	
 	if (bOnMove_)
@@ -203,7 +202,7 @@ void ABaseUnitActor::CapturingHexes()
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
-	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Footprint);
+	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint);
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
@@ -218,8 +217,8 @@ bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
 	
 	Path_ = MoveTemp(InPath);
 	
-	AxialCoord_ = Path_.Last().Coord;
-	AxialAngle_ = FAxialAngle(Path_.Last().Rotation);
+	AxialTransform_.Position = Path_.Last().Coord;
+	AxialTransform_.Rotation = FAxialAngle(Path_.Last().Rotation);
 	
 	SetOnStartPathPoint();
 	
@@ -231,12 +230,12 @@ void ABaseUnitActor::SetLastRotation(FAxialAngle InAxialAngle)
 	RETURN_ON_FAIL(ABaseUnitActorLog, !Path_.IsEmpty());
 	
 	Path_.Last().Rotation = InAxialAngle.R;
-	AxialAngle_ = InAxialAngle;
+	AxialTransform_.Rotation = InAxialAngle;
 }
 
-bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
-	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
+	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s"), *InTarget.ToString());
 	
 	if (!HasAuthority())
 	{
@@ -245,10 +244,10 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 	
 	Path_.Reset();
 	
-	if (InTarget == AxialCoord_)
+	if (InTarget.Position == AxialTransform_.Position)
 	{
-		bOnMove_ = InAxialAngle.R != AxialAngle_.R;
-		Path_.Emplace(InTarget.ToNative(), InAxialAngle.R);
+		bOnMove_ = InTarget.Rotation != AxialTransform_.Rotation;
+		Path_.Emplace(InTarget.Position.ToNative(), InTarget.Rotation.R);
 	}
 	else
 	{
@@ -257,7 +256,8 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 		const FUnitDescription* Descr = GetDescription();
 		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
-		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), AxialAngle_.R, InTarget.ToNative(), InAxialAngle.R, 
+		GridWorldSubsystem->FindPath(AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
+			InTarget.Position.ToNative(), InTarget.Rotation.R, 
 			Descr->MoveParams, Path_, false);
 	
 		if (!Path_.IsEmpty())
@@ -269,12 +269,11 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 			
 	if (bOnMove_)
 	{
-		AxialCoord_ = InTarget;
-		AxialAngle_ = InAxialAngle;
+		AxialTransform_ = InTarget;
 		
 		PathIndex_ = 0;
 		
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; InTargetYaw: %f"), *InTarget.ToNative().ToString(), AxialAngle_.GetYaw());
+		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s"), *InTarget.ToString());
 	}
 	
 	return bOnMove_;

@@ -62,14 +62,10 @@ void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InA
 		FixRotation(false);
 		RingMat_->SetVectorParameterValue(TEXT("BaseColor"), StartColor_);
 		
-		if (CreateGhost_)
-		{
-			if (Ghost_ == nullptr)
-			{
-				Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), InPath[0].Coord, this, true);
-			}
+		OnTransformChanged();
+		
+		if (Ghost_ != nullptr)
 			Ghost_->SetCirclePath(MoveTemp(InPath));
-		}
 	}
 	else
 		FixRotation(!bRotationFixed_);
@@ -104,6 +100,10 @@ void APlacePointer::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (Ghost_ != nullptr)
 		Ghost_->Destroy();
+	
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, GridWorldSubsystem != nullptr);
+	GridWorldSubsystem->ReleaseCells(GetUniqueID());
 	
 	Super::EndPlay(EndPlayReason);
 }
@@ -152,8 +152,29 @@ void APlacePointer::UpdateRotation(float InDelta)
 		const float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotateSpeed_ * InDelta);
 		const FRotator WorldRot(0.f, NewYaw, 0.f);
 		SetActorRotation(WorldRot);
-		
-		if (Ghost_ != nullptr)
+	
+		OnTransformChanged();
+	}
+}
+
+void APlacePointer::OnTransformChanged()
+{
+	if (CreateGhost_)
+	{
+		if (Ghost_ == nullptr)
+		{
+			Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), 
+			   FAxialTransform(PathNode_.Coord, AxialAngle_), this, true);
+		}
+		else
 			Ghost_->SetLastRotation(AxialAngle_);
 	}
+	
+	const FUnitDescription* Descr = ActiveUnit_->GetDescription();
+	RETURN_ON_FAIL(APlacePointerLog, Descr != nullptr);
+	
+	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, GridWorldSubsystem != nullptr);
+	
+	GridWorldSubsystem->CaptureCells(GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint);
 }

@@ -48,7 +48,7 @@ void UTurnMachine::CreateUnits()
     {
         HexMath::FAxialCoord AC(i*4, i * 2);
         int32 Ind = FMath::RandRange(0, Descr->DefaultPlayerUnitTypes.Num() - 1);
-        ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], AC);
+        ABaseUnitActor* Unit = UnitActorFactory::CreateUnitActor(this, Descr->DefaultPlayerUnitTypes[Ind], FAxialTransform(AC, {}));
         if (Unit != nullptr)
         {
             CombatUnits_.Add(Unit);
@@ -201,7 +201,7 @@ void UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle
     if (!IsValid(Active))
         return;
 
-    if (Active->SetMoveTarget(InTarget, InAxialAngle))
+    if (Active->SetMoveTarget(FAxialTransform(InTarget, InAxialAngle)))
         SetWaitingForArrival();
 }
 
