@@ -30,14 +30,13 @@ public:
 	
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
+	void OnCellChange(const HexMath::FOffsetCoord& InOffsetCoord, const FCellLayers& InCell);
 
 	virtual void Tick(float DeltaSeconds) override;
 	
 protected:
 	virtual void BeginPlay() override;
 
-protected:
 	void BuildHexagon(uint32 Radius);
 	
 	void SetHexColor(int32 InIndex, const FLinearColor& InColor) const;
@@ -102,12 +101,10 @@ protected:
 	
 	HexMath::FOffsetCoord ChunkCoord_;
 	
-	void ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel);
+	void SetCellType(int32 InIndex, const FCellLayers& InCell);
 	
-	void SetCellType(int32 InIndex, ECellType InCellType, float InLevel);
+	FLinearColor GetOpenedColor() const;
+	FLinearColor GetColor(const FCellLayers& InCell) const;
 	
-	FLinearColor GetColor(int32 InIndex) const;
-	float GetZOffset(int32 InIndex) const;
-	
-	TMap<int32, FCellLayers> SelectStatus_;
+	float GetZOffset(const FCellLayers& InCell) const;	
 };

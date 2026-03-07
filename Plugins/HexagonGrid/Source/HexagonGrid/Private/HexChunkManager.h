@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "HexChunkManager.generated.h"
 
+class FCellLayers;
 class AHexGridISMActor;
 class UHexagonChunkGrid;
 
@@ -45,13 +46,9 @@ public:
 	
 	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
 	
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel);
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel);
-	
-	void SetCellType(const FVector& InPosition, ECellType InCellType);
+	void OnCellChange(const HexMath::FAxialCoord& InAxialCoord, const FCellLayers& InCell);
+
 private:
-	
-	TSet<HexMath::FAxialCoord> Obstacles_;
 	
 	HexMath::FOffsetCoord CurrentChunkCoord_;
 	

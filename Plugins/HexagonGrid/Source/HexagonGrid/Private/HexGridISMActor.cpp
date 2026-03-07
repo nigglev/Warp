@@ -94,10 +94,9 @@ void AHexGridISMActor::BuildHexagon(uint32 InHexWidth)
 	for (int32 i = 0; i < Transforms.Num(); ++i)
 	{
 		const int32 Idx = BaseIndex + i;
-		FLinearColor Clr = GetColor(Idx);
-		float ZOffset = GetZOffset(Idx);
+		FLinearColor Clr = GetOpenedColor();
 		SetHexColor(Idx, Clr);
-		SetHexZOffset(Idx, ZOffset);
+		SetHexZOffset(Idx, 0);
 	}
 	
 	UpdateMPC();
@@ -162,7 +161,7 @@ FVector AHexGridISMActor::GetExtent() const
 	return fSZ / 2;
 }
 
-void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
+void AHexGridISMActor::OnCellChange(const HexMath::FOffsetCoord& InOffsetCoord, const FCellLayers& InCell)
 {
 	HexMath::FOffsetCoord LocalCoord = InOffsetCoord - ChunkCoord_ * GridSize_;
 	
@@ -173,63 +172,44 @@ void AHexGridISMActor::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, E
 		*ChunkCoord_.ToString(), *LocalCoord.ToString(), *LocalCoord.ToString());
 	
 	int32 Index = GridSize_ * LocalCoord.Row + LocalCoord.Col;
-	SetCellType(Index, InCellType, InLevel);
+	SetCellType(Index, InCell);
 }
 
-void AHexGridISMActor::SetCellType(int32 InIndex, ECellType InCellType, float InLevel)
+void AHexGridISMActor::SetCellType(int32 InIndex, const FCellLayers& InCell)
 {
-	ChangeCellStatus(InIndex, InCellType, InLevel);
-	
-	FLinearColor Clr = GetColor(InIndex);
-	float ZOffset = GetZOffset(InIndex);
+	FLinearColor Clr = GetColor(InCell);
+	float ZOffset = GetZOffset(InCell);
 		
 	SetHexColor(InIndex, Clr);
 	SetHexZOffset(InIndex, ZOffset);
 }
 
-void AHexGridISMActor::ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel)
+FLinearColor AHexGridISMActor::GetOpenedColor() const
 {
-	FCellLayers* Cache = SelectStatus_.Find(InIndex);
-	if (Cache == nullptr && InLevel == 0)
-		return;
-	
-	if (Cache == nullptr)
-	{
-		Cache = &SelectStatus_.Emplace(InIndex);
-	}
-	
-	Cache->SetCellType(InCellType, InLevel);
-	if (Cache->GetCellType() == ECellType::Opened)
-	{
-		SelectStatus_.Remove(InIndex);
-	}
-}
-
-FLinearColor AHexGridISMActor::GetColor(int32 InIndex) const
-{
-	const FCellLayers* Status = SelectStatus_.Find(InIndex);
-	
 	const FLinearColor* OpenedColor = CellColors_.Find(ECellType::Opened);
 	if (!ensure(OpenedColor))
 		return FLinearColor::White;
 	
-	if (Status == nullptr)
-	{
-		return *OpenedColor;
-	}
+	return *OpenedColor;	
+}
+
+FLinearColor AHexGridISMActor::GetColor(const FCellLayers& InCell) const
+{
+	const FLinearColor* OpenedColor = CellColors_.Find(ECellType::Opened);
+	if (!ensure(OpenedColor))
+		return FLinearColor::White;
 	
-	const FLinearColor* StatusColor = CellColors_.Find(Status->GetCellType());
+	const FLinearColor* StatusColor = CellColors_.Find(InCell.GetCellType());
 	if (!ensure(StatusColor))
 		return FLinearColor::White;
 	
-	return FMath::Lerp(*OpenedColor, *StatusColor, Status->GetMaxLevel());
+	return FMath::Lerp(*OpenedColor, *StatusColor, InCell.GetMaxLevel());
 	//return FLinearColor::LerpUsingHSV(OpenedColor, StatusColor, Status->Level);
 }
 
-float AHexGridISMActor::GetZOffset(int32 InIndex) const
+float AHexGridISMActor::GetZOffset(const FCellLayers& InCell) const
 {
-	const FCellLayers* Status = SelectStatus_.Find(InIndex);
-	int32 SellTypeIndex = Status ? Status->MaxIndex() : 0;
+	int32 SellTypeIndex = InCell.MaxIndex();
 	return ZOffset_ * SellTypeIndex;
 }
 

@@ -2,9 +2,7 @@
 
 #include "HexagonChunkGrid.h"
 #include "HexMath.h"
-#include "HexagonGridSettings.h"
 #include "HexChunkManager.h"
-#include "HexGridISMActor.h"
 #include "HexGridUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridLog, Log, Log);
@@ -17,11 +15,6 @@ UHexagonChunkGrid::UHexagonChunkGrid()
 void UHexagonChunkGrid::OnChangeObserverPosition(const FVector& InNewPosition)
 {
 	ChunkManager_->CreateNewChunks(InNewPosition);	
-}
-
-void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellType)
-{
-	ChunkManager_->SetCellType(InPosition, InCellType);
 }
 
 void UHexagonChunkGrid::CreateNewChunks(const HexMath::FOffsetCoord& InNewPosition)
@@ -45,14 +38,14 @@ void UHexagonChunkGrid::FindPath(const HexMath::FAxialCoord& InStart, int8 InSta
 		PFCells_ = OutPath;
 	
 		for (HexMath::FPathNode PFCell : PFCells_)
-			ChunkManager_->SetCellType(PFCell.Coord, ECellType::Selected, 1);
+			SetCellType(PFCell.Coord, ECellType::Selected, 1);
 	}
 }
 
 void UHexagonChunkGrid::DropPathSelections()
 {
 	for (HexMath::FPathNode PFCell : PFCells_)
-		ChunkManager_->SetCellType(PFCell.Coord, ECellType::Selected, 0);
+		SetCellType(PFCell.Coord, ECellType::Selected, 0);
 }
 
 
@@ -72,7 +65,7 @@ void UHexagonChunkGrid::CaptureCells(uint32 InId, const HexMath::FAxialCoord& In
 	
 	for (HexMath::FAxialCoord Cell : Cells)
 	{
-		ChunkManager_->SetCellType(Cell, ECellType::Captured, 1);
+		SetCellType(Cell, ECellType::Captured, 1);
 	}
 }
 
@@ -101,7 +94,7 @@ void UHexagonChunkGrid::SelectInfluence(uint32 InId, const HexMath::FAxialCoord&
 	{
 		Cells.Add(WaveElem.Coord);
 		float Level = 1 - static_cast<float>(WaveElem.Distance) / (InMoveParams.MaxDistance + InMoveParams.MoveCost);
-		ChunkManager_->SetCellType(WaveElem.Coord, ECellType::MoveProjection, Level);
+		SetCellType(WaveElem.Coord, ECellType::MoveProjection, Level);
 		if (OutPath)
 			OutPath->Add(WaveElem);
 	}
@@ -129,8 +122,54 @@ void UHexagonChunkGrid::ClearCells(uint32 InId, ECellType InCellType)
 	{
 		for (HexMath::FAxialCoord Cell : *Cells)
 		{
-			ChunkManager_->SetCellType(Cell, InCellType, 0);
+			SetCellType(Cell, InCellType, 0);
 		}
 		Cells->Reset();
 	}
+}
+
+void UHexagonChunkGrid::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel)
+{
+	FCellLayers* Cell = SelectStatus_.Find(InAxialCoord);
+	if (Cell == nullptr && InLevel == 0)
+		return;
+	
+	if (Cell == nullptr)
+	{
+		Cell = &SelectStatus_.Emplace(InAxialCoord);
+	}
+	
+	Cell->SetCellType(InCellType, InLevel);
+	if (Cell->GetCellType() == ECellType::Opened)
+	{
+		SelectStatus_.Remove(InAxialCoord);
+	}
+	
+	ChunkManager_->OnCellChange(InAxialCoord, *Cell);
+}
+
+void UHexagonChunkGrid::SetCellType(const FVector& InPosition, ECellType InCellType)
+{
+	TOptional<HexGridUtilities::FHexGridActorCDODataCache> CacheOpt = HexGridUtilities::GetHexGridActorCDODataCache();
+	if (!ensure(CacheOpt.IsSet()))
+		return;
+	
+	TOptional<HexMath::FAxialCoord> AxialCell = HexGridUtilities::WorldToAxialCellCoord(InPosition);
+	if (!AxialCell.IsSet())
+		return;
+	
+	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), CacheOpt->SelectRadius, 
+		[this, InCellType] (const HexMath::FAxialCoord& InCell)
+	{
+		SetCellType(InCell, InCellType, 1.f);
+			
+		if (InCellType != ECellType::Opened)
+		{
+			Obstacles_.Add(InCell);
+		}
+		else
+		{
+			Obstacles_.Remove(InCell);
+		}
+	});
 }

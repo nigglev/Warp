@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CellLayers.h"
 #include "ECellType.h"
 #include "HexMath.h"
 #include "HexPathfainer.h"
@@ -54,10 +55,16 @@ private:
 
 	void ClearCells(uint32 InId, ECellType InCellType);
 	
+	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel);
+	
+	TMap<HexMath::FAxialCoord, FCellLayers> SelectStatus_;
+	
 	TArray<HexMath::FPathNode> PFCells_;
 	
 	TMap<uint32, TArray<HexMath::FAxialCoord>> InfluencedCells_;
 	TMap<uint32, TArray<HexMath::FAxialCoord>> CapturedCells_;
+	
+	TSet<HexMath::FAxialCoord> Obstacles_;
 	
 	UPROPERTY()
 	UFHexChunkManager* ChunkManager_;

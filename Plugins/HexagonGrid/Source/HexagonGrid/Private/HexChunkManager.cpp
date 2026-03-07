@@ -86,14 +86,10 @@ int32 UFHexChunkManager::FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoor
 	return INDEX_NONE;
 }
 
-void UFHexChunkManager::SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel)
+void UFHexChunkManager::OnCellChange(const HexMath::FAxialCoord& InAxialCoord, const FCellLayers& InCell)
 {
-	HexMath::FOffsetCoord NCell = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
-	SetCellType(NCell, InCellType, InLevel);
-}
-
-void UFHexChunkManager::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel)
-{
+	HexMath::FOffsetCoord InOffsetCoord = HexMath::HexMathAxial::AxialToOffset<HEX_LAYOUT>(InAxialCoord);
+	
 	uint32 ColRowCount = HexGridUtilities::GetColRowCountInChunk();
 	HexMath::FOffsetCoord ChunkCoord = HexMath::HexMathOffset::OffsetCellToChunk(InOffsetCoord, ColRowCount, ColRowCount);
 	
@@ -109,32 +105,6 @@ void UFHexChunkManager::SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, 
 	
 	if (ChunkIndex != INDEX_NONE)
 	{
-		ChunksList_[ChunkIndex].ChunkActor->SetCellType(InOffsetCoord, InCellType, InLevel);
+		ChunksList_[ChunkIndex].ChunkActor->OnCellChange(InOffsetCoord, InCell);
 	}
-}
-
-void UFHexChunkManager::SetCellType(const FVector& InPosition, ECellType InCellType)
-{
-	TOptional<HexGridUtilities::FHexGridActorCDODataCache> CacheOpt = HexGridUtilities::GetHexGridActorCDODataCache();
-	if (!ensure(CacheOpt.IsSet()))
-		return;
-	
-	TOptional<HexMath::FAxialCoord> AxialCell = HexGridUtilities::WorldToAxialCellCoord(InPosition);
-	if (!AxialCell.IsSet())
-		return;
-	
-	HexMath::HexMathAxial::IterateAxialNeighbours(AxialCell.GetValue(), CacheOpt->SelectRadius, 
-		[this, InCellType] (const HexMath::FAxialCoord& InCell)
-	{
-		SetCellType(InCell, InCellType, 1.f);
-			
-		if (InCellType != ECellType::Opened)
-		{
-			Obstacles_.Add(InCell);
-		}
-		else
-		{
-			Obstacles_.Remove(InCell);
-		}
-	});
 }
