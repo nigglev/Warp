@@ -62,11 +62,14 @@ void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InA
 		FixRotation(false);
 		RingMat_->SetVectorParameterValue(TEXT("BaseColor"), StartColor_);
 		
-		// if (Ghost_ == nullptr)
-		// {
-		// 	Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), InPath[0].Coord, this, true);
-		// }
-		// Ghost_->SetCirclePath(MoveTemp(InPath));
+		if (CreateGhost_)
+		{
+			if (Ghost_ == nullptr)
+			{
+				Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), InPath[0].Coord, this, true);
+			}
+			Ghost_->SetCirclePath(MoveTemp(InPath));
+		}
 	}
 	else
 		FixRotation(!bRotationFixed_);
