@@ -3,11 +3,11 @@
 
 #include "BaseUnitActor.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "HexPathfainer.h"
 #include "MGLogs.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/GameState/WarpGameState.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
@@ -81,7 +81,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	{
 		HexMath::FPathNode& Node = Path_[PathIndex_];
 		
-		TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Node.Coord, Current.Z);
+		TOptional<FVector> TargetPosOpt = UHexMapWS::AxialCellToWorldCoord(Node.Coord, Current.Z);
 		RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
 		
 		FVector Target = TargetPosOpt.GetValue();
@@ -126,7 +126,7 @@ void ABaseUnitActor::SetOnStartPathPoint()
 	
 	FVector Current = GetActorLocation();
 				
-	TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Path_[0].Coord, Current.Z);
+	TOptional<FVector> TargetPosOpt = UHexMapWS::AxialCellToWorldCoord(Path_[0].Coord, Current.Z);
 	RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
 				
 	const FRotator WorldRot(0.f, FAxialAngle::GetYaw(Path_[0].Rotation), 0.f);
@@ -196,13 +196,13 @@ void ABaseUnitActor::CapturingHexes()
 	if (Ghost_)
 		return;
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	RETURN_ON_FAIL(ABaseUnitActorLog, GridWorldSubsystem != nullptr);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(ABaseUnitActorLog, HexMapWS != nullptr);
 		
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
-	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint);
+	HexMapWS->CaptureCells(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint);
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
@@ -253,12 +253,12 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	}
 	else
 	{
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 		
 		const FUnitDescription* Descr = GetDescription();
 		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
-		GridWorldSubsystem->FindPath(AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
+		HexMapWS->FindPath(AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
 			InTarget.Position.ToNative(), InTarget.Rotation.R, 
 			Descr->MoveParams, Path_, false);
 	

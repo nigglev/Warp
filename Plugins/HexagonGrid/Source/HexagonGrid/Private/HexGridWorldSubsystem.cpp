@@ -8,10 +8,10 @@
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridWSLog, Log, Log);
 
-UHexGridWorldSubsystem* UHexGridWorldSubsystem::Get(const UObject* InWorldContextObject)
-{
-	return InWorldContextObject->GetWorld()->GetSubsystem<UHexGridWorldSubsystem>();
-}
+// UHexGridWorldSubsystem* UHexGridWorldSubsystem::Get(const UObject* InWorldContextObject)
+// {
+// 	return InWorldContextObject->GetWorld()->GetSubsystem<UHexGridWorldSubsystem>();
+// }
 
 void UHexGridWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {

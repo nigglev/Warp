@@ -3,11 +3,11 @@
 
 #include "PlacePointer.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "UnitActors/UnitActorFactory.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(APlacePointerLog, Log, All);
@@ -52,7 +52,7 @@ void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InA
 		
 		AxialAngle_.R = LastNode.Rotation;
 	
-		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(PathNode_.Coord);
+		TOptional<FVector> PosOpt = UHexMapWS::AxialCellToWorldCoord(PathNode_.Coord);
 		RETURN_ON_FAIL(APlacePointerLog, PosOpt.IsSet());
 	
 		const FRotator WorldRot(0.f, AxialAngle_.GetYaw(), 0.f);
@@ -101,9 +101,9 @@ void APlacePointer::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (Ghost_ != nullptr)
 		Ghost_->Destroy();
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	RETURN_ON_FAIL(APlacePointerLog, GridWorldSubsystem != nullptr);
-	GridWorldSubsystem->ReleaseCells(GetUniqueID());
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, HexMapWS != nullptr);
+	HexMapWS->ReleaseCells(GetUniqueID());
 	
 	Super::EndPlay(EndPlayReason);
 }
@@ -173,8 +173,8 @@ void APlacePointer::OnTransformChanged()
 	const FUnitDescription* Descr = ActiveUnit_->GetDescription();
 	RETURN_ON_FAIL(APlacePointerLog, Descr != nullptr);
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	RETURN_ON_FAIL(APlacePointerLog, GridWorldSubsystem != nullptr);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, HexMapWS != nullptr);
 	
-	GridWorldSubsystem->CaptureCells(GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint);
+	HexMapWS->CaptureCells(GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint);
 }

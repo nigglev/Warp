@@ -3,12 +3,12 @@
 
 #include "DefaultWarpHUD.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/GameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
 #include "Warp/UI/CombatUI/CombatUIWidget.h"
@@ -72,12 +72,11 @@ void ADefaultWarpHUD::DrawHUD()
 	
 	if (bShowDebugHUD_)
 	{
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 		APlayerController* PC = GetOwningPlayerController();
 		
 		for (HexMath::FPathNode Hex : InfluenceZone_)
 		{
-			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Hex.Coord, 0);
+			TOptional<FVector> PosOpt = UHexMapWS::AxialCellToWorldCoord(Hex.Coord, 0);
 			if (PosOpt.IsSet())
 			{
 				FVector2D ScreenPos;
@@ -138,10 +137,10 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
-		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
 	
 	InfluenceZoneId_ = InNewActiveUnit->GetUniqueID();
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
@@ -151,7 +150,7 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
 	
 	InfluenceZone_.Empty();
-	GridWorldSubsystem->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
+	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);
@@ -159,10 +158,10 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 
 void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 {
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
-		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitStartMoving(InNewActiveUnit);

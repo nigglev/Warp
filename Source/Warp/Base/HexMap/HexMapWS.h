@@ -3,31 +3,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ECellType.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "HexMath.h"
 #include "HexPathfainer.h"
-#include "MoveParams.h"
-#include "Subsystems/WorldSubsystem.h"
-#include "HexGridWorldSubsystem.generated.h"
+#include "HexMapWS.generated.h"
 
-
-struct FHullHexFootprint;
-class UHexagonChunkGrid;
-
+enum class ECellType : uint8;
+class UHexGridWorldSubsystem;
 /**
  * 
  */
 UCLASS()
-class HEXAGONGRID_API UHexGridWorldSubsystem : public UWorldSubsystem
+class WARP_API UHexMapWS : public UWorldSubsystem
 {
 	GENERATED_BODY()
-	
 public:
-	//static UHexGridWorldSubsystem* Get(const UObject* InWorldContextObject);
-
+	static UHexMapWS* Get(const UObject* InWorldContextObject);
+	
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
-
+	
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
@@ -44,12 +39,11 @@ public:
 		const FMoveParams& InMoveParams, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const;
 	
 	void DropPathSelections();
-
+	
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
 	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);
 	
 private:
-	
 	UPROPERTY()
-	UHexagonChunkGrid* ChunkGrid_;	
+	UHexGridWorldSubsystem* HexGridWS_;
 };
