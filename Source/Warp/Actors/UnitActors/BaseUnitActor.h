@@ -50,8 +50,8 @@ protected:
 	UFUNCTION()
 	void OnRep_UnitType();
 	
-	//UFUNCTION()
-	//void OnRep_UnitType();
+	UFUNCTION()
+	void OnRep_AxialTransform();
 	
 	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
 	EMoveState MoveToTarget(float InDelta, const FVector& Target);
@@ -65,7 +65,7 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_AxialTransform)
 	FAxialTransform AxialTransform_;
 	
 	UPROPERTY(Replicated)

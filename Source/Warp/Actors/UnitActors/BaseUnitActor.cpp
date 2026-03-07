@@ -43,11 +43,11 @@ bool ABaseUnitActor::IsLoaded() const
 void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost)
 {
 	UnitType_ = InUnitType;
-	AxialTransform_ = InAxialTransform;
 	Ghost_ = InGhost;
 	
-	if (!Ghost_)
-		CapturingHexes();
+	AxialTransform_ = InAxialTransform;
+	if (HasAuthority())
+		OnRep_AxialTransform();
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -219,6 +219,8 @@ bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
 	
 	AxialTransform_.Position = Path_.Last().Coord;
 	AxialTransform_.Rotation = FAxialAngle(Path_.Last().Rotation);
+	if (HasAuthority())
+		OnRep_AxialTransform();
 	
 	SetOnStartPathPoint();
 	
@@ -270,6 +272,8 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	if (bOnMove_)
 	{
 		AxialTransform_ = InTarget;
+		if (HasAuthority())
+			OnRep_AxialTransform();
 		
 		PathIndex_ = 0;
 		
@@ -290,4 +294,10 @@ const FUnitDescription* ABaseUnitActor::GetDescription() const
 void ABaseUnitActor::OnRep_UnitType()
 {
 	
+}
+
+void ABaseUnitActor::OnRep_AxialTransform()
+{
+	if (!Ghost_)
+		CapturingHexes();
 }
