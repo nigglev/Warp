@@ -8,6 +8,11 @@ FString HexMath::FPathNode::ToString() const
 	return FString::Printf(TEXT("%s[%d] D: %.2f"), *Coord.ToString(), Rotation, Distance);
 }
 
+FString HexMath::FPathNode::ToDebugScreenString() const
+{
+	return FString::Printf(TEXT("%s"), *Coord.ToString());
+}
+
 namespace HexMath
 {
 	int8 GetRotationDiff(int8 A, int8 B)
@@ -64,7 +69,7 @@ void HexMath::CaptureCells(const FAxialCoord& InCenter, int8 InRotation, const F
 		FOffsetCoord Offset(V.X, V.Y);
 		FAxialCoord AxialCoord = HexMathAxial::OffsetToAxial<HEX_LAYOUT>(Offset);
 		
-		FAxialCoord NewPos = HexMathAxial::RotateAxial(InCenter, AxialCoord, InRotation);
+		FAxialCoord NewPos = HexMathAxial::Transform(InCenter, InRotation, AxialCoord);
 		OutCells.Add(NewPos);
 	}	
 }

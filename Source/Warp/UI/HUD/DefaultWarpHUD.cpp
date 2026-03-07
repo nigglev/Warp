@@ -87,8 +87,8 @@ void ADefaultWarpHUD::DrawHUD()
 				{
 					float StrWidth;
 					float StrHeight;
-					GetTextSize(Hex.ToString(), StrWidth, StrHeight);
-					DrawText(Hex.ToString(), FLinearColor::Green, ScreenPos.X - StrWidth / 2, ScreenPos.Y - StrHeight / 2);//, GEngine->GetMediumFont(), 1.0f, false)
+					GetTextSize(Hex.ToDebugScreenString(), StrWidth, StrHeight);
+					DrawText(Hex.ToDebugScreenString(), FLinearColor::Green, ScreenPos.X - StrWidth / 2, ScreenPos.Y - StrHeight / 2);//, GEngine->GetMediumFont(), 1.0f, false)
 				}
 			}
 		}		

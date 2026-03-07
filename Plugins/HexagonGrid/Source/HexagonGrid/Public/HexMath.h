@@ -97,6 +97,8 @@ namespace HexMath
 		FString ToString() const { return FString::Printf(TEXT("(%d, %d)"), Q, R); }
 	};
 	
+	static FAxialCoord AxialForward = FAxialCoord(0, 1);
+	
 	inline FAxialCoord operator+(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q + RHS.Q, LHS.R + RHS.R); }
 	inline FAxialCoord operator-(const FAxialCoord& LHS, const FAxialCoord& RHS) { return FAxialCoord(LHS.Q - RHS.Q, LHS.R - RHS.R); }
 	
@@ -299,23 +301,34 @@ namespace HexMath
 			}
 		}
 		
-		inline FAxialCoord RotateAxial(const FAxialCoord& InAxialCenter, const FAxialCoord& InAxialPosition, int8 InRotation)
+		inline FAxialCoord RotateAxial(const FAxialCoord& InAxialDir, int8 InRotation)
 		{
-			FCubeCoord Dir(InAxialPosition.Q - InAxialCenter.Q, InAxialPosition.R - InAxialCenter.R);
+			FCubeCoord Dir(InAxialDir.Q, InAxialDir.R);
 			
 			uint8 N = DirectionToAxialNeighbourIndex(InRotation);
 			for (int8 i = 0; i < N; ++i)
 			{
-				int8 Sign = i & 1 ? 1 : -1;
 				FCubeCoord Temp;
-				Temp.R = Sign * Dir.Q;
-				Temp.S = Sign * Dir.R;
-				Temp.Q = Sign * Dir.S;
+				Temp.Q = -1 * Dir.S;
+				Temp.R = -1 * Dir.Q;
+				Temp.S = -1 * Dir.R;
 				
 				Dir = Temp;
 			}
 			
-			return FAxialCoord(Dir.Q + InAxialCenter.Q, Dir.R + InAxialCenter.R);			
+			return FAxialCoord(Dir.Q, Dir.R);			
+		}
+		
+		inline FAxialCoord RotatePoint(const FAxialCoord& InAxialCenter, const FAxialCoord& InAxialPoint, int8 InRotation)
+		{
+			FAxialCoord NewDir = RotateAxial(FAxialCoord(InAxialPoint.Q - InAxialCenter.Q, InAxialPoint.R - InAxialCenter.R), InRotation);
+			return FAxialCoord(NewDir.Q + InAxialCenter.Q, NewDir.R + InAxialCenter.R);			
+		}
+		
+		inline FAxialCoord Transform(const FAxialCoord& InAxialCenter, int8 InRotation, const FAxialCoord& InAxialLocalPosition)
+		{
+			FAxialCoord NewDir = RotateAxial(InAxialLocalPosition, InRotation);
+			return FAxialCoord(NewDir.Q + InAxialCenter.Q, NewDir.R + InAxialCenter.R);			
 		}
 	
 		inline float GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }

@@ -19,6 +19,7 @@ namespace HexMath
 		FPathNode(const FAxialCoord& InCoord, int8 InRotation, float InDistance) : Coord(InCoord), Rotation(InRotation), Distance(InDistance) {}
 		
 		FString ToString() const;
+		FString ToDebugScreenString() const;
 	};
 	
 	FORCEINLINE uint32 GetTypeHash(const FPathNode& Key)
