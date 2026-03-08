@@ -43,16 +43,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(HexOffsetToAxial, "Private.Tests.HexOffsetToAxi
 bool HexOffsetToAxial::RunTest(const FString& Parameters)
 {
 	using namespace HexMath;
-	using namespace HexMath::HexMathAxial;
 
-	TestEqual(TEXT("0:0 == 0:0"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, 0)), FAxialCoord(0, 0));
-	TestEqual(TEXT("0:-1 == 0:-1"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, -1)), FAxialCoord(0, -1));
-	TestEqual(TEXT("-1:-1 == -1:0"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-1, -1)), FAxialCoord(-1, 0));
-	TestEqual(TEXT("-1:0 == -1:1"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-1, 0)), FAxialCoord(-1, 1));
-	TestEqual(TEXT("0:1 == 0:1"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, 1)), FAxialCoord(0, 1));
-	TestEqual(TEXT("1:0 == 1:0"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, 0)), FAxialCoord(1, 0));
-	TestEqual(TEXT("1:-1 == 1:-1"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, -1)), FAxialCoord(1, -1));
-	TestEqual(TEXT("-2:-2 == -2:-1"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-2, -2)), FAxialCoord(-2, -1));
-	TestEqual(TEXT("1:2 == 1:2"), OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, 2)), FAxialCoord(1, 2));
+	TestEqual(TEXT("0:0 == 0:0"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, 0)), FAxialCoord(0, 0));
+	TestEqual(TEXT("0:-1 == 0:-1"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, -1)), FAxialCoord(0, -1));
+	TestEqual(TEXT("-1:-1 == -1:0"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-1, -1)), FAxialCoord(-1, 0));
+	TestEqual(TEXT("-1:0 == -1:1"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-1, 0)), FAxialCoord(-1, 1));
+	TestEqual(TEXT("0:1 == 0:1"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(0, 1)), FAxialCoord(0, 1));
+	TestEqual(TEXT("1:0 == 1:0"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, 0)), FAxialCoord(1, 0));
+	TestEqual(TEXT("1:-1 == 1:-1"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, -1)), FAxialCoord(1, -1));
+	TestEqual(TEXT("-2:-2 == -2:-1"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(-2, -2)), FAxialCoord(-2, -1));
+	TestEqual(TEXT("1:2 == 1:2"), HexMathAxial::OffsetToAxial<EHexOffsetLayout::FlatTopOddQ>(FOffsetCoord(1, 2)), FAxialCoord(1, 2));
 	return true;
 }
