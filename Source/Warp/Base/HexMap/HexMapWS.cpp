@@ -39,8 +39,6 @@ void UHexMapWS::OnChangeObserverPosition(const FVector& InNewPosition)
 
 void UHexMapWS::SetCellType(const FVector& InPosition, ECellType InCellType)
 {
-	if (HexGridWS_)
-		SetCellType(InPosition, InCellType);
 }
 
 void UHexMapWS::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation,
@@ -48,7 +46,7 @@ void UHexMapWS::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCe
 {
 	RETURN_ON_FAIL(AHexMapWSLog, HexGridWS_);
 	
-	ECellType CellType = ECellType::Captured;
+	ECellType CellType = ECellType::SuccessCaptured;
 	
 	ClearCells(InId, CellType);
 	
@@ -70,7 +68,7 @@ void UHexMapWS::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCe
 
 void UHexMapWS::ReleaseCells(uint32 InId)
 {
-	ClearCells(InId, ECellType::Captured);
+	ClearCells(InId, ECellType::SuccessCaptured);
 }
 
 void UHexMapWS::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
@@ -110,7 +108,7 @@ void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 
 {
 	DropPathSelections(InId);
 	
-	ECellType CellType = ECellType::Selected;
+	ECellType CellType = ECellType::MovingPath;
 	
 	UGameSettings* GameSettings = UGameSettings::Get();
 	RETURN_ON_FAIL(AHexMapWSLog, GameSettings);	
@@ -132,7 +130,7 @@ void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 
 
 void UHexMapWS::DropPathSelections(uint32 InId)
 {
-	ClearCells(InId, ECellType::Selected);
+	ClearCells(InId, ECellType::MovingPath);
 }
 
 TOptional<HexMath::FAxialCoord> UHexMapWS::WorldToAxialCellCoord(const FVector& InWorldPoint)

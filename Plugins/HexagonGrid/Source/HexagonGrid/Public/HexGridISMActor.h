@@ -79,9 +79,9 @@ protected:
 	TMap<ECellType, FLinearColor> CellColors_ = {
 		{ ECellType::Opened, FLinearColor::Black },
 		{ ECellType::MoveProjection, FLinearColor::Blue },
-		{ ECellType::Captured, FLinearColor::Red },
+		{ ECellType::SuccessCaptured, FLinearColor::Red },
 		{ ECellType::Closed, FLinearColor::Black },
-		{ ECellType::Selected, FLinearColor::Yellow },
+		{ ECellType::MovingPath, FLinearColor::Yellow },
 	};
 		
 	UPROPERTY(EditAnywhere, Category="Grid")
