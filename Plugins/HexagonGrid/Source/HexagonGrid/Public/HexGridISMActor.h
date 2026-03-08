@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CellLayers.h"
 #include "ECellType.h"
+#include "HexCellDrawInfo.h"
 #include "HexMath.h"
 #include "GameFramework/Actor.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -30,7 +30,7 @@ public:
 	
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
-	void OnCellChange(const HexMath::FOffsetCoord& InOffsetCoord, const FCellLayers& InCell);
+	void OnCellChange(const HexMath::FOffsetCoord& InOffsetCoord, const FHexCellDrawInfo& InCellInfo);
 
 	virtual void Tick(float DeltaSeconds) override;
 	
@@ -101,10 +101,9 @@ protected:
 	
 	HexMath::FOffsetCoord ChunkCoord_;
 	
-	void SetCellType(int32 InIndex, const FCellLayers& InCell);
+	FLinearColor GetColor(int32 InIndex) const;
 	
-	FLinearColor GetOpenedColor() const;
-	FLinearColor GetColor(const FCellLayers& InCell) const;
+	float GetZOffset(int32 InIndex) const;
 	
-	float GetZOffset(const FCellLayers& InCell) const;	
+	TMap<int32, FHexCellDrawInfo> Cache_;
 };

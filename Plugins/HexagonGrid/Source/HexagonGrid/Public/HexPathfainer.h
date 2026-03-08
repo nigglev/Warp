@@ -30,11 +30,11 @@ namespace HexMath
 	inline bool operator==(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord == RHS.Coord; }
 	inline bool operator!=(const FPathNode& LHS, const FPathNode& RHS) { return LHS.Coord != RHS.Coord; }
 	
-	void CaptureCells(const FAxialCoord& InCenter, int8 InRotation, const FHullHexFootprint& InHullSize, TArray<FAxialCoord>& OutCells, bool InLog);
+	HEXAGONGRID_API void CaptureCells(const FAxialCoord& InCenter, int8 InRotation, const FHullHexFootprint& InHullSize, TArray<FAxialCoord>& OutCells, bool InLog);
 
-	void FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
+	HEXAGONGRID_API void FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,
 		TSet<FPathNode>& OutPath, bool InLog);
 	
-	bool FindPath(const FAxialCoord& InStart, int8 InStartRotation, const FAxialCoord& InEnd, TOptional<int8> InEndRotation, 
+	HEXAGONGRID_API bool FindPath(const FAxialCoord& InStart, int8 InStartRotation, const FAxialCoord& InEnd, TOptional<int8> InEndRotation, 
 		const FMoveParams& InMoveParams, TArray<FPathNode>& OutPath, bool InLog);
 }

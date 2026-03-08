@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CellLayers.h"
 #include "ECellType.h"
 #include "HexMath.h"
 #include "HexPathfainer.h"
@@ -11,6 +10,7 @@
 #include "UObject/Object.h"
 #include "HexagonChunkGrid.generated.h"
 
+struct FHexCellDrawInfo;
 class UFHexChunkManager;
 struct FHullHexFootprint;
 
@@ -21,53 +21,52 @@ namespace HexMath
 
 class AHexGridISMActor;
 
-/**
- * 
- */
+USTRUCT()
+struct FChunkData
+{
+	GENERATED_BODY()
+	
+	uint32 Key = 0;
+	
+	HexMath::FOffsetCoord ChunkIndex;
+	
+	UPROPERTY()
+	AHexGridISMActor* ChunkActor = nullptr;
+		
+	static uint32 CalcKey(const HexMath::FOffsetCoord& InChunkIndex) { return HashCombine( GetTypeHash(InChunkIndex.Col), GetTypeHash(InChunkIndex.Row)); } 
+		
+	FChunkData() = default;
+	FChunkData(const HexMath::FOffsetCoord& InChunkIndex, AHexGridISMActor* InChunkActor) 
+		: ChunkIndex(InChunkIndex), ChunkActor(InChunkActor)
+	{
+		Key = CalcKey(InChunkIndex);
+	}
+};
+
 UCLASS()
 class HEXAGONGRID_API UHexagonChunkGrid : public UObject
 {
 	GENERATED_BODY()
 	
 public:
-	UHexagonChunkGrid();
 	
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	
-	void SetCellType(const FVector& InPosition, ECellType InCellType);
-	
-	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull);
-	void ReleaseCells(uint32 InId);
-	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
-		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
-	
-	void RemoveInfluence(uint32 InId);
-	
-	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes);
-	
-	void DropPathSelections();
+	void SetCellDrawing(const HexMath::FAxialCoord& InAxialCoord, const FHexCellDrawInfo& InCellInfo);
 	
 private:
 	
+	void CreateNewChunks(const FVector& InNewPosition);
 	void CreateNewChunks(const HexMath::FOffsetCoord& InNewPosition);
+	
+	int32 FindChunkIndex(const HexMath::FOffsetCoord& InChunkCoord) const;
+	
+	void OnCellChange(const HexMath::FAxialCoord& InAxialCoord, const FHexCellDrawInfo& InCellInfo);
 
-	void ClearCells(uint32 InId, ECellType InCellType);
-	
-	void SetCellType(const HexMath::FAxialCoord& InAxialCoord, ECellType InCellType, float InLevel);
-	
-	TMap<HexMath::FAxialCoord, FCellLayers> SelectStatus_;
-	
-	TArray<HexMath::FPathNode> PFCells_;
-	
-	TMap<uint32, TArray<HexMath::FAxialCoord>> InfluencedCells_;
-	TMap<uint32, TArray<HexMath::FAxialCoord>> CapturedCells_;
-	
-	TSet<HexMath::FAxialCoord> Obstacles_;
+	HexMath::FOffsetCoord CurrentChunkCoord_;
 	
 	UPROPERTY()
-	UFHexChunkManager* ChunkManager_;
+	TArray<FChunkData> ChunksList_;
 	
-	friend UFHexChunkManager;
+	FHashTable ChunkIndexes_;
 };

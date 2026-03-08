@@ -1,29 +1,30 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
-#include "GameAssets.generated.h"
+#include "GameSettings.generated.h"
 
 class ABaseUnitActor;
 /**
  * 
  */
-UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="Warp Game Assets"))
-class WARP_API UGameAssets : public UDeveloperSettings
+UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="Warp Game Settings"))
+class WARP_API UGameSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 	
 public:
-	UGameAssets(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UGameSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	static UGameAssets* Get() 
+	static UGameSettings* Get() 
 	{ 
-		return GetMutableDefault<UGameAssets>();
+		return GetMutableDefault<UGameSettings>();
 	}
 	
 	TSubclassOf<ABaseUnitActor> GetUnitActorClass(const FName& InUnitType, bool InGhost = false) const;
+	
+	UPROPERTY(Config, EditAnywhere, Category="Data")
+	bool PathfinderLog = false;
 	
 protected:
 	UPROPERTY(Config, EditAnywhere, Category="Data")

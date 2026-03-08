@@ -224,7 +224,7 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
 		TArray<HexMath::FPathNode> Path;
-		HexMapWS->FindPath(Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
+		HexMapWS->FindPath(GetUniqueID(), Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
 			UnitDescr->MoveParams, Path, true);
 				
 		if (!Path.IsEmpty())
@@ -276,7 +276,7 @@ void ADefaultPlayerController::ActiveUnitStartMove()
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, HexMapWS != nullptr);
 		
-	HexMapWS->DropPathSelections();
+	HexMapWS->DropPathSelections(GetUniqueID());
 }
 
 void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)

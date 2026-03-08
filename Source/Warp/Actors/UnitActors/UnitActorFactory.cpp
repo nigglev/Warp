@@ -6,7 +6,7 @@
 #include "BaseUnitActor.h"
 #include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
-#include "Warp/ContentManagement/GameAssets.h"
+#include "Warp/ContentManagement/GameSettings.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(UnitFactoryLog, Log, All);
@@ -37,7 +37,7 @@ ABaseUnitActor* UnitActorFactory::CreateUnitActor(const UObject* InWorldContext,
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
 	
-	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameAssets::Get()->GetUnitActorClass(InUnitType, InGhost);
+	TSubclassOf<ABaseUnitActor> UnitActorClass = UGameSettings::Get()->GetUnitActorClass(InUnitType, InGhost);
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, UnitActorClass);
 	
 	ABaseUnitActor* Unit = Cast<ABaseUnitActor>(CreateActor(InWorldContext, UnitActorClass, InAxialTransform, InOwner));

@@ -258,7 +258,7 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 		const FUnitDescription* Descr = GetDescription();
 		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
-		HexMapWS->FindPath(AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
+		HexMapWS->FindPath(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
 			InTarget.Position.ToNative(), InTarget.Rotation.R, 
 			Descr->MoveParams, Path_, false);
 	
