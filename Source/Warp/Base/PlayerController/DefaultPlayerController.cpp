@@ -3,7 +3,6 @@
 
 #include "DefaultPlayerController.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "MGLogTypes.h"
 #include "WarpCheatManager.h"
@@ -13,6 +12,7 @@
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
@@ -217,21 +217,23 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		const FUnitDescription* UnitDescr = Unit->GetDescription();
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, UnitDescr != nullptr);
 		
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-		RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+		RETURN_ON_FAIL(ADefaultPlayerControllerLog, HexMapWS != nullptr);
 		
-		TOptional<HexMath::FAxialCoord> TargetAxialCoordOpt = UHexGridWorldSubsystem::WorldToAxialCellCoord(P);
+		TOptional<HexMath::FAxialCoord> TargetAxialCoordOpt = UHexMapWS::WorldToAxialCellCoord(P);
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
 		TArray<HexMath::FPathNode> Path;
-		GridWorldSubsystem->FindPath(Unit->GetAxialCoord(), Unit->GetAxialAngle().R, TargetAxialCoordOpt.GetValue(), {}, 
+		HexMapWS->FindPath(GetUniqueID(), Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
 			UnitDescr->MoveParams, Path, true);
 				
 		if (!Path.IsEmpty())
 		{
 			if (PlacePointer_ == nullptr)
 			{
-				PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, TargetAxialCoordOpt.GetValue()));
+				HexMath::FPathNode& LastPoint = Path.Last();
+				FAxialTransform AxialPos(LastPoint.Coord, LastPoint.Rotation);
+				PlacePointer_ = Cast<APlacePointer>(UnitActorFactory::CreateActor(this, PlacePointerClass_, AxialPos));
 				RETURN_ON_FAIL(ADefaultPlayerControllerLog, PlacePointer_);
 			}
 		
@@ -254,10 +256,10 @@ void ADefaultPlayerController::OnSelectCellStopAction(const FInputActionValue& V
 	// 	PlacePointer_->Destroy();
 	// 	PlacePointer_ = nullptr;
 	// 	
-	// 	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	// 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+	// 	UHexHexMapWS* HexMapWS = UHexHexMapWS::Get(this);
+	// 	RETURN_ON_FAIL(ADefaultPlayerControllerLog, HexMapWS != nullptr);
 	// 	
-	// 	GridWorldSubsystem->DropPathSelections();
+	// 	HexMapWS->DropPathSelections();
 	// }
 }
 
@@ -271,10 +273,10 @@ void ADefaultPlayerController::ActiveUnitStartMove()
 	PlacePointer_->Destroy();
 	PlacePointer_ = nullptr;
 		
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	RETURN_ON_FAIL(ADefaultPlayerControllerLog, GridWorldSubsystem != nullptr);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(ADefaultPlayerControllerLog, HexMapWS != nullptr);
 		
-	GridWorldSubsystem->DropPathSelections();
+	HexMapWS->DropPathSelections(GetUniqueID());
 }
 
 void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
@@ -297,10 +299,10 @@ void ADefaultPlayerController::OnCellAction(const FInputActionValue& Value)
 			DrawDebugSphere(World, P, 12.f, 16, FColor::Green, false, 1.0f);
 			DrawDebugLine(World, P, P + FVector(0, 0, 50.f), FColor::Green, false, 1.0f, 0, 1.5f);
 			
-			UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-			if (GridWorldSubsystem != nullptr)
+			UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+			if (HexMapWS != nullptr)
 			{
-				GridWorldSubsystem->SetCellType(P, InCellType);
+				HexMapWS->SetCellType(P, InCellType);
 			}
 		}
 	}

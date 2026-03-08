@@ -9,8 +9,8 @@ class ABaseUnitActor;
 namespace UnitActorFactory
 {
 	AActor* CreateActor(const UObject* InWorldContext, const TSubclassOf<AActor>& InActorClass, 
-		const HexMath::FAxialCoord& InAxialCoord, AActor* InOwner = nullptr);
+		const FAxialTransform& InAxialTransform, AActor* InOwner = nullptr);
 	
-	ABaseUnitActor* CreateUnitActor(const UObject* InWorldContext, FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, 
+	ABaseUnitActor* CreateUnitActor(const UObject* InWorldContext, FName InUnitType, const FAxialTransform& InAxialTransform, 
 		AActor* InOwner = nullptr, bool InGhost = false);
 };

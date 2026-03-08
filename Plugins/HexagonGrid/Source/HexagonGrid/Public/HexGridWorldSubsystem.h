@@ -11,7 +11,7 @@
 #include "HexGridWorldSubsystem.generated.h"
 
 
-struct FHullSize;
+struct FHullHexFootprint;
 class UHexagonChunkGrid;
 
 /**
@@ -23,27 +23,14 @@ class HEXAGONGRID_API UHexGridWorldSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 	
 public:
-	static UHexGridWorldSubsystem* Get(const UObject* InWorldContextObject);
+	//static UHexGridWorldSubsystem* Get(const UObject* InWorldContextObject);
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+	
+	UHexagonChunkGrid* GetGrid() { return ChunkGrid_; }
 
 	void OnChangeObserverPosition(const FVector& InNewPosition);
-	void SetCellType(const FVector& InPosition, ECellType InCellType);
-	
-	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull);
-	void ReleaseCells(uint32 InId);
-	
-	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
-	void RemoveInfluence(uint32 InId);
-	
-	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes) const;
-	
-	void FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		const FMoveParams& InMoveParams, float Z, TArray<FVector>& OutPath, bool InDrawHexes) const;
-	
-	void DropPathSelections();
 
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
 	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);

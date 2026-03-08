@@ -3,12 +3,12 @@
 
 #include "DefaultWarpHUD.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/GameMode.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 #include "Warp/TurnBasedSystem/TurnMachine.h"
 #include "Warp/UI/CombatUI/CombatUIWidget.h"
@@ -74,12 +74,11 @@ void ADefaultWarpHUD::DrawHUD()
 	
 	if (bShowDebugHUD_)
 	{
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
 		APlayerController* PC = GetOwningPlayerController();
 		
 		for (HexMath::FPathNode Hex : InfluenceZone_)
 		{
-			TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Hex.Coord, 0);
+			TOptional<FVector> PosOpt = UHexMapWS::AxialCellToWorldCoord(Hex.Coord, 0);
 			if (PosOpt.IsSet())
 			{
 				FVector2D ScreenPos;
@@ -89,8 +88,8 @@ void ADefaultWarpHUD::DrawHUD()
 				{
 					float StrWidth;
 					float StrHeight;
-					GetTextSize(Hex.ToString(), StrWidth, StrHeight);
-					DrawText(Hex.ToString(), FLinearColor::Green, ScreenPos.X - StrWidth / 2, ScreenPos.Y - StrHeight / 2);//, GEngine->GetMediumFont(), 1.0f, false)
+					GetTextSize(Hex.ToDebugScreenString(), StrWidth, StrHeight);
+					DrawText(Hex.ToDebugScreenString(), FLinearColor::Green, ScreenPos.X - StrWidth / 2, ScreenPos.Y - StrHeight / 2);//, GEngine->GetMediumFont(), 1.0f, false)
 				}
 			}
 		}		
@@ -131,29 +130,29 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	if (InPrevActiveUnit != nullptr)
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s] -> %s[%s]"),
-		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialCoord().ToString(),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
+		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialPosition().ToString(),
+		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	else
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s]"),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialCoord().ToString());
+		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
-		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
 	
 	InfluenceZoneId_ = InNewActiveUnit->GetUniqueID();
-	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialCoord();
-	FAxialAngle AA = InNewActiveUnit->GetAxialAngle();
+	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
+	FAxialAngle AA = InNewActiveUnit->GetAxialRotation();
 	
 	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
 	
 	InfluenceZone_.Empty();
-	GridWorldSubsystem->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
+	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);
@@ -161,10 +160,10 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 
 void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 {
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
-		GridWorldSubsystem->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitStartMoving(InNewActiveUnit);

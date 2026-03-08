@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
-#include "Warp/Utils/AxialAngle.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "PlacePointer.generated.h"
 
@@ -43,17 +42,22 @@ protected:
 	
 	void FixRotation(bool InFixed);
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Rotate Parameters")
+	void OnTransformChanged();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
 	float DeadZone_ = 30;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Rotate Parameters")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
 	float RotateSpeed_ = 360;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Rotate Parameters")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
 	FLinearColor StartColor_ = FLinearColor::Green;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Rotate Parameters")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
 	FLinearColor FixedColor_ = FLinearColor::Yellow;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Pointer Parameters")
+	bool CreateGhost_ = false;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Root_;

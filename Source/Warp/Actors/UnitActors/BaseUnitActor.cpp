@@ -3,11 +3,11 @@
 
 #include "BaseUnitActor.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "HexPathfainer.h"
 #include "MGLogs.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/GameState/WarpGameState.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
@@ -32,8 +32,7 @@ void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ABaseUnitActor, UnitType_);
 	DOREPLIFETIME(ABaseUnitActor, bOnMove_);
-	DOREPLIFETIME(ABaseUnitActor, AxialCoord_);
-	DOREPLIFETIME(ABaseUnitActor, AxialAngle_);
+	DOREPLIFETIME(ABaseUnitActor, AxialTransform_);
 }
 
 bool ABaseUnitActor::IsLoaded() const
@@ -41,14 +40,14 @@ bool ABaseUnitActor::IsLoaded() const
 	return UnitType_ != NAME_None;
 }
 
-void ABaseUnitActor::Init(const FName InUnitType, const HexMath::FAxialCoord& InAxialCoord, bool InGhost)
+void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost)
 {
 	UnitType_ = InUnitType;
-	AxialCoord_ = InAxialCoord;
 	Ghost_ = InGhost;
 	
-	if (!Ghost_)
-		CapturingHexes();
+	AxialTransform_ = InAxialTransform;
+	if (HasAuthority())
+		OnRep_AxialTransform();
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -82,7 +81,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	{
 		HexMath::FPathNode& Node = Path_[PathIndex_];
 		
-		TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Node.Coord, Current.Z);
+		TOptional<FVector> TargetPosOpt = UHexMapWS::AxialCellToWorldCoord(Node.Coord, Current.Z);
 		RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
 		
 		FVector Target = TargetPosOpt.GetValue();
@@ -96,7 +95,7 @@ void ABaseUnitActor::Tick(float InDelta)
 	}
 	
 	
-	float TargetYaw  = FMath::UnwindDegrees(AxialAngle_.GetYaw());
+	float TargetYaw  = FMath::UnwindDegrees(AxialTransform_.Rotation.GetYaw());
 	bOnMove_ = UpdateRotation(InDelta, TargetYaw);
 	
 	if (bOnMove_)
@@ -127,7 +126,7 @@ void ABaseUnitActor::SetOnStartPathPoint()
 	
 	FVector Current = GetActorLocation();
 				
-	TOptional<FVector> TargetPosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(Path_[0].Coord, Current.Z);
+	TOptional<FVector> TargetPosOpt = UHexMapWS::AxialCellToWorldCoord(Path_[0].Coord, Current.Z);
 	RETURN_ON_FAIL(ABaseUnitActorLog, TargetPosOpt.IsSet());
 				
 	const FRotator WorldRot(0.f, FAxialAngle::GetYaw(Path_[0].Rotation), 0.f);
@@ -197,13 +196,13 @@ void ABaseUnitActor::CapturingHexes()
 	if (Ghost_)
 		return;
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	RETURN_ON_FAIL(ABaseUnitActorLog, GridWorldSubsystem != nullptr);
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(ABaseUnitActorLog, HexMapWS != nullptr);
 		
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
-	GridWorldSubsystem->CaptureCells(GetUniqueID(), AxialCoord_.ToNative(), AxialAngle_.R, Descr->Hull);
+	HexMapWS->CaptureCells(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint);
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
@@ -218,8 +217,10 @@ bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
 	
 	Path_ = MoveTemp(InPath);
 	
-	AxialCoord_ = Path_.Last().Coord;
-	AxialAngle_ = FAxialAngle(Path_.Last().Rotation);
+	AxialTransform_.Position = Path_.Last().Coord;
+	AxialTransform_.Rotation = FAxialAngle(Path_.Last().Rotation);
+	if (HasAuthority())
+		OnRep_AxialTransform();
 	
 	SetOnStartPathPoint();
 	
@@ -231,12 +232,12 @@ void ABaseUnitActor::SetLastRotation(FAxialAngle InAxialAngle)
 	RETURN_ON_FAIL(ABaseUnitActorLog, !Path_.IsEmpty());
 	
 	Path_.Last().Rotation = InAxialAngle.R;
-	AxialAngle_ = InAxialAngle;
+	AxialTransform_.Rotation = InAxialAngle;
 }
 
-bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
-	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
+	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s"), *InTarget.ToString());
 	
 	if (!HasAuthority())
 	{
@@ -245,19 +246,20 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 	
 	Path_.Reset();
 	
-	if (InTarget == AxialCoord_)
+	if (InTarget.Position == AxialTransform_.Position)
 	{
-		bOnMove_ = InAxialAngle.R != AxialAngle_.R;
-		Path_.Emplace(InTarget.ToNative(), InAxialAngle.R);
+		bOnMove_ = InTarget.Rotation != AxialTransform_.Rotation;
+		Path_.Emplace(InTarget.Position.ToNative(), InTarget.Rotation.R);
 	}
 	else
 	{
-		UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
+		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 		
 		const FUnitDescription* Descr = GetDescription();
 		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
 	
-		GridWorldSubsystem->FindPath(AxialCoord_.ToNative(), AxialAngle_.R, InTarget.ToNative(), InAxialAngle.R, 
+		HexMapWS->FindPath(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
+			InTarget.Position.ToNative(), InTarget.Rotation.R, 
 			Descr->MoveParams, Path_, false);
 	
 		if (!Path_.IsEmpty())
@@ -269,12 +271,13 @@ bool ABaseUnitActor::SetMoveTarget(const FRepAxialCoord& InTarget, const FAxialA
 			
 	if (bOnMove_)
 	{
-		AxialCoord_ = InTarget;
-		AxialAngle_ = InAxialAngle;
+		AxialTransform_ = InTarget;
+		if (HasAuthority())
+			OnRep_AxialTransform();
 		
 		PathIndex_ = 0;
 		
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s; InTargetYaw: %f"), *InTarget.ToNative().ToString(), AxialAngle_.GetYaw());
+		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s"), *InTarget.ToString());
 	}
 	
 	return bOnMove_;
@@ -291,4 +294,10 @@ const FUnitDescription* ABaseUnitActor::GetDescription() const
 void ABaseUnitActor::OnRep_UnitType()
 {
 	
+}
+
+void ABaseUnitActor::OnRep_AxialTransform()
+{
+	if (!Ghost_)
+		CapturingHexes();
 }

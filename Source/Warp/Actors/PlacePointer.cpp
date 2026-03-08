@@ -3,11 +3,11 @@
 
 #include "PlacePointer.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "MGLogs.h"
 #include "UnitActors/UnitActorFactory.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(APlacePointerLog, Log, All);
@@ -52,7 +52,7 @@ void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InA
 		
 		AxialAngle_.R = LastNode.Rotation;
 	
-		TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(PathNode_.Coord);
+		TOptional<FVector> PosOpt = UHexMapWS::AxialCellToWorldCoord(PathNode_.Coord);
 		RETURN_ON_FAIL(APlacePointerLog, PosOpt.IsSet());
 	
 		const FRotator WorldRot(0.f, AxialAngle_.GetYaw(), 0.f);
@@ -62,11 +62,10 @@ void APlacePointer::Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InA
 		FixRotation(false);
 		RingMat_->SetVectorParameterValue(TEXT("BaseColor"), StartColor_);
 		
-		if (Ghost_ == nullptr)
-		{
-			Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), InPath[0].Coord, this, true);
-		}
-		Ghost_->SetCirclePath(MoveTemp(InPath));
+		OnTransformChanged();
+		
+		if (Ghost_ != nullptr)
+			Ghost_->SetCirclePath(MoveTemp(InPath));
 	}
 	else
 		FixRotation(!bRotationFixed_);
@@ -101,6 +100,10 @@ void APlacePointer::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (Ghost_ != nullptr)
 		Ghost_->Destroy();
+	
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, HexMapWS != nullptr);
+	HexMapWS->ReleaseCells(GetUniqueID());
 	
 	Super::EndPlay(EndPlayReason);
 }
@@ -149,8 +152,29 @@ void APlacePointer::UpdateRotation(float InDelta)
 		const float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotateSpeed_ * InDelta);
 		const FRotator WorldRot(0.f, NewYaw, 0.f);
 		SetActorRotation(WorldRot);
-		
-		if (Ghost_ != nullptr)
+	
+		OnTransformChanged();
+	}
+}
+
+void APlacePointer::OnTransformChanged()
+{
+	if (CreateGhost_)
+	{
+		if (Ghost_ == nullptr)
+		{
+			Ghost_ = UnitActorFactory::CreateUnitActor(this, ActiveUnit_->GetUnitType(), 
+			   FAxialTransform(PathNode_.Coord, AxialAngle_), this, true);
+		}
+		else
 			Ghost_->SetLastRotation(AxialAngle_);
 	}
+	
+	const FUnitDescription* Descr = ActiveUnit_->GetDescription();
+	RETURN_ON_FAIL(APlacePointerLog, Descr != nullptr);
+	
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL(APlacePointerLog, HexMapWS != nullptr);
+	
+	HexMapWS->CaptureCells(GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint);
 }

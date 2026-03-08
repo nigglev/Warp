@@ -8,10 +8,10 @@
 
 DEFINE_LOG_CATEGORY_STATIC(HexGridWSLog, Log, Log);
 
-UHexGridWorldSubsystem* UHexGridWorldSubsystem::Get(const UObject* InWorldContextObject)
-{
-	return InWorldContextObject->GetWorld()->GetSubsystem<UHexGridWorldSubsystem>();
-}
+// UHexGridWorldSubsystem* UHexGridWorldSubsystem::Get(const UObject* InWorldContextObject)
+// {
+// 	return InWorldContextObject->GetWorld()->GetSubsystem<UHexGridWorldSubsystem>();
+// }
 
 void UHexGridWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -29,63 +29,6 @@ void UHexGridWorldSubsystem::Deinitialize()
 void UHexGridWorldSubsystem::OnChangeObserverPosition(const FVector& InNewPosition)
 {
 	ChunkGrid_->OnChangeObserverPosition(InNewPosition);
-}
-
-void UHexGridWorldSubsystem::SetCellType(const FVector& InPosition, ECellType InCellType)
-{
-	ChunkGrid_->SetCellType(InPosition, InCellType);
-}
-
-void UHexGridWorldSubsystem::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FHullSize& InHull)
-{
-	ChunkGrid_->CaptureCells(InId, InHexCell, InRotation, InHull);
-}
-
-void UHexGridWorldSubsystem::ReleaseCells(uint32 InId)
-{
-	ChunkGrid_->ReleaseCells(InId);
-}
-
-void UHexGridWorldSubsystem::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, 
-	const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath)
-{
-	ChunkGrid_->SelectInfluence(InId, InHexCell, InRotation, InMoveParams, OutPath);
-}
-
-void UHexGridWorldSubsystem::RemoveInfluence(uint32 InId)
-{
-	ChunkGrid_->RemoveInfluence(InId);
-}
-
-void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation,
-		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes) const
-{
-	ChunkGrid_->FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, InDrawHexes);
-}
-
-void UHexGridWorldSubsystem::FindPath(const HexMath::FAxialCoord& InStart, int8 InStartRotation,
-	const HexMath::FAxialCoord& InEnd, const TOptional<int8>& InEndRotation, const FMoveParams& InMoveParams,
-	float Z, TArray<FVector>& OutPath, bool InDrawHexes) const
-{
-	static TArray<HexMath::FPathNode> Path;
-	Path.Reset();
-	
-	FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, Path, InDrawHexes);
-	
-	for (HexMath::FPathNode AC : Path)
-	{
-		TOptional<FVector> TargetPosOpt = AxialCellToWorldCoord(AC.Coord, Z);
-		if (TargetPosOpt.IsSet())
-		{
-			OutPath.Add(TargetPosOpt.GetValue());
-		}
-	}
-	Path.Reset();
-}
-
-void UHexGridWorldSubsystem::DropPathSelections()
-{
-	ChunkGrid_->DropPathSelections();
 }
 
 TOptional<HexMath::FAxialCoord> UHexGridWorldSubsystem::WorldToAxialCellCoord(const FVector& InWorldPoint)

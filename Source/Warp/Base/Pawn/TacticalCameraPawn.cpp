@@ -3,9 +3,9 @@
 
 #include "TacticalCameraPawn.h"
 
-#include "HexGridWorldSubsystem.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Warp/Base/HexMap/HexMapWS.h"
 
 
 ATacticalCameraPawn::ATacticalCameraPawn()
@@ -121,20 +121,20 @@ void ATacticalCameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	if (GridWorldSubsystem != nullptr)
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	if (HexMapWS != nullptr)
 	{
-		GridWorldSubsystem->OnChangeObserverPosition(GetActorLocation());
+		HexMapWS->OnChangeObserverPosition(GetActorLocation());
 	}
 }
 
 bool ATacticalCameraPawn::SetActorLocationInt(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult,
                                               ETeleportType Teleport)
 {
-	UHexGridWorldSubsystem* GridWorldSubsystem = UHexGridWorldSubsystem::Get(this);
-	if (GridWorldSubsystem != nullptr)
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	if (HexMapWS != nullptr)
 	{
-		GridWorldSubsystem->OnChangeObserverPosition(NewLocation);
+		HexMapWS->OnChangeObserverPosition(NewLocation);
 	}
 	
 	return SetActorLocation(NewLocation, bSweep, OutSweepHitResult, Teleport);

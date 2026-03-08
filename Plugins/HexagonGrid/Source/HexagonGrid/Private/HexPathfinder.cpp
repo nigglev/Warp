@@ -1,3 +1,4 @@
+#include "HexagonGridSettings.h"
 #include "HexPathfainer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(HexPathfinderLog, Log, Log);
@@ -5,6 +6,11 @@ DEFINE_LOG_CATEGORY_STATIC(HexPathfinderLog, Log, Log);
 FString HexMath::FPathNode::ToString() const
 {
 	return FString::Printf(TEXT("%s[%d] D: %.2f"), *Coord.ToString(), Rotation, Distance);
+}
+
+FString HexMath::FPathNode::ToDebugScreenString() const
+{
+	return FString::Printf(TEXT("%s"), *Coord.ToString());
 }
 
 namespace HexMath
@@ -50,54 +56,22 @@ namespace HexMath
 	inline bool operator!=(const FOpenNode& LHS, const FOpenNode& RHS) { return LHS.Step.Coord != RHS.Step.Coord; }
 }
 
-void HexMath::CaptureCells(const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InHullSize,
+//https://www.redblobgames.com/grids/hexagons/#conversions-offset
+void HexMath::CaptureCells(const FAxialCoord& InCenter, int8 InRotation, const FHullHexFootprint& InHullSize,
 	TArray<FAxialCoord>& OutCells, bool InLog)
 {
 	OutCells.Reset();
-	OutCells.Add(InStart);
+	OutCells.Add(InCenter);
 	
-	auto AddAlongDirection = [](const FAxialCoord& InStart, int8 InStartRotation, const FHullSize& InHullSize, TArray<FAxialCoord>& OutCells)
+	for (int32 i = 0; i < InHullSize.Cells.Num(); ++i)
 	{
-		FAxialCoord Current = InStart;
-		for (uint8 i = 0; i < InHullSize.Forward; ++i)
-		{
-			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation);
-			OutCells.Add(Current);
-		}
+		FIntVector2 V = InHullSize.Cells[i];
+		FOffsetCoord Offset(V.X, V.Y);
+		FAxialCoord AxialCoord = HexMathAxial::OffsetToAxial<HEX_LAYOUT>(Offset);
 		
-		Current = InStart;
-		for (uint8 i = 0; i < InHullSize.Backward; ++i)
-		{
-			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation + 3);
-			OutCells.Add(Current);
-		}
-	};
-	
-	AddAlongDirection(InStart, InStartRotation, InHullSize, OutCells);
-	
-	{
-		FAxialCoord Current = InStart;
-		for (uint8 i = 0; i < InHullSize.Left; ++i)
-		{
-			uint8 R = (i & 1) ? 1 : 2;
-			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation - R);
-			OutCells.Add(Current);
-		
-			AddAlongDirection(Current, InStartRotation, InHullSize, OutCells);
-		}
-	}
-	
-	{
-		FAxialCoord Current = InStart;
-		for (uint8 i = 0; i < InHullSize.Right; ++i)
-		{
-			uint8 R = (i & 1) ? 1 : 2;
-			Current = HexMathAxial::GetNeighbourAlongDirection(Current, InStartRotation + R);
-			OutCells.Add(Current);
-		
-			AddAlongDirection(Current, InStartRotation, InHullSize, OutCells);
-		}
-	}
+		FAxialCoord NewPos = HexMathAxial::Transform(InCenter, InRotation, AxialCoord);
+		OutCells.Add(NewPos);
+	}	
 }
 
 void HexMath::FindPathZone(const FAxialCoord& InStart, int8 InStartRotation, const FMoveParams& InMoveParams,

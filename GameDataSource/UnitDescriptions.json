@@ -8,18 +8,29 @@
 		},
 		{
 			"name": "valiant",
-			"Hull" : { "Forward": 2, "Backward": 1 },
+			"Footprint": 
+			{
+				"Cells": [ {"X":0, "Y": -1 }, {"X":0, "Y": 1 }, {"X":0, "Y": 2 }]
+			},
 			"MoveParams": { "MaxDistance": 70, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 60
 		},
 		{
 			"name": "valiant_big",
-			"Hull" : { "Forward": 5, "Backward": 3, "Left": 2, "Right": 1 },
-			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 20 },
+			"Footprint": 
+			{
+				"Cells": 
+				[ 
+					{"X":0, "Y": -3 },{"X":0, "Y": -2 }, {"X":0, "Y": -1 }, {"X":0, "Y": 1 }, {"X":0, "Y": 2 }, {"X":0, "Y": 3 }, {"X":0, "Y": 4 }, {"X":0, "Y": 5 },
+					{"X":1, "Y": -3 },{"X":1, "Y": -2 }, {"X":1, "Y": 0 }, {"X":1, "Y": -1 }, {"X":1, "Y": 1 }, {"X":1, "Y": 2 }, {"X":1, "Y": 3 }, {"X":1, "Y": 4 },	
+					{"X":-1, "Y": -3 },{"X":-1, "Y": -2 }, {"X":-1, "Y": 0 }, {"X":-1, "Y": -1 }, {"X":-1, "Y": 1 }, {"X":-1, "Y": 2 }, {"X":-1, "Y": 3 }, {"X":-1, "Y": 4 }	
+				]
+			},
+			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 30
 		}
 	],
-	"version": 11
+	"version": 12
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CellLayers.h"
 #include "ECellType.h"
+#include "HexCellDrawInfo.h"
 #include "HexMath.h"
 #include "GameFramework/Actor.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -30,14 +30,13 @@ public:
 	
 	void SetChunkCoord(const HexMath::FOffsetCoord& InChunkCoord) { ChunkCoord_ = InChunkCoord; }
 	
-	void SetCellType(const HexMath::FOffsetCoord& InOffsetCoord, ECellType InCellType, float InLevel = 1);
+	void OnCellChange(const HexMath::FOffsetCoord& InOffsetCoord, const FHexCellDrawInfo& InCellInfo);
 
 	virtual void Tick(float DeltaSeconds) override;
 	
 protected:
 	virtual void BeginPlay() override;
 
-protected:
 	void BuildHexagon(uint32 Radius);
 	
 	void SetHexColor(int32 InIndex, const FLinearColor& InColor) const;
@@ -80,9 +79,9 @@ protected:
 	TMap<ECellType, FLinearColor> CellColors_ = {
 		{ ECellType::Opened, FLinearColor::Black },
 		{ ECellType::MoveProjection, FLinearColor::Blue },
-		{ ECellType::Captured, FLinearColor::Red },
+		{ ECellType::SuccessCaptured, FLinearColor::Red },
 		{ ECellType::Closed, FLinearColor::Black },
-		{ ECellType::Selected, FLinearColor::Yellow },
+		{ ECellType::MovingPath, FLinearColor::Yellow },
 	};
 		
 	UPROPERTY(EditAnywhere, Category="Grid")
@@ -102,12 +101,9 @@ protected:
 	
 	HexMath::FOffsetCoord ChunkCoord_;
 	
-	void ChangeCellStatus(int32 InIndex, ECellType InCellType, float InLevel);
-	
-	void SetCellType(int32 InIndex, ECellType InCellType, float InLevel);
-	
 	FLinearColor GetColor(int32 InIndex) const;
+	
 	float GetZOffset(int32 InIndex) const;
 	
-	TMap<int32, FCellLayers> SelectStatus_;
+	TMap<int32, FHexCellDrawInfo> Cache_;
 };
