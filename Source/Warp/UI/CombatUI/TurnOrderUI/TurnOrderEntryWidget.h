@@ -4,13 +4,39 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "UTurnOrderEntryWidget.generated.h"
+#include "TurnOrderEntryWidget.generated.h"
 
+class UImage;
+class UBorder;
+class UTextBlock;
 /**
  * 
  */
 UCLASS()
-class WARP_API UUTurnOrderEntryWidget : public UUserWidget
+class WARP_API UTurnOrderEntryWidget : public UUserWidget
 {
 	GENERATED_BODY()
+public:
+	void Init(const FString& InUnitName, bool bIsCurrent);
+	void SetIsCurrent(bool bInCurrent);
+
+	int32 GetUnitId() const { return UnitCombatId_; }
+
+protected:
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* UnitNameText;
+	UPROPERTY(meta = (BindWidget))
+	UBorder* BackgroundBorder;
+	UPROPERTY(meta = (BindWidget))
+	UImage* ActiveUnitSignImage;
+	
+	FLinearColor AllyColor = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
+	FLinearColor EnemyColor = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
+
+	float NormalScale = 1.f;
+	UPROPERTY(EditAnywhere, Category="Style|Scale")
+	float CurrentScale = 2.f;
+	
+	int32 UnitCombatId_ = INDEX_NONE;
+	bool bIsAlly_ = false;
 };

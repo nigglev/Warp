@@ -50,6 +50,8 @@ public:
 	const ABaseUnitActor* GetActiveUnit() const;
 	ABaseUnitActor* GetActiveUnit();
 	
+	int32 GetActiveUnitIndex() const;
+	
 	// Called on SERVER from PlayerController RPC
 	void RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
 

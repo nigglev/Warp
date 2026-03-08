@@ -19,6 +19,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitSelected, ABaseUnitActor* InNewActiv
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitStartMoving, ABaseUnitActor*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMatchStateChanged, FName);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnCombatUnitsChanged, const TArray<ABaseUnitActor*>&, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCombatActiveUnitIndexChanged, int32);
 
 UCLASS()
 class WARP_API AWarpGameState : public AGameState
@@ -46,6 +48,9 @@ public:
 	FOnUnitSelected OnUnitSelected;
 	FOnUnitStartMoving OnUnitStartMoving;
 	FOnUnitArrived OnUnitArrived;
+
+	FOnCombatUnitsChanged OnCombatUnitsChanged;
+	FOnCombatActiveUnitIndexChanged OnCombatActiveUnitIndexChanged;
 	
 protected:
 	virtual void OnRep_MatchState() override;

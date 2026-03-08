@@ -31,6 +31,8 @@ void ADefaultWarpHUD::PostInitializeComponents()
 		GS->OnMatchStateChanged.AddUObject(this, &ADefaultWarpHUD::OnMatchStateChanged);
 		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
 		GS->OnUnitStartMoving.AddUObject(this, &ADefaultWarpHUD::OnUnitStartMoving);
+		GS->OnCombatActiveUnitIndexChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatActiveUnitIndexChanged);
+		GS->OnCombatUnitsChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatUnitsChanged);
 	}
 }
 
@@ -168,3 +170,30 @@ void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 	MainWidget_->OnUnitStartMoving(InNewActiveUnit);
 }
 
+
+
+void ADefaultWarpHUD::OnCombatActiveUnitIndexChanged(const int32 InActiveUnitIndex)
+{
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
+	
+	if (GS->GetMatchState() != MatchState::InProgress)
+	{
+		return;
+	}
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
+	MainWidget_->SetCurrentActiveUnitIndex(InActiveUnitIndex);
+}
+
+void ADefaultWarpHUD::OnCombatUnitsChanged(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex)
+{
+	AWarpGameState* GS = GetGameState();
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
+	
+	if (GS->GetMatchState() != MatchState::InProgress)
+	{
+		return;
+	}
+	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
+	MainWidget_->SetCurrentCombatUnits(InCombatUnits, InActiveUnitIndex);
+}

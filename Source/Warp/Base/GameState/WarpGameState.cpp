@@ -40,9 +40,7 @@ void AWarpGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 bool AWarpGameState::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
 	bWroteSomething |= Channel->ReplicateSubobject(TurnMachine_, *Bunch, *RepFlags);
-
 	return bWroteSomething;
 }
 

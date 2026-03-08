@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "CombatUIWidget.generated.h"
 
+class UTurnOrderWidget;
 class ABaseUnitActor;
 class UBorder;
 class UHorizontalBox;
@@ -23,38 +24,27 @@ public:
 	virtual void NativeConstruct() override;
 	
 	void ShowCombatUI(bool InShowCombatUI);
-	void SetActionPoints(int32 CurrentPoints, int32 MaxPoints);
+
+	void SetCurrentCombatUnits(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex);
+	void SetCurrentActiveUnitIndex(const int32 InActiveUnitIndex);
 	
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
 
 private:
-	void RebuildActionPoints(int32 MaxPoints);
-	void UpdateActionPointFill(int32 CurrentPoints);
-
-	UFUNCTION()
-	void HandleStartClicked();
 	UFUNCTION()
 	void HandleNextTurnClicked();
 	UFUNCTION()
 	void HandleReturnToCampaignMapClicked();
 	
 	UPROPERTY(meta=(BindWidget))
-	UButton* StartButton = nullptr;
-	UPROPERTY(meta=(BindWidget))
 	UButton* NextTurnButton = nullptr;
 	UPROPERTY(meta=(BindWidget))
 	UButton* ReturnToCampaignMapButton = nullptr;
-
-	UPROPERTY(meta=(BindWidget))
-	UHorizontalBox* ActionPointsBox = nullptr;
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	FLinearColor FilledColor = FLinearColor::Green;
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	FLinearColor EmptyColor = FLinearColor(0.f, 0.f, 0.f, 0.4f);
-	UPROPERTY(EditAnywhere, Category="ActionPoints")
-	int32 DefaultMaxPoints = 10;
-	UPROPERTY()
-	TArray<UBorder*> ActionPointWidgets;
-
+	
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
+	UPROPERTY(meta=(BindWidgetOptional))
+	UTurnOrderWidget* TurnOrderWidget_ = nullptr;
 };

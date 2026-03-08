@@ -10,6 +10,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/SizeBox.h"
+#include "TurnOrderUI/TurnOrderWidget.h"
 #include "Warp/Base/GameMode/DefaultGameMode.h"
 #include "Warp/Base/PlayerController/DefaultPlayerController.h"
 
@@ -18,23 +19,18 @@ DEFINE_LOG_CATEGORY_STATIC(ACombatUIWidgetLog, Log, All);
 void UCombatUIWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (StartButton)
-	{
-		StartButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleStartClicked);
-	}
-
+	
 	if (NextTurnButton)
 	{	
 		NextTurnButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleNextTurnClicked);
 		NextTurnButton->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	if (ActionPointsBox)
+	if (TurnOrderWidget_)
 	{
-		ActionPointsBox->SetVisibility(ESlateVisibility::Collapsed);
+		TurnOrderWidget_->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	
+
 	if (ReturnToCampaignMapButton)
 	{
 		ReturnToCampaignMapButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleReturnToCampaignMapClicked);
@@ -48,23 +44,6 @@ void UCombatUIWidget::NativeConstruct()
 		}
 	}
 	
-	if (StartButton)
-	{
-		StartButton->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	
-	ShowCombatUI(true);
-}
-
-void UCombatUIWidget::HandleStartClicked()
-{
-	if (APlayerController* PC = GetOwningPlayer())
-	{
-		if (auto* MyPC = Cast<ADefaultPlayerController>(PC))
-		{
-			//MyPC->ServerStartCombat();
-		}
-	}
 	ShowCombatUI(true);
 }
 
@@ -87,35 +66,34 @@ void UCombatUIWidget::HandleReturnToCampaignMapClicked()
 }
 
 void UCombatUIWidget::ShowCombatUI(bool InShowCombatUI)
-{
-	
+{	
 	if (NextTurnButton)
 	{
 		NextTurnButton->SetVisibility(InShowCombatUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
-	// if (ActionPointsBox)
-	// {
-	//     ActionPointsBox->SetVisibility(ESlateVisibility::Visible);
-	// }
+
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->SetVisibility(InShowCombatUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 }
 
-void UCombatUIWidget::SetActionPoints(int32 CurrentPoints, int32 MaxPoints)
+void UCombatUIWidget::SetCurrentCombatUnits(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex)
 {
-	if (!ActionPointsBox)
+	if (TurnOrderWidget_)
 	{
-		return;
+		TurnOrderWidget_->RebuildFromHUD(InCombatUnits, InActiveUnitIndex);
 	}
-
-	MaxPoints = FMath::Max(0, MaxPoints);
-	CurrentPoints = FMath::Clamp(CurrentPoints, 0, MaxPoints);
-	
-	if (MaxPoints != ActionPointWidgets.Num())
-	{
-		RebuildActionPoints(MaxPoints);
-	}
-
-	UpdateActionPointFill(CurrentPoints);
 }
+
+void UCombatUIWidget::SetCurrentActiveUnitIndex(const int32 InActiveUnitIndex)
+{
+	if (TurnOrderWidget_)
+	{
+		TurnOrderWidget_->UpdateCurrentFromHUD(InActiveUnitIndex);
+	}
+}
+
 
 void UCombatUIWidget::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit)
 {
@@ -127,66 +105,3 @@ void UCombatUIWidget::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 	ShowCombatUI(false);
 }
 
-void UCombatUIWidget::RebuildActionPoints(int32 MaxPoints)
-{
-	if (!ActionPointsBox || !WidgetTree)
-	{
-		return;
-	}
-
-	ActionPointWidgets.Reset();
-	ActionPointsBox->ClearChildren();
-
-	if (MaxPoints <= 0)
-	{
-		return;
-	}
-
-	const float SquareSize = 20.f;
-
-	for (int32 i = 0; i < MaxPoints; ++i)
-	{
-		USizeBox* SizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		if (!SizeBox)
-		{
-			continue;
-		}
-
-		SizeBox->SetWidthOverride(SquareSize);
-		SizeBox->SetHeightOverride(SquareSize);
-		
-		UBorder* Border = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		if (!Border)
-		{
-			continue;
-		}
-		
-		FSlateBrush Brush;
-		Brush.DrawAs = ESlateBrushDrawType::Box;
-		Border->SetBrush(Brush);
-		Border->SetBrushColor(EmptyColor);
-		Border->SetPadding(FMargin(0.f));
-		
-		SizeBox->SetContent(Border);
-		
-		if (UHorizontalBoxSlot* HorizontalBoxSlot = ActionPointsBox->AddChildToHorizontalBox(SizeBox))
-		{
-			HorizontalBoxSlot->SetPadding(FMargin(2.f, 0.f));
-			HorizontalBoxSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
-		}
-		
-		ActionPointWidgets.Add(Border);
-	}
-}
-
-void UCombatUIWidget::UpdateActionPointFill(int32 CurrentPoints)
-{
-	for (int32 i = 0; i < ActionPointWidgets.Num(); ++i)
-	{
-		if (UBorder* Border = ActionPointWidgets[i])
-		{
-			const bool bFilled = (i < CurrentPoints);
-			Border->SetBrushColor(bFilled ? FilledColor : EmptyColor);
-		}
-	}
-}

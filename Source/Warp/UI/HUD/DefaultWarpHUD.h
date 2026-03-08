@@ -39,6 +39,8 @@ protected:
 	void OnMatchStateChanged(FName InMatchState);
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
+	void OnCombatUnitsChanged(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex);
+	void OnCombatActiveUnitIndexChanged(const int32 InActiveUnitIndex);
 	
 	bool bShowDebugHUD_ = false;
 	
@@ -52,3 +54,4 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UCombatUIWidget> MainWidget_;
 };
+
