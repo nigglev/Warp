@@ -224,8 +224,11 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, TargetAxialCoordOpt.IsSet());
 		
 		TArray<HexMath::FPathNode> Path;
-		HexMapWS->FindPath(GetUniqueID(), Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
-			UnitDescr->MoveParams, Path, true);
+		if (!HexMapWS->IsDenyToCapture(Unit->GetUniqueID(), TargetAxialCoordOpt.GetValue()))
+		{
+			HexMapWS->FindPath(GetUniqueID(), Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
+			   UnitDescr->MoveParams, Path, true);
+		}
 				
 		if (!Path.IsEmpty())
 		{
@@ -268,8 +271,10 @@ void ADefaultPlayerController::ActiveUnitStartMove()
 	if (PlacePointer_ == nullptr)
 		return;
 	
-	ServerOrderMove(PlacePointer_->GetPathNode().Coord, PlacePointer_->GetAxialAngle());
-		
+	TOptional<FAxialTransform> Captured = PlacePointer_->GetCapturedTransform(true);
+	if (Captured.IsSet())
+		ServerOrderMove(Captured.GetValue());
+	
 	PlacePointer_->Destroy();
 	PlacePointer_ = nullptr;
 		
@@ -279,11 +284,11 @@ void ADefaultPlayerController::ActiveUnitStartMove()
 	HexMapWS->DropPathSelections(GetUniqueID());
 }
 
-void ADefaultPlayerController::ServerOrderMove_Implementation(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+void ADefaultPlayerController::ServerOrderMove_Implementation(const FAxialTransform& InTarget)
 {
 	if (UTurnMachine* TM = GetGameState()->GetTurnMachine())
 	{
-		TM->RequestMove(InTarget, InAxialAngle);
+		TM->RequestMove(InTarget);
 	}
 }
 

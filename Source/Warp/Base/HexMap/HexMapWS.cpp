@@ -41,34 +41,47 @@ void UHexMapWS::SetCellType(const FVector& InPosition, ECellType InCellType)
 {
 }
 
-void UHexMapWS::CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation,
-	const FHullHexFootprint& InHull)
+bool UHexMapWS::CaptureCells(uint32 InId, uint32 InUnitId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation,
+	const FHullHexFootprint& InHull, bool InOnlyCheck)
 {
-	RETURN_ON_FAIL(AHexMapWSLog, HexGridWS_);
+	RETURN_ON_FAIL_BOOL(AHexMapWSLog, HexGridWS_);
 	
-	ECellType CellType = ECellType::SuccessCaptured;
-	
-	ClearCells(InId, CellType);
+	if (!InOnlyCheck)
+		ReleaseCells(InId);
 	
 	UGameSettings* GameSettings = UGameSettings::Get();
-	RETURN_ON_FAIL(AHexMapWSLog, GameSettings);	
+	RETURN_ON_FAIL_BOOL(AHexMapWSLog, GameSettings);	
 	
-	FIdCellCollection* Collection = GetIdCellCollection(FCollectionKey(InId, CellType), true);
-	RETURN_ON_FAIL(AHexMapWSLog, Collection);
+	TArray<HexMath::FAxialCoord> Cells;
+	HexMath::CaptureCells(InCenterCell, InRotation, InHull, Cells, GameSettings->PathfinderLog);
 	
-	HexMath::FAxialCoord HexCenterCell = InCenterCell;
-	
-	HexMath::CaptureCells(HexCenterCell, InRotation, InHull, Collection->Cells, GameSettings->PathfinderLog);
-	
-	for (HexMath::FAxialCoord CellCoord : Collection->Cells)
+	bool FindAlreadyCaptured = Cells.ContainsByPredicate([InUnitId, this](const HexMath::FAxialCoord& InCellCoord)
 	{
-		ChangeCell(CellCoord, CellType, FCellIdData(InId, 1));
+		return IsDenyToCapture(InUnitId, InCellCoord);
+	});
+		
+	if (!InOnlyCheck)
+	{
+		ECellType CellType = FindAlreadyCaptured ? ECellType::DenyCapture : ECellType::SuccessCaptured;
+	
+		FIdCellCollection* Collection = GetIdCellCollection(FCollectionKey(InId, CellType), true);
+		RETURN_ON_FAIL_BOOL(AHexMapWSLog, Collection);
+	
+		Collection->Cells = MoveTemp(Cells);
+	
+		for (HexMath::FAxialCoord CellCoord : Collection->Cells)
+		{
+			ChangeCell(CellCoord, CellType, FCellIdData(InId, 1));
+		}
 	}
+	
+	return !FindAlreadyCaptured;
 }
 
 void UHexMapWS::ReleaseCells(uint32 InId)
 {
 	ClearCells(InId, ECellType::SuccessCaptured);
+	ClearCells(InId, ECellType::DenyCapture);
 }
 
 void UHexMapWS::SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation,
@@ -103,8 +116,8 @@ void UHexMapWS::RemoveInfluence(uint32 InId)
 }
 
 void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd,
-	const TOptional<int8>& InEndRotation, const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath,
-	bool InDrawHexes)
+	const TOptional<int8>& InEndRotation, const FMoveParams& InMoveParams, 
+	TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes)
 {
 	DropPathSelections(InId);
 	
@@ -112,6 +125,20 @@ void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 
 	
 	UGameSettings* GameSettings = UGameSettings::Get();
 	RETURN_ON_FAIL(AHexMapWSLog, GameSettings);	
+	
+	// if (InEndRotation.IsSet())
+	// {
+	// 	TArray<HexMath::FAxialCoord> Cells;
+	// 	HexMath::CaptureCells(InEnd, InEndRotation.GetValue(), InHull, Cells, GameSettings->PathfinderLog);
+	//
+	// 	bool FindAlreadyCaptured = Cells.ContainsByPredicate([InId, this](const HexMath::FAxialCoord& InCellCoord)
+	// 	{
+	// 		return IsDenyToCapture(InId, InCellCoord);
+	// 	});
+	// 	
+	// 	if (FindAlreadyCaptured)
+	// 		return;
+	// }
 	
 	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, GameSettings->PathfinderLog);
 	
@@ -131,6 +158,25 @@ void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 
 void UHexMapWS::DropPathSelections(uint32 InId)
 {
 	ClearCells(InId, ECellType::MovingPath);
+}
+
+bool UHexMapWS::IsDenyToCapture(uint32 InId, const HexMath::FAxialCoord& InCoord) const
+{
+	const FCell* Cell = Cells_.Find(InCoord);
+	if (Cell == nullptr)
+		return false;
+		
+	const TArray<FCellIdData>& Captured = Cell->Counters[static_cast<uint8>(ECellType::SuccessCaptured)];
+	bool bMyPlace = Captured.FindByPredicate([InId](const FCellIdData& InData) { return InData.Id == InId; }) != nullptr;
+	if (!Captured.IsEmpty() && !bMyPlace)
+		return true;
+	
+	const TArray<FCellIdData>& Closed = Cell->Counters[static_cast<uint8>(ECellType::Closed)];
+	bMyPlace = Closed.FindByPredicate([InId](const FCellIdData& InData) { return InData.Id == InId; }) != nullptr;
+	if (!Closed.IsEmpty() && !bMyPlace)
+		return true;
+	
+	return false;
 }
 
 TOptional<HexMath::FAxialCoord> UHexMapWS::WorldToAxialCellCoord(const FVector& InWorldPoint)

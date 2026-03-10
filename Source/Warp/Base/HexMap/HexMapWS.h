@@ -27,7 +27,7 @@ public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
-	void CaptureCells(uint32 InId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull);
+	bool CaptureCells(uint32 InId, uint32 InUnitId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull, bool InOnlyCheck);
 	void ReleaseCells(uint32 InId);
 	
 	void SelectInfluence(uint32 InId, const HexMath::FAxialCoord& InHexCell, int8 InRotation, const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>* OutPath = nullptr);
@@ -37,6 +37,8 @@ public:
 		const FMoveParams& InMoveParams, TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes);
 	
 	void DropPathSelections(uint32 InId);
+	
+	bool IsDenyToCapture(uint32 InId, const HexMath::FAxialCoord& InCoord) const;
 	
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
 	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);

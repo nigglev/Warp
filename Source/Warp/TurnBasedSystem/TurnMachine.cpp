@@ -186,9 +186,9 @@ bool UTurnMachine::CanAcceptMove() const
     return TurnState_.Phase == ETurnPhase::WaitingForInput;
 }
 
-void UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle)
+void UTurnMachine::RequestMove(const FAxialTransform& InTarget)
 {
-    MG_LOG(ATurnMachineLog, TEXT("InTarget: %s; InAxialAngle: %s"), *InTarget.ToString(), *InAxialAngle.ToString());
+    MG_LOG(ATurnMachineLog, TEXT("InTarget: %s"), *InTarget.ToString());
     
     if (!CanAcceptMove())
         return;
@@ -201,7 +201,7 @@ void UTurnMachine::RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle
     if (!IsValid(Active))
         return;
 
-    if (Active->SetMoveTarget(FAxialTransform(InTarget, InAxialAngle)))
+    if (Active->SetMoveTarget(InTarget))
         SetWaitingForArrival();
 }
 

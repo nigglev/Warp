@@ -202,7 +202,7 @@ void ABaseUnitActor::CapturingHexes()
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
 	
-	HexMapWS->CaptureCells(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint);
+	HexMapWS->CaptureCells(GetUniqueID(), GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, Descr->Footprint, false);
 }
 
 bool ABaseUnitActor::SetCirclePath(TArray<HexMath::FPathNode>&& InPath)
@@ -244,6 +244,15 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 		return false;
 	}
 	
+	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
+	
+	bool bCapturable = HexMapWS->CaptureCells(GetUniqueID(), GetUniqueID(), InTarget.Position.ToNative(), InTarget.Rotation.R, Descr->Footprint, true);
+	if (!bCapturable)
+		return false;
+	
 	Path_.Reset();
 	
 	if (InTarget.Position == AxialTransform_.Position)
@@ -253,11 +262,6 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	}
 	else
 	{
-		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
-		
-		const FUnitDescription* Descr = GetDescription();
-		RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
-	
 		HexMapWS->FindPath(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
 			InTarget.Position.ToNative(), InTarget.Rotation.R, 
 			Descr->MoveParams, Path_, false);
