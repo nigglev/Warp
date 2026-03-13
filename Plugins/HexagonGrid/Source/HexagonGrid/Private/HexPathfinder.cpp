@@ -211,9 +211,9 @@ bool HexMath::FindPath(const FAxialCoord& InStart, int8 InStartRotation, const F
 		{
 			if (InEndRotation.IsSet())
 			{
-				float RotationDist = HexMath::GetRotationDiff(Current.Step.Rotation, InEndRotation.GetValue()) * InMoveParams.RotationCost;
-				float RestDist = InMoveParams.MaxDistance - Current.Step.Distance;
-				if (RestDist < RotationDist)
+				float RotationDist = GetRotationDiff(Current.Step.Rotation, InEndRotation.GetValue()) * InMoveParams.RotationCost;
+				Current.Step.Distance -= RotationDist;
+				if (InMoveParams.MaxDistance < Current.Step.Distance)
 				{
 					if (InLog)
 					{

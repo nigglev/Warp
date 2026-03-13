@@ -51,6 +51,8 @@ public:
 	
 	const FUnitDescription* GetDescription() const;
 	
+	FMoveParams GetCurrentMoveParams() const;
+	
 	// GAS
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent_; }
 
@@ -86,6 +88,12 @@ protected:
 	void CapturingHexes();
 	
 	void SetShipOpacity(float InOpacity);
+	
+	bool CanSpendMovementPoints(float InCost) const;
+
+	bool SpendMovementPoints(float InCost);
+
+	void RestoreMovementPoints();
 	
 	UPROPERTY(EditAnywhere, Category="Hover")
 	float HoverOpacity_ = 0.35f;

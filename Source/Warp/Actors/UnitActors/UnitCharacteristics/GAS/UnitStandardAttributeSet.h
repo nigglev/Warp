@@ -28,11 +28,11 @@ public:
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UUnitStandardAttributeSet, MaxHealth)
 
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MovementPoints, Category="Ship|Attributes")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxMovementPoints, Category="Ship|Attributes")
 	FGameplayAttributeData MaxMovementPoints;
 	ATTRIBUTE_ACCESSORS(UUnitStandardAttributeSet, MaxMovementPoints)
 
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxMovementPoints, Category="Ship|Attributes")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MovementPoints, Category="Ship|Attributes")
 	FGameplayAttributeData MovementPoints;
 	ATTRIBUTE_ACCESSORS(UUnitStandardAttributeSet, MovementPoints)
 

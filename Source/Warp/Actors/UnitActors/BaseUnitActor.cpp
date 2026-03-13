@@ -341,6 +341,17 @@ void ABaseUnitActor::SetLastRotation(FAxialAngle InAxialAngle)
 	AxialTransform_.Rotation = InAxialAngle;
 }
 
+FMoveParams ABaseUnitActor::GetCurrentMoveParams() const
+{
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, {});
+	
+	FMoveParams MoveParams = Descr->MoveParams;
+	MoveParams.MaxDistance = GetMovementPoints();
+	
+	return MoveParams;
+}
+
 bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
 	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s"), *InTarget.ToString());
@@ -351,6 +362,7 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	}
 	
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, HexMapWS != nullptr);
 	
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
@@ -361,8 +373,16 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	
 	Path_.Reset();
 	
+	FMoveParams MoveParams = GetCurrentMoveParams();
+	
 	if (InTarget.Position == AxialTransform_.Position)
 	{
+		float MoveCost = HexMath::GetRotationDiff(AxialTransform_.Rotation.R, InTarget.Rotation.R) * MoveParams.RotationCost;
+		if (!SpendMovementPoints(MoveCost))
+		{
+			return false;
+		}
+		
 		bOnMove_ = InTarget.Rotation != AxialTransform_.Rotation;
 		Path_.Emplace(InTarget.Position.ToNative(), InTarget.Rotation.R);
 	}
@@ -370,11 +390,18 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	{
 		HexMapWS->FindPath(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
 			InTarget.Position.ToNative(), InTarget.Rotation.R, 
-			Descr->MoveParams, Path_, false);
+			MoveParams, Path_, false);
 	
 		if (!Path_.IsEmpty())
 		{
 			RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Path_.Num() > 1);
+			
+			float MoveCost = Path_.Last().Distance;
+			if (!SpendMovementPoints(MoveCost))
+			{
+				return false;
+			}
+			
 			bOnMove_ = true;
 		}
 	}
@@ -435,4 +462,53 @@ void ABaseUnitActor::OnRep_AxialTransform()
 {
 	if (!Ghost_)
 		CapturingHexes();
+}
+
+bool ABaseUnitActor::CanSpendMovementPoints(float InCost) const
+{
+	if (InCost <= 0)
+	{
+		return true;
+	}
+
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+
+	return GetMovementPoints() + KINDA_SMALL_NUMBER >= InCost;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+bool ABaseUnitActor::SpendMovementPoints(float InCost)
+{
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, HasAuthority());
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+
+	if (InCost <= 0)
+	{
+		return true;
+	}
+
+	const float CurrentPoints = AttributeSet_->GetMovementPoints();
+	
+	if (CurrentPoints + KINDA_SMALL_NUMBER < InCost)
+	{
+		MG_LOG(ABaseUnitActorLog, TEXT("Not enough movement points. Current=%.1f Cost=%.1f"), CurrentPoints, InCost);
+		return false;
+	}
+	
+
+	const float NewPoints = FMath::Clamp( CurrentPoints - InCost, 0.0f, AttributeSet_->GetMaxMovementPoints());
+
+	MG_LOG(ABaseUnitActorLog, TEXT("Current=%.1f Cost=%.1f NewPoints=%.1f"), CurrentPoints, InCost, NewPoints);
+	
+	AttributeSet_->SetMovementPoints(NewPoints);
+	return true;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+void ABaseUnitActor::RestoreMovementPoints()
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, HasAuthority());
+	RETURN_ON_FAIL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+
+	AttributeSet_->SetMovementPoints(AttributeSet_->GetMaxMovementPoints());
 }

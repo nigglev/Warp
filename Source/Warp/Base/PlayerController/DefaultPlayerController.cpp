@@ -215,9 +215,6 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		if (!IsValid(Unit))
 			return;
 		
-		const FUnitDescription* UnitDescr = Unit->GetDescription();
-		RETURN_ON_FAIL(ADefaultPlayerControllerLog, UnitDescr != nullptr);
-		
 		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 		RETURN_ON_FAIL(ADefaultPlayerControllerLog, HexMapWS != nullptr);
 		
@@ -227,8 +224,10 @@ void ADefaultPlayerController::OnSelectCellStartAction(const FInputActionValue& 
 		TArray<HexMath::FPathNode> Path;
 		if (!HexMapWS->IsDenyToCapture(Unit->GetUniqueID(), TargetAxialCoordOpt.GetValue()))
 		{
+			FMoveParams MoveParams = Unit->GetCurrentMoveParams();
+			
 			HexMapWS->FindPath(GetUniqueID(), Unit->GetAxialPosition(), Unit->GetAxialRotation().R, TargetAxialCoordOpt.GetValue(), {}, 
-			   UnitDescr->MoveParams, Path, true);
+			   MoveParams, Path, true);
 		}
 				
 		if (!Path.IsEmpty())

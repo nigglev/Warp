@@ -146,11 +146,8 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
 	FAxialAngle AA = InNewActiveUnit->GetAxialRotation();
 	
-	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
-	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
-	
 	InfluenceZone_.Empty();
-	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
+	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, InNewActiveUnit->GetCurrentMoveParams(), &InfluenceZone_);
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);
