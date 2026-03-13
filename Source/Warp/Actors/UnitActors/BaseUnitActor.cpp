@@ -3,9 +3,11 @@
 
 #include "BaseUnitActor.h"
 
+#include "AbilitySystemComponent.h"
 #include "HexPathfainer.h"
 #include "MGLogs.h"
 #include "Net/UnrealNetwork.h"
+#include "UnitCharacteristics/GAS/UnitStandardAttributeSet.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
@@ -33,6 +35,11 @@ ABaseUnitActor::ABaseUnitActor()
 	
 	Mesh_->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Mesh_->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	
+	AbilitySystemComponent_ = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent_->SetIsReplicated(true);
+
+	AttributeSet_ = CreateDefaultSubobject<UUnitStandardAttributeSet>(TEXT("UnitStandardAttributeSet"));
 }
 
 void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -63,6 +70,12 @@ void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	CollectMaterials();
+	InitAbilitySystemComponent();
+}
+
+void ABaseUnitActor::CollectMaterials()
+{
 	const int32 MaterialCount = Mesh_->GetNumMaterials();
 	DynamicMaterials_.Reserve(MaterialCount);
 
@@ -82,6 +95,26 @@ void ABaseUnitActor::BeginPlay()
 		{
 			MID->SetScalarParameterValue(HoverOpacityName, NormalOpacity_);
 		}
+	}
+}
+
+void ABaseUnitActor::InitAbilitySystemComponent()
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, AbilitySystemComponent_ != nullptr);
+	RETURN_ON_FAIL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+	
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
+	
+	AbilitySystemComponent_->InitAbilityActorInfo(this, this);
+
+	if (HasAuthority())
+	{
+		AttributeSet_->InitMaxHealth(Descr->MaxHealth);
+		AttributeSet_->InitHealth(Descr->MaxHealth);
+
+		AttributeSet_->InitMaxMovementPoints(Descr->MoveParams.MaxDistance);
+		AttributeSet_->InitMovementPoints(Descr->MoveParams.MaxDistance);
 	}
 }
 
@@ -166,8 +199,7 @@ void ABaseUnitActor::Tick(float InDelta)
 			PathIndex_++;
 		}
 		return;
-	}
-	
+	}	
 	
 	float TargetYaw  = FMath::UnwindDegrees(AxialTransform_.Rotation.GetYaw());
 	bOnMove_ = UpdateRotation(InDelta, TargetYaw);
@@ -368,6 +400,31 @@ const FUnitDescription* ABaseUnitActor::GetDescription() const
 	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	return Content->GetDescription<FUnitDescription>(UnitType_);
 }
+
+float ABaseUnitActor::GetHealth() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	 return AttributeSet_->GetHealth();
+}
+
+float ABaseUnitActor::GetMaxHealth() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMaxHealth();
+}
+
+float ABaseUnitActor::GetMovementPoints() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMovementPoints();
+}
+
+float ABaseUnitActor::GetMaxMovementPoints() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMaxMovementPoints();
+}
+
 
 void ABaseUnitActor::OnRep_UnitType()
 {

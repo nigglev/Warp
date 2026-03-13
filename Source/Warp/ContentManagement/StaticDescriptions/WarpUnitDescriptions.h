@@ -28,6 +28,9 @@ struct FUnitDescription : public FBaseDescription
 	
 	UPROPERTY(EditAnywhere)
 	float AnimationRotationSpeed = 3600;
+	
+	UPROPERTY(EditAnywhere)
+	float MaxHealth = 100;
 };
 
 USTRUCT(BlueprintType)

@@ -6,13 +6,16 @@
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
 #include "Warp/Utils/RepAxialCoord.h"
+#include "AbilitySystemInterface.h"
 #include "BaseUnitActor.generated.h"
 
 struct FUnitDescription;
 struct FAxialAngle;
+class UAbilitySystemComponent;
+class UUnitStandardAttributeSet;
 
 UCLASS()
-class WARP_API ABaseUnitActor : public AActor
+class WARP_API ABaseUnitActor : public AActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -48,12 +51,30 @@ public:
 	
 	const FUnitDescription* GetDescription() const;
 	
+	// GAS
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent_; }
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMovementPoints() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMaxMovementPoints() const;
+	// GAS End
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
 	
 	UFUNCTION()
 	void OnRep_AxialTransform();
+	
+	void CollectMaterials();
+	void InitAbilitySystemComponent();
 	
 	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
 	EMoveState MoveToTarget(float InDelta, const FVector& Target);
@@ -95,4 +116,10 @@ protected:
 	
 	UPROPERTY()
 	TArray<UMaterialInstanceDynamic*> DynamicMaterials_;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Unit|GAS")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent_ = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Unit|GAS")
+	TObjectPtr<UUnitStandardAttributeSet> AttributeSet_ = nullptr;
 };
