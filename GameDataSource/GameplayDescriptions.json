@@ -2,7 +2,7 @@
 	"items": [
 		{
 			"defaultPlayerUnitTypes": [
-				"valiant"
+				"valiant_big"
 			],
 			"campaignMapLayerCount": 4,
 			"campaignMapNodeInLayerCountMin": 1,

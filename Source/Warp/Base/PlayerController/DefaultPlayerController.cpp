@@ -26,6 +26,7 @@ ADefaultPlayerController::ADefaultPlayerController()
 {
 	bReplicates = true;
 	bShowMouseCursor = true;
+	bEnableMouseOverEvents = true;
 	
 	CheatClass = UWarpCheatManager::StaticClass();
 }

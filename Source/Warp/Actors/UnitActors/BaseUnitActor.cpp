@@ -10,8 +10,14 @@
 #include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
+#include "Warp/TurnBasedSystem/TurnMachine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
+
+namespace
+{
+	FName HoverOpacityName(TEXT("HoverOpacity"));
+}
 
 ABaseUnitActor::ABaseUnitActor()
 {
@@ -24,6 +30,9 @@ ABaseUnitActor::ABaseUnitActor()
 
 	Mesh_ = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh_->SetupAttachment(Root_);
+	
+	Mesh_->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Mesh_->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 }
 
 void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -53,6 +62,71 @@ void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxial
 void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	const int32 MaterialCount = Mesh_->GetNumMaterials();
+	DynamicMaterials_.Reserve(MaterialCount);
+
+	for (int32 i = 0; i < MaterialCount; ++i)
+	{
+		UMaterialInterface* BaseMat = Mesh_->GetMaterial(i);
+		if (!BaseMat)
+		{
+			DynamicMaterials_.Add(nullptr);
+			continue;
+		}
+
+		UMaterialInstanceDynamic* MID = Mesh_->CreateDynamicMaterialInstance(i, BaseMat);
+		DynamicMaterials_.Add(MID);
+
+		if (MID)
+		{
+			MID->SetScalarParameterValue(HoverOpacityName, NormalOpacity_);
+		}
+	}
+}
+
+void ABaseUnitActor::NotifyActorBeginCursorOver()
+{
+	Super::NotifyActorBeginCursorOver();
+	MG_FUNC_LABEL(ABaseUnitActorLog);
+	
+	AWarpGameState* WGS = Cast<AWarpGameState>(GetWorld()->GetGameState());
+	RETURN_ON_FAIL(ABaseUnitActorLog, WGS != nullptr);
+	
+	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
+	{
+		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
+		
+		SetShipOpacity(HoverOpacity_);
+	}
+}
+
+void ABaseUnitActor::SetShipOpacity(float InOpacity)
+{
+	for (UMaterialInstanceDynamic* MID : DynamicMaterials_)
+	{
+		if (MID)
+		{
+			MID->SetScalarParameterValue(HoverOpacityName, InOpacity);
+		}
+	}
+}
+
+void ABaseUnitActor::NotifyActorEndCursorOver()
+{
+	MG_FUNC_LABEL(ABaseUnitActorLog);
+	
+	AWarpGameState* WGS = Cast<AWarpGameState>(GetWorld()->GetGameState());
+	RETURN_ON_FAIL(ABaseUnitActorLog, WGS != nullptr);
+	
+	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
+	{
+		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
+		
+		SetShipOpacity(NormalOpacity_);
+	}
+	
+	Super::NotifyActorEndCursorOver();
 }
 
 void ABaseUnitActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
