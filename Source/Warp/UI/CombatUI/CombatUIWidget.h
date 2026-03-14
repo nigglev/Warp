@@ -43,8 +43,8 @@ private:
 	UButton* ReturnToCampaignMapButton = nullptr;
 	
 	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
+	// UPROPERTY(EditDefaultsOnly)
+	// TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
 	UPROPERTY(meta=(BindWidgetOptional))
 	UTurnOrderWidget* TurnOrderWidget_ = nullptr;
 };

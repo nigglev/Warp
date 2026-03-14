@@ -30,6 +30,9 @@ struct FTurnState
 	
 	UPROPERTY(BlueprintReadOnly)
 	int32 ActiveUnitIndex = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 RoundNumber = 0;
 	
 	FString ToString() const;
 };
@@ -51,6 +54,7 @@ public:
 	ABaseUnitActor* GetActiveUnit();
 	
 	int32 GetActiveUnitIndex() const;
+	void BroadcastTurnOrderInfo() const;
 	
 	// Called on SERVER from PlayerController RPC
 	void RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
@@ -76,10 +80,8 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CombatUnits)
 	TArray<ABaseUnitActor*> CombatUnits_;
-	
 	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
 	FTurnState TurnState_;
-	
 	UPROPERTY(Transient)
 	ABaseUnitActor* PrevActiveUnit_;
 };

@@ -70,15 +70,13 @@ void UTurnMachine::CreateUnits()
     {
         OnRep_CombatUnits();
     }
-    
-    GetOwner()->OnCombatUnitsChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex);
 }
 
 void UTurnMachine::OnRep_CombatUnits()
 {
     MG_LOG(ATurnMachineLog, TEXT("Replicated combat units; Num = %d"), CombatUnits_.Num());
     CheckLoaded();
-    GetOwner()->OnCombatUnitsChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex);
+    GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
 }
 
 void UTurnMachine::CheckLoaded()
@@ -99,7 +97,6 @@ void UTurnMachine::SetNewActiveUnit(int32 InIndex)
     RETURN_ON_FAIL(ATurnMachineLog, CombatUnits_.IsValidIndex(InIndex));
     TurnState_.ActiveUnitIndex = InIndex;
     TurnState_.Phase = ETurnPhase::WaitingForInput;
-    GetOwner()->OnCombatActiveUnitIndexChanged.Broadcast(InIndex);
     
     MG_LOG(ATurnMachineLog, TEXT("TurnState_: %s"), *TurnState_.ToString());
     
@@ -132,7 +129,7 @@ void UTurnMachine::OnRep_TurnState()
     else
     {
         GetOwner()->OnUnitStartMoving.Broadcast(NewActiveUnit);
-        GetOwner()->OnCombatActiveUnitIndexChanged.Broadcast(TurnState_.ActiveUnitIndex);
+        GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
     }
     
 }
@@ -187,6 +184,11 @@ ABaseUnitActor* UTurnMachine::GetActiveUnit()
 int32 UTurnMachine::GetActiveUnitIndex() const
 {
     return TurnState_.ActiveUnitIndex;
+}
+
+void UTurnMachine::BroadcastTurnOrderInfo() const
+{
+    GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
 }
 
 bool UTurnMachine::CanAcceptMove() const

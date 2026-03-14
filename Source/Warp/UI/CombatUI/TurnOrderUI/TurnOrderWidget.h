@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderWidget.generated.h"
 
+class USizeBox;
 class ABaseUnitActor;
 class UCombatUIWidget;
 class UScrollBox;
@@ -23,8 +24,21 @@ public:
 	void UpdateCurrentFromHUD(const int32 InActiveUnitIndex);
 
 protected:
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UTurnOrderEntryWidget> EntryWidgetClass_;
+	void UpdateListSize();
+
+	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing")
+	int32 MinVisibleEntries_ = 3;
+
+	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing")
+	int32 MaxVisibleEntries_ = 10;
+
+	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="0.0"))
+	float ExtraHeightPadding_ = 0.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Turn Order")
+	TSubclassOf<UTurnOrderEntryWidget> tEntryWidgetClass_;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USizeBox> EntriesSizeBox_ = nullptr;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> EntriesBox_;
 	UPROPERTY()

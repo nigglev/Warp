@@ -5,6 +5,7 @@
 
 #include "MGLogs.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/MatchStates.h"
@@ -52,6 +53,11 @@ void AWarpGameState::OnRep_MatchState()
 	{
 		HandleUnitCreation();
 	}
+
+	if (MatchState == MatchState::InProgress)
+	{
+		BroadcastUIInfo();
+	}
 	
 	Super::OnRep_MatchState();
 	
@@ -81,4 +87,9 @@ void AWarpGameState::SetUnitsLoaded()
 			WPS->SetClientUnitsLoaded();
 		}
 	}
+}
+
+void AWarpGameState::BroadcastUIInfo() const
+{
+	TurnMachine_->BroadcastTurnOrderInfo();
 }

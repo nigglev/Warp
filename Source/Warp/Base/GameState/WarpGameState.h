@@ -19,8 +19,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitSelected, ABaseUnitActor* InNewActiv
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitStartMoving, ABaseUnitActor*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitArrived, ABaseUnitActor*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMatchStateChanged, FName);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnCombatUnitsChanged, const TArray<ABaseUnitActor*>&, int32);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnCombatActiveUnitIndexChanged, int32);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCombatUnitsChanged, const TArray<ABaseUnitActor*>&, int32, int32);
 
 UCLASS()
 class WARP_API AWarpGameState : public AGameState
@@ -44,22 +43,21 @@ public:
 	const UTurnMachine* GetTurnMachine() const { return TurnMachine_; }
 	UTurnMachine* GetTurnMachine() { return TurnMachine_; }
 
+	void BroadcastUIInfo() const;
+
 	FOnMatchStateChanged OnMatchStateChanged;
 	FOnUnitSelected OnUnitSelected;
 	FOnUnitStartMoving OnUnitStartMoving;
 	FOnUnitArrived OnUnitArrived;
 
-	FOnCombatUnitsChanged OnCombatUnitsChanged;
-	FOnCombatActiveUnitIndexChanged OnCombatActiveUnitIndexChanged;
+	FOnCombatUnitsChanged OnTurnOrderChanged;
 	
 protected:
 	virtual void OnRep_MatchState() override;
 	void HandleUnitCreation();
 	virtual void HandleMatchIsWaitingToStart() override;
 
-
 	bool bClientValidState_ = false;
-	
 	bool bUnitsCreated_ = false;
 
 	UPROPERTY(Replicated)

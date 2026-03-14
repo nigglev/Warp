@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderEntryWidget.generated.h"
 
+class UMultiLineEditableText;
+class UMultiLineEditableTextBox;
 class UImage;
 class UBorder;
 class UTextBlock;
@@ -17,26 +19,13 @@ class WARP_API UTurnOrderEntryWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	virtual void NativeConstruct() override;
 	void Init(const FString& InUnitName, bool bIsCurrent);
-	void SetIsCurrent(bool bInCurrent);
-
-	int32 GetUnitId() const { return UnitCombatId_; }
+	void SetIsCurrent(bool bInCurrent) const;
 
 protected:
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* UnitNameText;
+	UMultiLineEditableText* UnitNameText = nullptr;
 	UPROPERTY(meta = (BindWidget))
-	UBorder* BackgroundBorder;
-	UPROPERTY(meta = (BindWidget))
-	UImage* ActiveUnitSignImage;
-	
-	FLinearColor AllyColor = FLinearColor(0.f, 0.5f, 0.f, 0.7f);
-	FLinearColor EnemyColor = FLinearColor(0.5f, 0.f, 0.f, 0.7f);
-
-	float NormalScale = 1.f;
-	UPROPERTY(EditAnywhere, Category="Style|Scale")
-	float CurrentScale = 2.f;
-	
-	int32 UnitCombatId_ = INDEX_NONE;
-	bool bIsAlly_ = false;
+	UImage* ActiveUnitSignImage = nullptr;
 };

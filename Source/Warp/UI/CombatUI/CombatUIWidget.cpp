@@ -80,18 +80,15 @@ void UCombatUIWidget::ShowCombatUI(bool InShowCombatUI)
 
 void UCombatUIWidget::SetCurrentCombatUnits(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex)
 {
-	if (TurnOrderWidget_)
-	{
-		TurnOrderWidget_->RebuildFromHUD(InCombatUnits, InActiveUnitIndex);
-	}
+	RETURN_ON_FAIL(ACombatUIWidgetLog, TurnOrderWidget_);
+	TurnOrderWidget_->RebuildFromHUD(InCombatUnits, InActiveUnitIndex);
 }
 
 void UCombatUIWidget::SetCurrentActiveUnitIndex(const int32 InActiveUnitIndex)
 {
-	if (TurnOrderWidget_)
-	{
-		TurnOrderWidget_->UpdateCurrentFromHUD(InActiveUnitIndex);
-	}
+	RETURN_ON_FAIL(ACombatUIWidgetLog, TurnOrderWidget_);
+	TurnOrderWidget_->UpdateCurrentFromHUD(InActiveUnitIndex);
+
 }
 
 
