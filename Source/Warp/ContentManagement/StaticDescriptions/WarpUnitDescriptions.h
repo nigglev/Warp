@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CannonParams.h"
 #include "HullHexFootprint.h"
 #include "JsonObjectConverter.h"
 #include "MoveParams.h"
@@ -34,6 +35,9 @@ struct FUnitDescription : public FBaseDescription
 	
 	UPROPERTY(EditAnywhere)
 	int32 MovePriority = 10;
+	
+	UPROPERTY(EditAnywhere)
+	TArray<FCannonParams> CannonParams;
 };
 
 USTRUCT(BlueprintType)

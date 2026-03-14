@@ -355,6 +355,17 @@ FMoveParams ABaseUnitActor::GetCurrentMoveParams() const
 	return MoveParams;
 }
 
+const TArray<FCannonParams>& ABaseUnitActor::GetCannonParams() const
+{
+	static const TArray<FCannonParams> EmptyCannonParams;
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AbilitySystemComponent_ != nullptr, EmptyCannonParams);
+	
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, EmptyCannonParams);
+	
+	return Descr->CannonParams;
+}
+
 bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
 	MG_LOG(ABaseUnitActorLog, TEXT("%s; InTarget: %s"), *GetDebugName(), *InTarget.ToString());

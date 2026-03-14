@@ -11,7 +11,28 @@
 			"Footprint": 
 			{
 				"Cells": [ {"X":0, "Y": -1 }, {"X":0, "Y": 1 }, {"X":0, "Y": 2 }]
-			},
+			},			
+			"CannonParams":
+			[
+				{
+					"LocalShift": {"X":0, "Y": 2 },
+					"LocalRotation": 0,
+					"SectorAngle": 30,
+					"HexDistance": 8
+				},
+				{
+					"LocalShift": {"X":0, "Y": 0 },
+					"LocalRotation": 90,
+					"SectorAngle": 60,
+					"HexDistance": 4
+				},
+				{
+					"LocalShift": {"X":0, "Y": 0 },
+					"LocalRotation": -90,
+					"SectorAngle": 60,
+					"HexDistance": 4	
+				}
+			],
 			"MoveParams": { "MaxDistance": 70, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 60
@@ -26,11 +47,11 @@
 					{"X":1, "Y": -3 },{"X":1, "Y": -2 }, {"X":1, "Y": 0 }, {"X":1, "Y": -1 }, {"X":1, "Y": 1 }, {"X":1, "Y": 2 }, {"X":1, "Y": 3 }, {"X":1, "Y": 4 },	
 					{"X":-1, "Y": -3 },{"X":-1, "Y": -2 }, {"X":-1, "Y": 0 }, {"X":-1, "Y": -1 }, {"X":-1, "Y": 1 }, {"X":-1, "Y": 2 }, {"X":-1, "Y": 3 }, {"X":-1, "Y": 4 }	
 				]
-			},
+			},			
 			"MoveParams": { "MaxDistance": 90, "MoveCost": 10, "RotationCost": 10 },
 			"AnimationMoveSpeed": 600,
 			"AnimationRotationSpeed": 30
 		}
 	],
-	"version": 12
+	"version": 13
 }

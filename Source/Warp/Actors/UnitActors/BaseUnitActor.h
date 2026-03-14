@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "Warp/Utils/RepAxialCoord.h"
 #include "AbilitySystemInterface.h"
+#include "CannonParams.h"
 #include "BaseUnitActor.generated.h"
 
 struct FUnitDescription;
@@ -56,6 +57,8 @@ public:
 	const FUnitDescription* GetDescription() const;
 	
 	FMoveParams GetCurrentMoveParams() const;
+	
+	const TArray<FCannonParams>& GetCannonParams() const;
 	
 	void OnNewRound(uint32 InRoundNumber);
 	

@@ -65,8 +65,7 @@ void HexMath::CaptureCells(const FAxialCoord& InCenter, int8 InRotation, const F
 	
 	for (int32 i = 0; i < InHullSize.Cells.Num(); ++i)
 	{
-		FIntVector2 V = InHullSize.Cells[i];
-		FOffsetCoord Offset(V.X, V.Y);
+		FOffsetCoord Offset = InHullSize.Cells[i];
 		FAxialCoord AxialCoord = HexMathAxial::OffsetToAxial<HEX_LAYOUT>(Offset);
 		
 		FAxialCoord NewPos = HexMathAxial::Transform(InCenter, InRotation, AxialCoord);

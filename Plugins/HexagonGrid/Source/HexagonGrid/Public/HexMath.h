@@ -38,6 +38,7 @@ namespace HexMath
 		
 		FOffsetCoord() = default;
 		FOffsetCoord(HexInt InCol, HexInt InRow) : Col(InCol), Row(InRow) {}
+		FOffsetCoord(const FIntVector2& V) : Col(V.X), Row(V.Y) {}
 		
 		friend auto operator<=>(const FOffsetCoord&, const FOffsetCoord&) = default;
 		
@@ -304,19 +305,29 @@ namespace HexMath
 		inline FAxialCoord RotateAxial(const FAxialCoord& InAxialDir, int8 InRotation)
 		{
 			FCubeCoord Dir(InAxialDir.Q, InAxialDir.R);
-			
-			uint8 N = DirectionToAxialNeighbourIndex(InRotation);
-			for (int8 i = 0; i < N; ++i)
+
+			switch (DirectionToAxialNeighbourIndex(InRotation))
 			{
-				FCubeCoord Temp;
-				Temp.Q = -1 * Dir.S;
-				Temp.R = -1 * Dir.Q;
-				Temp.S = -1 * Dir.R;
-				
-				Dir = Temp;
+			case 0: return FAxialCoord( Dir.Q,  Dir.R);
+			case 1: return FAxialCoord(-Dir.S, -Dir.Q);
+			case 2: return FAxialCoord( Dir.R,  Dir.S);
+			case 3: return FAxialCoord(-Dir.Q, -Dir.R);
+			case 4: return FAxialCoord( Dir.S,  Dir.Q);
+			case 5: return FAxialCoord(-Dir.R, -Dir.S);
+			default: checkNoEntry(); return InAxialDir;
 			}
 			
-			return FAxialCoord(Dir.Q, Dir.R);			
+			// for (int8 i = 0; i < N; ++i)
+			// {
+			// 	FCubeCoord Temp;
+			// 	Temp.Q = -1 * Dir.S;
+			// 	Temp.R = -1 * Dir.Q;
+			// 	Temp.S = -1 * Dir.R;
+			// 	
+			// 	Dir = Temp;
+			// }
+			//
+			// return FAxialCoord(Dir.Q, Dir.R);			
 		}
 		
 		inline FAxialCoord RotatePoint(const FAxialCoord& InAxialCenter, const FAxialCoord& InAxialPoint, int8 InRotation)
@@ -329,6 +340,35 @@ namespace HexMath
 		{
 			FAxialCoord NewDir = RotateAxial(InAxialLocalPosition, InRotation);
 			return FAxialCoord(NewDir.Q + InAxialCenter.Q, NewDir.R + InAxialCenter.R);			
+		}
+		
+		template<EHexOffsetLayout OffsetType>
+		void GetFlatTopHexCorners(const FVector& C, float HexSize, TArray<FVector>& OutCorners)
+		{
+			OutCorners.Reset();
+			OutCorners.Reserve(6);
+
+			const float HalfSize = HexSize * 0.5f;
+			const float Sqrt3HalfSize = HexSize * FMath::Sqrt(3.0f) * 0.5f;
+			
+			if constexpr (OffsetType == EHexOffsetLayout::FlatTopOddQ || OffsetType == EHexOffsetLayout::FlatTopEvenQ)
+			{
+				OutCorners.Add(FVector(C.X + HexSize,       C.Y,                    C.Z));
+				OutCorners.Add(FVector(C.X + HalfSize,      C.Y + Sqrt3HalfSize,    C.Z));
+				OutCorners.Add(FVector(C.X - HalfSize,      C.Y + Sqrt3HalfSize,    C.Z));
+				OutCorners.Add(FVector(C.X - HexSize,       C.Y,                    C.Z));
+				OutCorners.Add(FVector(C.X - HalfSize,      C.Y - Sqrt3HalfSize,    C.Z));
+				OutCorners.Add(FVector(C.X + HalfSize,      C.Y - Sqrt3HalfSize,    C.Z));
+			}
+			else if constexpr (OffsetType == EHexOffsetLayout::PointyTopOddR || OffsetType == EHexOffsetLayout::PointyTopEvenR)
+			{
+				OutCorners.Add(FVector(C.X + Sqrt3HalfSize, C.Y + HalfSize,         C.Z));
+				OutCorners.Add(FVector(C.X,                 C.Y + HexSize,          C.Z));
+				OutCorners.Add(FVector(C.X - Sqrt3HalfSize, C.Y + HalfSize,         C.Z));
+				OutCorners.Add(FVector(C.X - Sqrt3HalfSize, C.Y - HalfSize,         C.Z));
+				OutCorners.Add(FVector(C.X,                 C.Y - HexSize,          C.Z));
+				OutCorners.Add(FVector(C.X + Sqrt3HalfSize, C.Y - HalfSize,         C.Z));
+			}
 		}
 	
 		inline float GetAngle(int32 InSegmentCount) { return 360.f / InSegmentCount; }

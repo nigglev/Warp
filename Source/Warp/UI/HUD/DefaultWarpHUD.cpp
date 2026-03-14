@@ -140,7 +140,10 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
+	{
 		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->ReleaseSector(InfluenceZoneId_.GetValue());
+	}
 	
 	InfluenceZoneId_ = InNewActiveUnit->GetUniqueID();
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
@@ -151,6 +154,16 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);
+	
+	//HexMapWS->ReleaseSector(InfluenceZoneId_.GetValue());
+	const TArray<FCannonParams>& CannonParams = InNewActiveUnit->GetCannonParams();
+	for (const FCannonParams& CannonParam : CannonParams)
+	{
+		HexMath::FAxialCoord CannonCoord = UHexMapWS::TransformCell(AC, AA.R, CannonParam.LocalShift);
+	
+		HexMapWS->SelectSector(InfluenceZoneId_.GetValue(), CannonCoord, AA.GetYaw() + CannonParam.LocalRotation, 
+			CannonParam.SectorAngle, CannonParam.HexDistance);
+	}
 }
 
 void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
@@ -158,7 +171,10 @@ void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	
 	if (InfluenceZoneId_.IsSet())
+	{
 		HexMapWS->RemoveInfluence(InfluenceZoneId_.GetValue());
+		HexMapWS->ReleaseSector(InfluenceZoneId_.GetValue());
+	}
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitStartMoving(InNewActiveUnit);
