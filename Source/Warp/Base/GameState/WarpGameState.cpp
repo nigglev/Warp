@@ -10,7 +10,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Warp/Base/MatchStates.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
-#include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Base/GameState/TurnMachine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(AWarpGameStateLog, Log, All);
 

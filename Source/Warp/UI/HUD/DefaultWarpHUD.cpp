@@ -10,7 +10,7 @@
 #include "Warp/Actors/UnitActors/BaseUnitActor.h"
 #include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
-#include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Base/GameState/TurnMachine.h"
 #include "Warp/UI/CombatUI/CombatUIWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ADefaultWarpHUDLog, Log, All);
@@ -130,13 +130,13 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	if (InPrevActiveUnit != nullptr)
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s] -> %s[%s]"),
-		   *GetNameSafe(InPrevActiveUnit), *InPrevActiveUnit->GetAxialPosition().ToString(),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
+		   *InPrevActiveUnit->GetDebugName(), *InPrevActiveUnit->GetAxialPosition().ToString(),
+		   *InNewActiveUnit->GetDebugName(), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	else
 	{
 		MG_LOG(ADefaultWarpHUDLog, TEXT("%s[%s]"),
-		   *GetNameSafe(InNewActiveUnit), *InNewActiveUnit->GetAxialPosition().ToString());
+		   *InNewActiveUnit->GetDebugName(), *InNewActiveUnit->GetAxialPosition().ToString());
 	}
 	
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
@@ -148,11 +148,8 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 	HexMath::FAxialCoord AC = InNewActiveUnit->GetAxialPosition();
 	FAxialAngle AA = InNewActiveUnit->GetAxialRotation();
 	
-	const FUnitDescription* UnitDescription = InNewActiveUnit->GetDescription();
-	RETURN_ON_FAIL(ADefaultWarpHUDLog, UnitDescription);
-	
 	InfluenceZone_.Empty();
-	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, UnitDescription->MoveParams, &InfluenceZone_);
+	HexMapWS->SelectInfluence(InfluenceZoneId_.GetValue(), AC, AA.R, InNewActiveUnit->GetCurrentMoveParams(), &InfluenceZone_);
 	
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
 	MainWidget_->OnUnitSelected(InNewActiveUnit, InPrevActiveUnit);

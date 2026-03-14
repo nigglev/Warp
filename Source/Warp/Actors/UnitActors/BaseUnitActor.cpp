@@ -3,14 +3,16 @@
 
 #include "BaseUnitActor.h"
 
+#include "AbilitySystemComponent.h"
 #include "HexPathfainer.h"
 #include "MGLogs.h"
 #include "Net/UnrealNetwork.h"
+#include "UnitCharacteristics/GAS/UnitStandardAttributeSet.h"
 #include "Warp/Base/GameState/WarpGameState.h"
 #include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
-#include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Base/GameState/TurnMachine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
@@ -33,6 +35,11 @@ ABaseUnitActor::ABaseUnitActor()
 	
 	Mesh_->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Mesh_->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	
+	AbilitySystemComponent_ = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent_->SetIsReplicated(true);
+
+	AttributeSet_ = CreateDefaultSubobject<UUnitStandardAttributeSet>(TEXT("UnitStandardAttributeSet"));
 }
 
 void ABaseUnitActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -59,10 +66,23 @@ void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxial
 		OnRep_AxialTransform();
 }
 
+FString ABaseUnitActor::GetDebugName() const
+{
+	if (UnitType_.IsNone())
+		return FString::Printf(TEXT("NoneUnitType_%u"), GetUniqueID());
+	return FString::Printf(TEXT("%s_%u"), *UnitType_.ToString(), GetUniqueID());
+}
+
 void ABaseUnitActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	CollectMaterials();
+	InitAbilitySystemComponent();
+}
+
+void ABaseUnitActor::CollectMaterials()
+{
 	const int32 MaterialCount = Mesh_->GetNumMaterials();
 	DynamicMaterials_.Reserve(MaterialCount);
 
@@ -85,6 +105,26 @@ void ABaseUnitActor::BeginPlay()
 	}
 }
 
+void ABaseUnitActor::InitAbilitySystemComponent()
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, AbilitySystemComponent_ != nullptr);
+	RETURN_ON_FAIL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+	
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL(ABaseUnitActorLog, Descr != nullptr);
+	
+	AbilitySystemComponent_->InitAbilityActorInfo(this, this);
+
+	if (HasAuthority())
+	{
+		AttributeSet_->InitMaxHealth(Descr->MaxHealth);
+		AttributeSet_->InitHealth(Descr->MaxHealth);
+
+		AttributeSet_->InitMaxMovementPoints(Descr->MoveParams.MaxDistance);
+		AttributeSet_->InitMovementPoints(Descr->MoveParams.MaxDistance);
+	}
+}
+
 void ABaseUnitActor::NotifyActorBeginCursorOver()
 {
 	Super::NotifyActorBeginCursorOver();
@@ -95,8 +135,6 @@ void ABaseUnitActor::NotifyActorBeginCursorOver()
 	
 	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
 	{
-		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
-		
 		SetShipOpacity(HoverOpacity_);
 	}
 }
@@ -121,8 +159,6 @@ void ABaseUnitActor::NotifyActorEndCursorOver()
 	
 	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
 	{
-		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
-		
 		SetShipOpacity(NormalOpacity_);
 	}
 	
@@ -166,8 +202,7 @@ void ABaseUnitActor::Tick(float InDelta)
 			PathIndex_++;
 		}
 		return;
-	}
-	
+	}	
 	
 	float TargetYaw  = FMath::UnwindDegrees(AxialTransform_.Rotation.GetYaw());
 	bOnMove_ = UpdateRotation(InDelta, TargetYaw);
@@ -309,9 +344,20 @@ void ABaseUnitActor::SetLastRotation(FAxialAngle InAxialAngle)
 	AxialTransform_.Rotation = InAxialAngle;
 }
 
+FMoveParams ABaseUnitActor::GetCurrentMoveParams() const
+{
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, {});
+	
+	FMoveParams MoveParams = Descr->MoveParams;
+	MoveParams.MaxDistance = GetMovementPoints();
+	
+	return MoveParams;
+}
+
 bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
-	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s"), *InTarget.ToString());
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; InTarget: %s"), *GetDebugName(), *InTarget.ToString());
 	
 	if (!HasAuthority())
 	{
@@ -319,6 +365,7 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	}
 	
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, HexMapWS != nullptr);
 	
 	const FUnitDescription* Descr = GetDescription();
 	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Descr != nullptr);
@@ -329,8 +376,16 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	
 	Path_.Reset();
 	
+	FMoveParams MoveParams = GetCurrentMoveParams();
+	
 	if (InTarget.Position == AxialTransform_.Position)
 	{
+		float MoveCost = HexMath::GetRotationDiff(AxialTransform_.Rotation.R, InTarget.Rotation.R) * MoveParams.RotationCost;
+		if (!SpendMovementPoints(MoveCost))
+		{
+			return false;
+		}
+		
 		bOnMove_ = InTarget.Rotation != AxialTransform_.Rotation;
 		Path_.Emplace(InTarget.Position.ToNative(), InTarget.Rotation.R);
 	}
@@ -338,11 +393,18 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 	{
 		HexMapWS->FindPath(GetUniqueID(), AxialTransform_.Position.ToNative(), AxialTransform_.Rotation.R, 
 			InTarget.Position.ToNative(), InTarget.Rotation.R, 
-			Descr->MoveParams, Path_, false);
+			MoveParams, Path_, false);
 	
 		if (!Path_.IsEmpty())
 		{
 			RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, Path_.Num() > 1);
+			
+			float MoveCost = Path_.Last().Distance;
+			if (!SpendMovementPoints(MoveCost))
+			{
+				return false;
+			}
+			
 			bOnMove_ = true;
 		}
 	}
@@ -355,7 +417,7 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 		
 		PathIndex_ = 0;
 		
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s"), *InTarget.ToString());
+		MG_LOG(ABaseUnitActorLog, TEXT("%s; Target: %s"), *GetDebugName(), *InTarget.ToString());
 	}
 	
 	return bOnMove_;
@@ -369,6 +431,31 @@ const FUnitDescription* ABaseUnitActor::GetDescription() const
 	return Content->GetDescription<FUnitDescription>(UnitType_);
 }
 
+float ABaseUnitActor::GetHealth() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	 return AttributeSet_->GetHealth();
+}
+
+float ABaseUnitActor::GetMaxHealth() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMaxHealth();
+}
+
+float ABaseUnitActor::GetMovementPoints() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMovementPoints();
+}
+
+float ABaseUnitActor::GetMaxMovementPoints() const
+{
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, AttributeSet_ != nullptr, 0.0f);
+	return AttributeSet_->GetMaxMovementPoints();
+}
+
+
 void ABaseUnitActor::OnRep_UnitType()
 {
 	
@@ -378,4 +465,71 @@ void ABaseUnitActor::OnRep_AxialTransform()
 {
 	if (!Ghost_)
 		CapturingHexes();
+}
+
+bool ABaseUnitActor::CanSpendMovementPoints(float InCost) const
+{
+	if (InCost <= 0)
+	{
+		return true;
+	}
+
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+
+	return GetMovementPoints() + KINDA_SMALL_NUMBER >= InCost;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+bool ABaseUnitActor::SpendMovementPoints(float InCost)
+{
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, HasAuthority());
+	RETURN_ON_FAIL_BOOL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+
+	if (InCost <= 0)
+	{
+		return true;
+	}
+
+	const float CurrentPoints = AttributeSet_->GetMovementPoints();
+	
+	if (CurrentPoints + KINDA_SMALL_NUMBER < InCost)
+	{
+		MG_LOG(ABaseUnitActorLog, TEXT("%s; Not enough movement points. Current=%.1f Cost=%.1f"), *GetDebugName(),CurrentPoints, InCost);
+		return false;
+	}
+	
+
+	const float NewPoints = FMath::Clamp( CurrentPoints - InCost, 0.0f, AttributeSet_->GetMaxMovementPoints());
+
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; Current=%.1f Cost=%.1f NewPoints=%.1f"), *GetDebugName(), CurrentPoints, InCost, NewPoints);
+	
+	AttributeSet_->SetMovementPoints(NewPoints);
+	return true;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+void ABaseUnitActor::RestoreMovementPoints()
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, HasAuthority());
+	RETURN_ON_FAIL(ABaseUnitActorLog, AttributeSet_ != nullptr);
+	
+	MG_LOG(ABaseUnitActorLog, TEXT("%s"), *GetDebugName());
+	
+	AttributeSet_->SetMovementPoints(AttributeSet_->GetMaxMovementPoints());
+}
+
+void ABaseUnitActor::OnNewRound(uint32 InRoundNumber)
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, HasAuthority());
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; InRoundNumber: %u"), *GetDebugName(), InRoundNumber);
+	
+	RestoreMovementPoints();
+}
+
+int32 ABaseUnitActor::GetMovePriority() const
+{
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, 10000);
+	
+	return Descr->MovePriority;
 }

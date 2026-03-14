@@ -23,6 +23,8 @@ public class Warp : ModuleRules
 			"HTTP", 
 			"Json", 
 			"JsonUtilities",
+			"GameplayAbilities",
+			"GameplayTasks",
 			"HexagonGrid"
 		});
 

@@ -6,13 +6,16 @@
 #include "HexPathfainer.h"
 #include "GameFramework/Actor.h"
 #include "Warp/Utils/RepAxialCoord.h"
+#include "AbilitySystemInterface.h"
 #include "BaseUnitActor.generated.h"
 
 struct FUnitDescription;
 struct FAxialAngle;
+class UAbilitySystemComponent;
+class UUnitStandardAttributeSet;
 
 UCLASS()
-class WARP_API ABaseUnitActor : public AActor
+class WARP_API ABaseUnitActor : public AActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -29,10 +32,14 @@ public:
 
 	void Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost);
 	
+	FString GetDebugName() const;
+	
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
 	FName GetUnitType() const {return UnitType_;}
+	
+	int32 GetMovePriority() const;
 	
 	HexMath::FAxialCoord GetAxialPosition() const { return AxialTransform_.Position.ToNative(); }
 	
@@ -48,12 +55,35 @@ public:
 	
 	const FUnitDescription* GetDescription() const;
 	
+	FMoveParams GetCurrentMoveParams() const;
+	
+	void OnNewRound(uint32 InRoundNumber);
+	
+	// GAS
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent_; }
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMovementPoints() const;
+
+	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
+	float GetMaxMovementPoints() const;
+	
+	// GAS End
 protected:
 	UFUNCTION()
 	void OnRep_UnitType();
 	
 	UFUNCTION()
 	void OnRep_AxialTransform();
+	
+	void CollectMaterials();
+	void InitAbilitySystemComponent();
 	
 	enum class EMoveState : uint8 { Moving, Rotating, Approached };	
 	EMoveState MoveToTarget(float InDelta, const FVector& Target);
@@ -65,6 +95,12 @@ protected:
 	void CapturingHexes();
 	
 	void SetShipOpacity(float InOpacity);
+	
+	bool CanSpendMovementPoints(float InCost) const;
+
+	bool SpendMovementPoints(float InCost);
+
+	void RestoreMovementPoints();
 	
 	UPROPERTY(EditAnywhere, Category="Hover")
 	float HoverOpacity_ = 0.35f;
@@ -95,4 +131,10 @@ protected:
 	
 	UPROPERTY()
 	TArray<UMaterialInstanceDynamic*> DynamicMaterials_;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Unit|GAS")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent_ = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Unit|GAS")
+	TObjectPtr<UUnitStandardAttributeSet> AttributeSet_ = nullptr;
 };
