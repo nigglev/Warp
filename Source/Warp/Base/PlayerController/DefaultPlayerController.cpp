@@ -16,7 +16,7 @@
 #include "Warp/Base/Pawn/TacticalCameraPawn.h"
 #include "Warp/Base/PlayerState/WarpPlayerState.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
-#include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Base/GameState/TurnMachine.h"
 #include "Warp/UI/HUD/DefaultWarpHUD.h"
 
 

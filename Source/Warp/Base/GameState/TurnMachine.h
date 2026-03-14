@@ -29,7 +29,7 @@ struct FTurnState
 	ETurnPhase Phase = ETurnPhase::WaitingForInput;
 	
 	UPROPERTY(BlueprintReadOnly)
-	int32 ActiveUnitIndex = INDEX_NONE;
+	ABaseUnitActor* ActiveUnit;
 	
 	FString ToString() const;
 };
@@ -63,21 +63,33 @@ protected:
 	void OnRep_CombatUnits();
 	UFUNCTION()
 	void OnRep_TurnState();
+	UFUNCTION()
+	void OnRep_RoundIndex();
 	
 	void CheckLoaded();
 	bool IsValidState() const;
 	
-	void SetNewActiveUnit(int32 InIndex);
+	void SetNewActiveUnit();
 	void SetWaitingForArrival();
 	
 	void OnUnitArrived(ABaseUnitActor* InUnit);
 	
+	void NewRound();
+	
+	void SortUnits();
+	
 	UPROPERTY(ReplicatedUsing=OnRep_CombatUnits)
 	TArray<ABaseUnitActor*> CombatUnits_;
+	
+	UPROPERTY()
+	TArray<ABaseUnitActor*> NextRoundStore_;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_TurnState)
 	FTurnState TurnState_;
 	
 	UPROPERTY(Transient)
 	ABaseUnitActor* PrevActiveUnit_;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_RoundIndex)
+	uint32 RoundIndex_ = 0;
 };

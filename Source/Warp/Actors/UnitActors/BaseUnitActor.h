@@ -32,10 +32,14 @@ public:
 
 	void Init(const FName InUnitType, const FAxialTransform& InAxialTransform, bool InGhost);
 	
+	FString GetDebugName() const;
+	
 	FVector GetUnitWorldPosition() const {return GetActorLocation();}
 	void SetUnitWorldPosition(const FVector& InWorldPosition) {SetActorLocation(InWorldPosition);}
 
 	FName GetUnitType() const {return UnitType_;}
+	
+	int32 GetMovePriority() const;
 	
 	HexMath::FAxialCoord GetAxialPosition() const { return AxialTransform_.Position.ToNative(); }
 	
@@ -53,6 +57,8 @@ public:
 	
 	FMoveParams GetCurrentMoveParams() const;
 	
+	void OnNewRound(uint32 InRoundNumber);
+	
 	// GAS
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent_; }
 
@@ -67,6 +73,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Ship|Attributes")
 	float GetMaxMovementPoints() const;
+	
 	// GAS End
 protected:
 	UFUNCTION()

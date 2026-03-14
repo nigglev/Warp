@@ -12,7 +12,7 @@
 #include "Warp/Base/HexMap/HexMapWS.h"
 #include "Warp/ContentManagement/PlayFabContent/WarpContentSubSystem.h"
 #include "Warp/ContentManagement/StaticDescriptions/WarpUnitDescriptions.h"
-#include "Warp/TurnBasedSystem/TurnMachine.h"
+#include "Warp/Base/GameState/TurnMachine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(ABaseUnitActorLog, Log, All);
 
@@ -64,6 +64,13 @@ void ABaseUnitActor::Init(const FName InUnitType, const FAxialTransform& InAxial
 	AxialTransform_ = InAxialTransform;
 	if (HasAuthority())
 		OnRep_AxialTransform();
+}
+
+FString ABaseUnitActor::GetDebugName() const
+{
+	if (UnitType_.IsNone())
+		return FString::Printf(TEXT("NoneUnitType_%u"), GetUniqueID());
+	return FString::Printf(TEXT("%s_%u"), *UnitType_.ToString(), GetUniqueID());
 }
 
 void ABaseUnitActor::BeginPlay()
@@ -128,8 +135,6 @@ void ABaseUnitActor::NotifyActorBeginCursorOver()
 	
 	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
 	{
-		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
-		
 		SetShipOpacity(HoverOpacity_);
 	}
 }
@@ -154,8 +159,6 @@ void ABaseUnitActor::NotifyActorEndCursorOver()
 	
 	if (WGS->GetTurnMachine()->GetActiveUnit() == this)
 	{
-		MG_LOG(ABaseUnitActorLog, TEXT("Active Unit"));
-		
 		SetShipOpacity(NormalOpacity_);
 	}
 	
@@ -354,7 +357,7 @@ FMoveParams ABaseUnitActor::GetCurrentMoveParams() const
 
 bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 {
-	MG_LOG(ABaseUnitActorLog, TEXT("InTarget: %s"), *InTarget.ToString());
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; InTarget: %s"), *GetDebugName(), *InTarget.ToString());
 	
 	if (!HasAuthority())
 	{
@@ -414,7 +417,7 @@ bool ABaseUnitActor::SetMoveTarget(const FAxialTransform& InTarget)
 		
 		PathIndex_ = 0;
 		
-		MG_LOG(ABaseUnitActorLog, TEXT("Target: %s"), *InTarget.ToString());
+		MG_LOG(ABaseUnitActorLog, TEXT("%s; Target: %s"), *GetDebugName(), *InTarget.ToString());
 	}
 	
 	return bOnMove_;
@@ -491,14 +494,14 @@ bool ABaseUnitActor::SpendMovementPoints(float InCost)
 	
 	if (CurrentPoints + KINDA_SMALL_NUMBER < InCost)
 	{
-		MG_LOG(ABaseUnitActorLog, TEXT("Not enough movement points. Current=%.1f Cost=%.1f"), CurrentPoints, InCost);
+		MG_LOG(ABaseUnitActorLog, TEXT("%s; Not enough movement points. Current=%.1f Cost=%.1f"), *GetDebugName(),CurrentPoints, InCost);
 		return false;
 	}
 	
 
 	const float NewPoints = FMath::Clamp( CurrentPoints - InCost, 0.0f, AttributeSet_->GetMaxMovementPoints());
 
-	MG_LOG(ABaseUnitActorLog, TEXT("Current=%.1f Cost=%.1f NewPoints=%.1f"), CurrentPoints, InCost, NewPoints);
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; Current=%.1f Cost=%.1f NewPoints=%.1f"), *GetDebugName(), CurrentPoints, InCost, NewPoints);
 	
 	AttributeSet_->SetMovementPoints(NewPoints);
 	return true;
@@ -509,6 +512,24 @@ void ABaseUnitActor::RestoreMovementPoints()
 {
 	RETURN_ON_FAIL(ABaseUnitActorLog, HasAuthority());
 	RETURN_ON_FAIL(ABaseUnitActorLog, AttributeSet_ != nullptr);
-
+	
+	MG_LOG(ABaseUnitActorLog, TEXT("%s"), *GetDebugName());
+	
 	AttributeSet_->SetMovementPoints(AttributeSet_->GetMaxMovementPoints());
+}
+
+void ABaseUnitActor::OnNewRound(uint32 InRoundNumber)
+{
+	RETURN_ON_FAIL(ABaseUnitActorLog, HasAuthority());
+	MG_LOG(ABaseUnitActorLog, TEXT("%s; InRoundNumber: %u"), *GetDebugName(), InRoundNumber);
+	
+	RestoreMovementPoints();
+}
+
+int32 ABaseUnitActor::GetMovePriority() const
+{
+	const FUnitDescription* Descr = GetDescription();
+	RETURN_ON_FAIL_DEFAULT(ABaseUnitActorLog, Descr != nullptr, 10000);
+	
+	return Descr->MovePriority;
 }

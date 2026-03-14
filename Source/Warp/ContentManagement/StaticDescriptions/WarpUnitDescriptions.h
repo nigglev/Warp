@@ -31,6 +31,9 @@ struct FUnitDescription : public FBaseDescription
 	
 	UPROPERTY(EditAnywhere)
 	float MaxHealth = 100;
+	
+	UPROPERTY(EditAnywhere)
+	int32 MovePriority = 10;
 };
 
 USTRUCT(BlueprintType)
