@@ -176,5 +176,20 @@ void APlacePointer::OnTransformChanged()
 	UHexMapWS* HexMapWS = UHexMapWS::Get(this);
 	RETURN_ON_FAIL(APlacePointerLog, HexMapWS != nullptr);
 	
-	HexMapWS->CaptureCells(GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint);
+	bCaptured_ = HexMapWS->CaptureCells(GetUniqueID(), ActiveUnit_->GetUniqueID(), PathNode_.Coord, AxialAngle_.R, Descr->Footprint, false);
+}
+
+TOptional<FAxialTransform> APlacePointer::GetCapturedTransform(bool IbClear) const
+{
+	if (!bCaptured_)
+		return TOptional<FAxialTransform>();
+	
+	if (IbClear)
+	{
+		UHexMapWS* HexMapWS = UHexMapWS::Get(this);
+		RETURN_ON_FAIL_DEFAULT(APlacePointerLog, HexMapWS != nullptr, {});
+		HexMapWS->ReleaseCells(GetUniqueID());
+	}
+	
+	return TOptional<FAxialTransform>(FAxialTransform(PathNode_.Coord, AxialAngle_));
 }

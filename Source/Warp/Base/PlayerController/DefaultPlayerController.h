@@ -99,7 +99,7 @@ protected:
 	TSubclassOf<class APlacePointer> PlacePointerClass_;
 
 	UFUNCTION(Server, Reliable)
-	void ServerOrderMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	void ServerOrderMove(const FAxialTransform& InTarget);
 	
 	template<ECellType InCellType>
 	void OnCellAction(const FInputActionValue& Value);

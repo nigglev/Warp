@@ -2,14 +2,15 @@
 	"items": [
 		{
 			"defaultPlayerUnitTypes": [
-				"valiant"
+				"valiant_big"
 			],
 			"campaignMapLayerCount": 4,
 			"campaignMapNodeInLayerCountMin": 1,
 			"campaignMapNodeInLayerCountMax": 5,
 			"ghostDelayTime": 0.5,
 			"name": "GameplayDescriptions",
-			"ShipsOnStart": 15
+
+			"ShipsOnStart": 2
 		}
 	],
 	"version": 8

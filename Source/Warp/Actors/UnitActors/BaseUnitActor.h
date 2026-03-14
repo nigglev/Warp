@@ -19,6 +19,8 @@ class WARP_API ABaseUnitActor : public AActor
 public:
 	ABaseUnitActor();
 	virtual void BeginPlay() override;
+	virtual void NotifyActorBeginCursorOver() override;
+	virtual void NotifyActorEndCursorOver() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float InDelta) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -62,6 +64,14 @@ protected:
 	
 	void CapturingHexes();
 	
+	void SetShipOpacity(float InOpacity);
+	
+	UPROPERTY(EditAnywhere, Category="Hover")
+	float HoverOpacity_ = 0.35f;
+
+	UPROPERTY(EditAnywhere, Category="Hover")
+	float NormalOpacity_ = 1.0f;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UnitType)
 	FName UnitType_;
 	
@@ -82,4 +92,7 @@ protected:
 	TObjectPtr<USceneComponent> Root_;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<UStaticMeshComponent> Mesh_;
+	
+	UPROPERTY()
+	TArray<UMaterialInstanceDynamic*> DynamicMaterials_;
 };

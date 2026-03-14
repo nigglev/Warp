@@ -24,16 +24,18 @@ public:
 	// Called every frame
 	virtual void Tick(float InDeltaTime) override;
 	
-	HexMath::FPathNode GetPathNode() const { return PathNode_; }
+	HexMath::FAxialCoord GetCoord() const { return PathNode_.Coord; }
+	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	
+	TOptional<FAxialTransform> GetCapturedTransform(bool IbClear) const;
 	
 	void Set(TArray<HexMath::FPathNode>&& InPath, ABaseUnitActor* InActiveUnit);
 	
-	void FixRotation();
-	
-	FAxialAngle GetAxialAngle() const { return AxialAngle_; }
+	void FixRotation();	
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
+	bool IsCaptured() const { return bCaptured_; }
 
 protected:
 	
@@ -85,4 +87,6 @@ protected:
 	
 	UPROPERTY()
 	ABaseUnitActor* Ghost_;
+	
+	bool bCaptured_ = false;
 };

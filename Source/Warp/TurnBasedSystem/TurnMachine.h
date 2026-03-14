@@ -57,7 +57,7 @@ public:
 	void BroadcastTurnOrderInfo() const;
 	
 	// Called on SERVER from PlayerController RPC
-	void RequestMove(const FRepAxialCoord& InTarget, const FAxialAngle& InAxialAngle);
+	void RequestMove(const FAxialTransform& InTarget);
 
 	bool CanAcceptMove() const;
 
