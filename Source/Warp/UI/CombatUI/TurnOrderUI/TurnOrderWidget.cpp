@@ -50,9 +50,9 @@ void UTurnOrderWidget::UpdateListSize()
 	RETURN_ON_FAIL(UTurnOrderWidgetLog, EntriesSizeBox_);
 
 
-	const int32 NumUnits = CombatUnits_.Num();
-	const int32 ClampedVisibleRows = FMath::Clamp(NumUnits, MinVisibleEntries_, MaxVisibleEntries_);
-
-	const float Height = ClampedVisibleRows * EntryHeight_ + ExtraHeightPadding_;
-	EntriesSizeBox_->SetHeightOverride(Height);
+	// const int32 NumUnits = CombatUnits_.Num();
+	// const int32 ClampedVisibleRows = FMath::Clamp(NumUnits, MinVisibleEntries_, MaxVisibleEntries_);
+	//
+	// const float Height = ClampedVisibleRows * EntryHeight_ + ExtraHeightPadding_;
+	// EntriesSizeBox_->SetHeightOverride(Height);
 }

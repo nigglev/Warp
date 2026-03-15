@@ -31,8 +31,8 @@ void ADefaultWarpHUD::PostInitializeComponents()
 		GS->OnMatchStateChanged.AddUObject(this, &ADefaultWarpHUD::OnMatchStateChanged);
 		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
 		GS->OnUnitStartMoving.AddUObject(this, &ADefaultWarpHUD::OnUnitStartMoving);
-		GS->OnCombatActiveUnitIndexChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatActiveUnitIndexChanged);
-		GS->OnCombatUnitsChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatUnitsChanged);
+		// GS->OnCombatActiveUnitIndexChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatActiveUnitIndexChanged);
+		// GS->OnCombatUnitsChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatUnitsChanged);
 	}
 }
 

@@ -91,5 +91,5 @@ void AWarpGameState::SetUnitsLoaded()
 
 void AWarpGameState::BroadcastUIInfo() const
 {
-	TurnMachine_->BroadcastTurnOrderInfo();
+	//TurnMachine_->BroadcastTurnOrderInfo();
 }
