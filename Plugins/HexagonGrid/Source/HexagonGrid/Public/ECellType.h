@@ -9,7 +9,8 @@ enum class ECellType : uint8
 	MoveProjection,
 	SuccessCaptured,
 	MovingPath,
-	Closed,
 	DenyCapture,
+	FireSector,
+	Closed,
 	MAX
 };

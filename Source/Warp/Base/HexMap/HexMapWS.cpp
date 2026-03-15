@@ -12,6 +12,48 @@
 
 DEFINE_LOG_CATEGORY_STATIC(AHexMapWSLog, Log, All);
 
+namespace
+{
+	template <typename T /*= void */>
+	struct TLessOrEqual
+	{
+		FORCEINLINE bool operator()(const T& A, const T& B) const
+		{
+			return A <= B;
+		}
+	};
+
+	template <>
+	struct TLessOrEqual<void>
+	{
+		template <typename T, typename U>
+		FORCEINLINE bool operator()(T&& A, U&& B) const
+		{
+			return Forward<T>(A) <= Forward<U>(B);
+		}
+	};
+	
+	bool IsHexRayIntersected(const FVector& InRayStart, const FVector& InRayDirection, 
+	   const FVector& InWorldHexCenter, float InHexSize)
+	{
+		static TArray<FVector> Corners;
+		UHexGridWorldSubsystem::GetFlatTopHexCorners(InWorldHexCenter, InHexSize, Corners);
+
+		uint8 Left = 0;
+		bool bForward = false;
+		for (const FVector& Corner : Corners)
+		{
+			FVector Link = Corner - InRayStart;
+			bForward |= FVector::DotProduct(Link, InRayDirection) > 0;
+			
+			if (FVector::CrossProduct(InRayDirection, Link).Z < 0)
+				Left++;
+		}
+			
+		return Left > 0 && Left < 6 && bForward;
+	}
+}
+
 UHexMapWS* UHexMapWS::Get(const UObject* InWorldContextObject)
 {
 	return InWorldContextObject->GetWorld()->GetSubsystem<UHexMapWS>();
@@ -115,6 +157,52 @@ void UHexMapWS::RemoveInfluence(uint32 InId)
 	ClearCells(InId, ECellType::MoveProjection);
 }
 
+void UHexMapWS::SelectSector(uint32 InId, const HexMath::FAxialCoord& InSourceCell, float InRotation, float InSectorAngle, int32 InHexDistance)
+{
+	RETURN_ON_FAIL(AHexMapWSLog, HexGridWS_);
+	
+	ECellType CellType = ECellType::FireSector;
+		
+	UGameSettings* GameSettings = UGameSettings::Get();
+	RETURN_ON_FAIL(AHexMapWSLog, GameSettings);	
+	
+	FIdCellCollection* Collection = GetIdCellCollection(FCollectionKey(InId, CellType), true);
+	RETURN_ON_FAIL(AHexMapWSLog, Collection);
+	
+	float HexSize = UHexGridWorldSubsystem::GetHexSize();
+	
+	FVector Ray = FRotator(0, InRotation, 0).RotateVector(FVector::ForwardVector);
+	FVector WorldSourceCell = UHexGridWorldSubsystem::AxialCellToWorldCoord(InSourceCell, HexSize, 0);
+	
+	float SectorAngle = InSectorAngle / 2;
+	float SectorCos = FMath::Cos(FMath::DegreesToRadians(SectorAngle));
+
+	HexMath::HexMathAxial::IterateAxialNeighbours(InSourceCell, InHexDistance, 
+		[Collection, HexSize, WorldSourceCell, Ray, SectorCos](const HexMath::FAxialCoord& InAxialCoord)
+      {
+			FVector WorldHexCenter = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialCoord, HexSize, 0);
+			
+			FVector Link = WorldHexCenter - WorldSourceCell;
+			Link.Normalize();
+			
+			if (FVector::DotProduct(Link, Ray) > SectorCos)
+				Collection->Cells.AddUnique(InAxialCoord);
+			else if (IsHexRayIntersected(WorldSourceCell, Ray, WorldHexCenter, HexSize))
+				Collection->Cells.AddUnique(InAxialCoord);
+			
+      });
+	
+	for (const HexMath::FAxialCoord& AxialCoord : Collection->Cells)
+	{
+		ChangeCell(AxialCoord, CellType, FCellIdData(InId, 1));
+	}
+}
+
+void UHexMapWS::ReleaseSector(uint32 InId)
+{
+	ClearCells(InId, ECellType::FireSector);
+}
+
 void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 InStartRotation, const HexMath::FAxialCoord& InEnd,
 	const TOptional<int8>& InEndRotation, const FMoveParams& InMoveParams, 
 	TArray<HexMath::FPathNode>& OutPath, bool InDrawHexes)
@@ -125,20 +213,6 @@ void UHexMapWS::FindPath(uint32 InId, const HexMath::FAxialCoord& InStart, int8 
 	
 	UGameSettings* GameSettings = UGameSettings::Get();
 	RETURN_ON_FAIL(AHexMapWSLog, GameSettings);	
-	
-	// if (InEndRotation.IsSet())
-	// {
-	// 	TArray<HexMath::FAxialCoord> Cells;
-	// 	HexMath::CaptureCells(InEnd, InEndRotation.GetValue(), InHull, Cells, GameSettings->PathfinderLog);
-	//
-	// 	bool FindAlreadyCaptured = Cells.ContainsByPredicate([InId, this](const HexMath::FAxialCoord& InCellCoord)
-	// 	{
-	// 		return IsDenyToCapture(InId, InCellCoord);
-	// 	});
-	// 	
-	// 	if (FindAlreadyCaptured)
-	// 		return;
-	// }
 	
 	HexMath::FindPath(InStart, InStartRotation, InEnd, InEndRotation, InMoveParams, OutPath, GameSettings->PathfinderLog);
 	
@@ -184,16 +258,21 @@ TOptional<HexMath::FAxialCoord> UHexMapWS::WorldToAxialCellCoord(const FVector& 
 	return UHexGridWorldSubsystem::WorldToAxialCellCoord(InWorldPoint);
 }
 
-TOptional<FVector> UHexMapWS::AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset)
+FVector UHexMapWS::AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset)
 {
 	return UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialCoord, InZOffset);
+}
+
+HexMath::FAxialCoord UHexMapWS::TransformCell(const HexMath::FAxialCoord& InAxialBaseCoord, int8 InRotation, const HexMath::FOffsetCoord& InLocalShift)
+{
+	return UHexGridWorldSubsystem::TransformCell(InAxialBaseCoord, InRotation, InLocalShift);
 }
 
 UHexMapWS::FIdCellCollection* UHexMapWS::GetIdCellCollection(FCollectionKey InKey, bool InCreate)
 {
 	int32 Index = Algo::UpperBoundBy(IdCellCollections_, InKey, 
 		[](const FIdCellCollection& InCollection) { return InCollection.Key; },
-		TLess<FCollectionKey>());
+		TLessOrEqual<FCollectionKey>());
 	
 	FIdCellCollection* Collection = nullptr;
 	if (IdCellCollections_.IsValidIndex(Index) && IdCellCollections_[Index].Key == InKey)

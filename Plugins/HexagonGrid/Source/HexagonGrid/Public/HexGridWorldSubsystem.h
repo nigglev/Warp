@@ -32,8 +32,14 @@ public:
 
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 
-	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
-	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);
+	static HexMath::FAxialCoord WorldToAxialCellCoord(const FVector& InWorldPoint);
+	static FVector AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset);
+	static FVector AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InHexSize, float InZOffset);
+	static float GetHexSize();
+	
+	static void GetFlatTopHexCorners(const FVector& C, float HexSize, TArray<FVector>& OutCorners);
+
+	static HexMath::FAxialCoord TransformCell(const HexMath::FAxialCoord& InAxialBaseCoord, int8 InRotation, const HexMath::FOffsetCoord& InLocalShift);
 	
 private:
 	

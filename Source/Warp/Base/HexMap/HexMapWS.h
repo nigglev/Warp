@@ -27,6 +27,9 @@ public:
 	void OnChangeObserverPosition(const FVector& InNewPosition);
 	void SetCellType(const FVector& InPosition, ECellType InCellType);
 	
+	void SelectSector(uint32 InId, const HexMath::FAxialCoord& InSourceCell, float InRotation, float InSectorAngle, int32 InHexDistance);
+	void ReleaseSector(uint32 InId);
+	
 	bool CaptureCells(uint32 InId, uint32 InUnitId, const HexMath::FAxialCoord& InCenterCell, int8 InRotation, const FHullHexFootprint& InHull, bool InOnlyCheck);
 	void ReleaseCells(uint32 InId);
 	
@@ -41,7 +44,9 @@ public:
 	bool IsDenyToCapture(uint32 InId, const HexMath::FAxialCoord& InCoord) const;
 	
 	static TOptional<HexMath::FAxialCoord> WorldToAxialCellCoord(const FVector& InWorldPoint);
-	static TOptional<FVector> AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);
+	static FVector AxialCellToWorldCoord(const HexMath::FAxialCoord& InAxialCoord, float InZOffset = 0);
+	
+	static HexMath::FAxialCoord TransformCell(const HexMath::FAxialCoord& InAxialBaseCoord, int8 InRotation, const HexMath::FOffsetCoord& InLocalShift);
 	
 private:
 	struct FCollectionKey
@@ -61,11 +66,18 @@ private:
 
 		FORCEINLINE bool operator < (const FCollectionKey& Rhs) const
 		{
-			if (Id < Rhs.Id)
-				return true;
-			if (Id > Rhs.Id)
-				return false;
-			return CellType < Rhs.CellType;
+			if (Id == Rhs.Id)
+				return CellType < Rhs.CellType;
+			
+			return Id < Rhs.Id;
+		}
+		
+		FORCEINLINE bool operator <= (const FCollectionKey& Rhs) const
+		{
+			if (Id == Rhs.Id)
+				return CellType <= Rhs.CellType;
+            			
+   			return Id < Rhs.Id;
 		}
 	};
 	

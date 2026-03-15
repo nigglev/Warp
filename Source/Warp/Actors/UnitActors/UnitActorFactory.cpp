@@ -16,8 +16,7 @@ AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubc
 {
 	RETURN_ON_FAIL_NULL(UnitFactoryLog, InWorldContext);
 	
-	TOptional<FVector> PosOpt = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialTransform.Position.ToNative());
-	RETURN_ON_FAIL_NULL(UnitFactoryLog, PosOpt.IsSet());
+	FVector SpawnLocation = UHexGridWorldSubsystem::AxialCellToWorldCoord(InAxialTransform.Position.ToNative(), 0);
 	
 	FActorSpawnParameters Params;
 	Params.Owner = InOwner;
@@ -25,7 +24,6 @@ AActor* UnitActorFactory::CreateActor(const UObject* InWorldContext, const TSubc
 
 	UWorld* World = InWorldContext->GetWorld();
 
-	FVector SpawnLocation = PosOpt.GetValue();
 	FRotator SpawnRotation = FRotator(0, InAxialTransform.Rotation.GetYaw(), 0);
 	AActor* UnitActor = World->SpawnActor(InActorClass, &SpawnLocation, &SpawnRotation, Params);
 	
