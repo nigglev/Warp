@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TurnOrderWidget.generated.h"
 
+class UTextBlock;
 class USizeBox;
 class ABaseUnitActor;
 class UCombatUIWidget;
@@ -20,27 +21,31 @@ class WARP_API UTurnOrderWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void RebuildFromHUD(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex);
-	void UpdateCurrentFromHUD(const int32 InActiveUnitIndex);
+	void Rebuild(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
+	void SetActiveUnit(const ABaseUnitActor* InActiveUnit, const ABaseUnitActor* InPrevUnit);
 
 protected:
-	void UpdateListSize();
-
-	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing")
+	void RebuildOrderListOnNewRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
+	void UpdateActiveUnit();
+	void UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight);
+	
+	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="1"))
 	int32 MinVisibleEntries_ = 3;
 
-	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing")
+	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="1"))
 	int32 MaxVisibleEntries_ = 10;
 
-	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="0.0"))
-	float ExtraHeightPadding_ = 0.f;
-	
 	UPROPERTY(EditDefaultsOnly, Category="Turn Order")
 	TSubclassOf<UTurnOrderEntryWidget> tEntryWidgetClass_;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<USizeBox> EntriesSizeBox_ = nullptr;
-	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> EntriesBox_;
-	UPROPERTY()
-	TArray<UTurnOrderEntryWidget*> EntryWidgets_;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* RoundText = nullptr;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USizeBox> EntriesSizeBox_ = nullptr;
+
+	TMap<ABaseUnitActor*, UTurnOrderEntryWidget*> UnitToRow_;
+	ABaseUnitActor* ActiveUnit_ = nullptr;
+
 };
+

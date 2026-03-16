@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "CombatUIWidget.generated.h"
 
+class USizeBox;
 class UTurnOrderWidget;
 class ABaseUnitActor;
 class UBorder;
@@ -25,8 +26,7 @@ public:
 	
 	void ShowCombatUI(bool InShowCombatUI);
 
-	void SetCurrentCombatUnits(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex);
-	void SetCurrentActiveUnitIndex(const int32 InActiveUnitIndex);
+	void UpdateRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
 	
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
@@ -41,10 +41,7 @@ private:
 	UButton* NextTurnButton = nullptr;
 	UPROPERTY(meta=(BindWidget))
 	UButton* ReturnToCampaignMapButton = nullptr;
-	
-	
-	// UPROPERTY(EditDefaultsOnly)
-	// TSubclassOf<UTurnOrderWidget> TurnOrderWidgetClass_;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta=(BindWidget))
 	UTurnOrderWidget* TurnOrderWidget_ = nullptr;
+
 };

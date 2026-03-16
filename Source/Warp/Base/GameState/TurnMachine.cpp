@@ -83,7 +83,6 @@ void UTurnMachine::OnRep_CombatUnits()
 {
     MG_LOG(ATurnMachineLog, TEXT("Replicated combat units; Num = %d"), CombatUnits_.Num());
     CheckLoaded();
-    //GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
 }
 
 void UTurnMachine::CheckLoaded()
@@ -137,7 +136,6 @@ void UTurnMachine::OnRep_TurnState()
     else
     {
         GetOwner()->OnUnitStartMoving.Broadcast(NewActiveUnit);
-        //GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
     }
     
 }
@@ -191,15 +189,11 @@ ABaseUnitActor* UTurnMachine::GetActiveUnit()
     return const_cast<ABaseUnitActor*>(static_cast<const UTurnMachine*>(this)->GetActiveUnit());
 }
 
-// int32 UTurnMachine::GetActiveUnitIndex() const
-// {
-//     return TurnState_.ActiveUnitIndex;
-// }
-//
-// void UTurnMachine::BroadcastTurnOrderInfo() const
-// {
-//     GetOwner()->OnTurnOrderChanged.Broadcast(CombatUnits_, TurnState_.ActiveUnitIndex, TurnState_.RoundNumber);
-// }
+void UTurnMachine::BroadcastStartRound()
+{
+    RETURN_ON_FAIL(ATurnMachineLog, RoundIndex_ == 0);
+    GetOwner()->OnNewRound.Broadcast(CombatUnits_, RoundIndex_);
+}
 
 bool UTurnMachine::CanAcceptMove() const
 {
@@ -281,5 +275,5 @@ void UTurnMachine::SortUnits()
 void UTurnMachine::OnRep_RoundIndex()
 {
     MG_LOG(ATurnMachineLog, TEXT("RoundIndex: %u"), RoundIndex_);
-    GetOwner()->OnNewRound.Broadcast(RoundIndex_);   
+    GetOwner()->OnNewRound.Broadcast(CombatUnits_, RoundIndex_);   
 }

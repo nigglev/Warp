@@ -49,6 +49,8 @@ public:
 	
 	const ABaseUnitActor* GetActiveUnit() const;
 	ABaseUnitActor* GetActiveUnit();
+
+	void BroadcastStartRound();
 	
 	// Called on SERVER from PlayerController RPC
 	void RequestMove(const FAxialTransform& InTarget);

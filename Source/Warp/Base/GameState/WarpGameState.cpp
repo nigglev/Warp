@@ -91,5 +91,7 @@ void AWarpGameState::SetUnitsLoaded()
 
 void AWarpGameState::BroadcastUIInfo() const
 {
-	//TurnMachine_->BroadcastTurnOrderInfo();
+	RETURN_ON_FAIL(AWarpGameStateLog, TurnMachine_);
+	TurnMachine_->BroadcastStartRound();
 }
+

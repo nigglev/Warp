@@ -31,8 +31,7 @@ void ADefaultWarpHUD::PostInitializeComponents()
 		GS->OnMatchStateChanged.AddUObject(this, &ADefaultWarpHUD::OnMatchStateChanged);
 		GS->OnUnitSelected.AddUObject(this, &ADefaultWarpHUD::OnUnitSelected);
 		GS->OnUnitStartMoving.AddUObject(this, &ADefaultWarpHUD::OnUnitStartMoving);
-		// GS->OnCombatActiveUnitIndexChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatActiveUnitIndexChanged);
-		// GS->OnCombatUnitsChanged.AddUObject(this, &ADefaultWarpHUD::OnCombatUnitsChanged);
+		GS->OnNewRound.AddUObject(this, &ADefaultWarpHUD::OnNewRound);
 	}
 }
 
@@ -166,6 +165,7 @@ void ADefaultWarpHUD::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitA
 		HexMapWS->SelectSector(InfluenceZoneId_.GetValue(), CannonCoord, AA.GetYaw() + CannonParam.LocalRotation, 
 			CannonParam.SectorAngle, CannonParam.HexDistance);
 	}
+	
 }
 
 void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
@@ -183,8 +183,7 @@ void ADefaultWarpHUD::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)
 }
 
 
-
-void ADefaultWarpHUD::OnCombatActiveUnitIndexChanged(const int32 InActiveUnitIndex)
+void ADefaultWarpHUD::OnNewRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InActiveUnitIndex)
 {
 	AWarpGameState* GS = GetGameState();
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
@@ -194,18 +193,5 @@ void ADefaultWarpHUD::OnCombatActiveUnitIndexChanged(const int32 InActiveUnitInd
 		return;
 	}
 	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
-	MainWidget_->SetCurrentActiveUnitIndex(InActiveUnitIndex);
-}
-
-void ADefaultWarpHUD::OnCombatUnitsChanged(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex)
-{
-	AWarpGameState* GS = GetGameState();
-	RETURN_ON_FAIL(ADefaultWarpHUDLog, GS);
-	
-	if (GS->GetMatchState() != MatchState::InProgress)
-	{
-		return;
-	}
-	RETURN_ON_FAIL(ADefaultWarpHUDLog, MainWidget_);
-	MainWidget_->SetCurrentCombatUnits(InCombatUnits, InActiveUnitIndex);
+	MainWidget_->UpdateRound(InCombatUnits, InActiveUnitIndex);
 }

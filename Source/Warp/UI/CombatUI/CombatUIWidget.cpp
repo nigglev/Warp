@@ -20,29 +20,25 @@ void UCombatUIWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	if (NextTurnButton)
-	{	
-		NextTurnButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleNextTurnClicked);
-		NextTurnButton->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	RETURN_ON_FAIL(ACombatUIWidgetLog, NextTurnButton);
+	RETURN_ON_FAIL(ACombatUIWidgetLog, ReturnToCampaignMapButton);
+	RETURN_ON_FAIL(ACombatUIWidgetLog, TurnOrderWidget_);
 
-	if (TurnOrderWidget_)
-	{
-		TurnOrderWidget_->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	NextTurnButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleNextTurnClicked);
+	NextTurnButton->SetVisibility(ESlateVisibility::Collapsed);
+	
+	TurnOrderWidget_->SetVisibility(ESlateVisibility::Collapsed);
 
-	if (ReturnToCampaignMapButton)
+	ReturnToCampaignMapButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleReturnToCampaignMapClicked);
+	
+	ADefaultGameMode* GM = Cast<ADefaultGameMode>(GetWorld()->GetAuthGameMode());
+	MG_COND_ERROR_SHORT(ACombatUIWidgetLog, GM == nullptr);
+	if (GM)
 	{
-		ReturnToCampaignMapButton->OnClicked.AddDynamic(this, &UCombatUIWidget::HandleReturnToCampaignMapClicked);
-		
-		ADefaultGameMode* GM = Cast<ADefaultGameMode>(GetWorld()->GetAuthGameMode());
-		MG_COND_ERROR_SHORT(ACombatUIWidgetLog, GM == nullptr);
-		if (GM)
-		{
-			ReturnToCampaignMapButton->SetVisibility(GM->GetMapNode() == EMapNodeType::Undefined 
-				? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
-		}
+		ReturnToCampaignMapButton->SetVisibility(GM->GetMapNode() == EMapNodeType::Undefined 
+			? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 	}
+	
 	
 	ShowCombatUI(true);
 }
@@ -78,23 +74,16 @@ void UCombatUIWidget::ShowCombatUI(bool InShowCombatUI)
 	}
 }
 
-void UCombatUIWidget::SetCurrentCombatUnits(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex)
+void UCombatUIWidget::UpdateRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound)
 {
 	RETURN_ON_FAIL(ACombatUIWidgetLog, TurnOrderWidget_);
-	TurnOrderWidget_->RebuildFromHUD(InCombatUnits, InActiveUnitIndex);
+	TurnOrderWidget_->Rebuild(InCombatUnits, InNewRound);
 }
-
-void UCombatUIWidget::SetCurrentActiveUnitIndex(const int32 InActiveUnitIndex)
-{
-	RETURN_ON_FAIL(ACombatUIWidgetLog, TurnOrderWidget_);
-	TurnOrderWidget_->UpdateCurrentFromHUD(InActiveUnitIndex);
-
-}
-
 
 void UCombatUIWidget::OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit)
 {
 	ShowCombatUI(true);
+	TurnOrderWidget_->SetActiveUnit(InNewActiveUnit, InPrevActiveUnit);
 }
 
 void UCombatUIWidget::OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit)

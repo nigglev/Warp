@@ -39,8 +39,7 @@ protected:
 	void OnMatchStateChanged(FName InMatchState);
 	void OnUnitSelected(ABaseUnitActor* InNewActiveUnit, ABaseUnitActor* InPrevActiveUnit);
 	void OnUnitStartMoving(ABaseUnitActor* InNewActiveUnit);
-	void OnCombatUnitsChanged(const TArray<ABaseUnitActor*>& InCombatUnits, const int32 InActiveUnitIndex);
-	void OnCombatActiveUnitIndexChanged(const int32 InActiveUnitIndex);
+	void OnNewRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
 	
 	bool bShowDebugHUD_ = false;
 	

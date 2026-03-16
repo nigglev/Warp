@@ -7,7 +7,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-DEFINE_LOG_CATEGORY_STATIC(UMainMenuLog, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(UMainMenuButtonLog, Log, All);
 
 bool UMainMenuButton::Initialize()
 {
@@ -16,8 +16,8 @@ bool UMainMenuButton::Initialize()
 	{
 		return false;
 	}
-	RETURN_ON_FAIL_BOOL(UMainMenuLog, MainMenuButton);
-	RETURN_ON_FAIL_BOOL(UMainMenuLog, MainMenuButtonText);
+	RETURN_ON_FAIL_BOOL(UMainMenuButtonLog, MainMenuButton);
+	RETURN_ON_FAIL_BOOL(UMainMenuButtonLog, MainMenuButtonText);
 
 	MainMenuButton->OnClicked.AddDynamic(this, &UMainMenuButton::HandleClicked);
 	return true;
