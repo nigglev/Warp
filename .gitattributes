@@ -1,3 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 Content/BattleMode/Assets/LightCarrierValiant/** filter=lfs diff=lfs merge=lfs -text
+Content/FabContent/NHC_Space_Station_Backgrounds/** filter=lfs diff=lfs merge=lfs -text
