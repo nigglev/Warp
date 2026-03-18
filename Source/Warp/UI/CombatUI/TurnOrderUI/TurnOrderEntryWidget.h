@@ -33,4 +33,9 @@ protected:
 	UImage* ActiveUnitSignImage = nullptr;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USizeBox> EntrySizeBox = nullptr;
+	UPROPERTY(meta = (BindWidget))
+	UBorder* BackgroundBorder = nullptr;
+
+	const FLinearColor ActiveColor   = FLinearColor(1.f, 0.85f, 0.2f, 1.f);
+	const FLinearColor InactiveColor = FLinearColor(1.f, 1.f, 1.f, 1.f);
 };

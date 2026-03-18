@@ -26,7 +26,6 @@ public:
 
 protected:
 	void RebuildOrderListOnNewRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
-	void UpdateActiveUnit();
 	void UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight);
 	
 	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="1"))

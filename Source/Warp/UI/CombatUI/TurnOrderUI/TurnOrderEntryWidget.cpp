@@ -4,6 +4,7 @@
 #include "TurnOrderEntryWidget.h"
 
 #include "MGLogs.h"
+#include "Components/Border.h"
 #include "Components/EditableTextBox.h"
 #include "Components/Image.h"
 #include "Components/MultiLineEditableText.h"
@@ -30,9 +31,17 @@ void UTurnOrderEntryWidget::SetIsCurrent(bool bInCurrent) const
 {
 	RETURN_ON_FAIL(UTurnOrderWidgetEntryLog, ActiveUnitSignImage);
 	if (bInCurrent)
+	{
 		ActiveUnitSignImage->SetVisibility(ESlateVisibility::Visible);
+		BackgroundBorder->SetBrushColor(ActiveColor);
+	}
+		
 	else
+	{
 		ActiveUnitSignImage->SetVisibility(ESlateVisibility::Hidden);
+		BackgroundBorder->SetBrushColor(InactiveColor);
+	}
+		
 }
 
 float UTurnOrderEntryWidget::GetWidth()
