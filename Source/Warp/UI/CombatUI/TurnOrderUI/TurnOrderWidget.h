@@ -26,7 +26,7 @@ public:
 
 protected:
 	void RebuildOrderListOnNewRound(const TArray<ABaseUnitActor*>& InCombatUnits, uint32 InNewRound);
-	void UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight);
+	void UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight) const;
 	
 	UPROPERTY(EditAnywhere, Category="Turn Order|Sizing", meta=(ClampMin="1"))
 	int32 MinVisibleEntries_ = 3;
