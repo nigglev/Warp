@@ -45,7 +45,7 @@ void UTurnOrderWidget::RebuildOrderListOnNewRound(const TArray<ABaseUnitActor*>&
 	RoundText->SetText(FText::AsNumber(InNewRound));
 	
 	float MaxEntryHeight = 0.0f;
-	for (int i = 0; i < InCombatUnits.Num(); ++i)
+	for (int i = InCombatUnits.Num() - 1; i >= 0; --i)
 	{
 		UTurnOrderEntryWidget* Row = CreateWidget<UTurnOrderEntryWidget>(GetOwningPlayer(), tEntryWidgetClass_);
 		
@@ -63,7 +63,7 @@ void UTurnOrderWidget::RebuildOrderListOnNewRound(const TArray<ABaseUnitActor*>&
 	UpdateListSize(InCombatUnits, MaxEntryHeight);
 }
 
-void UTurnOrderWidget::UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight)
+void UTurnOrderWidget::UpdateListSize(const TArray<ABaseUnitActor*>& InCombatUnits, float InMaxEntryHeight) const
 {
 	if (!EntriesSizeBox_)
 	{
