@@ -30,6 +30,8 @@ void UMapViewportWidget::NativeConstruct()
 	UWarpContentSubSystem* Content = UWarpContentSubSystem::Get(this);
 	RETURN_ON_FAIL(AMapViewportWidgetLog, Content);
 
+	if (Content->IsContentLoaded())
+		BuildMap();
 	Content->OnContentLoaded.AddUObject(this, &UMapViewportWidget::BuildMap);
 	
 	InputCatcher->OnMouseButtonDownEvent.BindUFunction(this,

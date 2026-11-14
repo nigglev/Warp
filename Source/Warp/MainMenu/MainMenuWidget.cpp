@@ -6,6 +6,7 @@
 #include "MainMenuButton.h"
 #include "MGLogs.h"
 #include "Components/Button.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 DEFINE_LOG_CATEGORY_STATIC(UMainMenuLog, Log, All);
 
@@ -35,8 +36,8 @@ bool UMainMenuWidget::Initialize()
 
 void UMainMenuWidget::OnNewGameClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("New Game clicked"));
-	// Next step: open ship selection widget or menu state switch
+	UE_LOG(UMainMenuLog, Log, TEXT("New Game clicked. Opening CampaignMap."));
+	UGameplayStatics::OpenLevel(this, FName(TEXT("CampaignMap")));
 }
 
 void UMainMenuWidget::OnOptionsClicked()
